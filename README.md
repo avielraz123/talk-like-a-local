@@ -32,7 +32,8 @@ A free, playful web app for learning languages, for English and Hebrew speakers.
   - mix of everything
 - **Optional speaking practice** with the microphone (Chrome or Edge). It's always skippable and never needed to finish anything.
 - **Dictionary:** search every word in its own script, Latin letters, English or Hebrew.
-- **Review mode** brings back the words you get wrong most often.
+- **Smart review (spaced repetition):** Review shows the words due today. Each word comes back after 1, 3, 7, 16, 35 and then 90 days as you keep getting it right, and a missed word comes back the same day. When nothing is due you can still practice your hardest words.
+- **Daily goal and badges:** pick a daily XP goal (30, 50 or 100 XP) in Settings and earn 16 badges for streaks, goals, words learned and more.
 - **Speed round:** how many can you answer in 60 seconds?
 - **Progress is saved in your browser:** stars, XP points and a daily streak.
 

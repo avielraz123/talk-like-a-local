@@ -631,3 +631,107 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ==========================================================================
+ * Progress feature: smart review (srs-), daily goal (goal-), badges (badge-)
+ * ========================================================================== */
+/* Review button: how many words are due today, as a bubble on its icon. */
+.mode.review .mode-icon { position: relative; }
+.srs-count {
+  position: absolute; top: -7px; inset-inline-end: -7px; min-width: 24px; height: 24px; padding: 0 6px;
+  display: grid; place-items: center; border-radius: 999px; font-style: normal; font-size: 13px; font-weight: 700; line-height: 1;
+  background: var(--coral); color: #fff; box-shadow: 0 2px 0 var(--coral-d); border: 2px solid var(--surface);
+}
+.srs-none h1 { margin: 10px 0 6px; font-size: 28px; }
+
+/* Daily goal card on the menu */
+.goal-card {
+  display: flex; align-items: center; gap: 12px; margin: 0 0 18px; padding: 10px 12px;
+  background: var(--surface); border: 3px solid var(--line-strong); border-radius: 20px; box-shadow: 0 5px 0 var(--line-strong);
+}
+.goal-card.done { border-color: var(--green); box-shadow: 0 5px 0 var(--green-d); background: color-mix(in srgb, var(--green) 10%, var(--surface)); }
+.goal-ring { position: relative; width: 54px; height: 54px; flex: none; }
+.goal-ring svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+[dir="rtl"] .goal-ring svg { transform: rotate(-90deg) scaleY(-1); } /* fills right to left */
+.goal-ring circle { fill: none; stroke-width: 5.5; }
+.goal-ring-bg { stroke: var(--surface-2); }
+.goal-ring-fg { stroke: var(--orange); stroke-linecap: round; transition: stroke-dasharray .5s ease; }
+.goal-ring-fg[stroke-dasharray^="0 "] { display: none; }
+.goal-card.done .goal-ring-fg { stroke: var(--green); }
+.goal-ring-icon { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; }
+.goal-body { flex: 1; min-width: 0; display: grid; line-height: 1.25; }
+.goal-title { font-size: 17px; }
+.goal-num { color: var(--muted); font-size: 14px; font-weight: 600; }
+.goal-badges {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; white-space: nowrap;
+  background: var(--surface-2); color: var(--text); border: 2px solid var(--line-strong); border-radius: 999px;
+  font-size: 15px; font-weight: 600; box-shadow: 0 3px 0 var(--line-strong);
+}
+.goal-badges:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-strong); }
+.goal-badges-n { color: var(--muted); font-size: 13px; }
+@media (max-width: 370px) {
+  .goal-card { gap: 10px; padding: 8px 10px; } .goal-title { font-size: 16px; }
+  .goal-badges { padding: 6px 10px; } .goal-badges-label { display: none; } /* the button keeps its aria-label */
+}
+
+/* Settings: daily goal */
+.goal-seg { display: grid; grid-template-columns: repeat(3, 1fr); }
+.goal-seg button { display: grid; gap: 0; padding: 8px 6px; text-align: center; line-height: 1.25; }
+.goal-seg small { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+/* Celebration banners (daily goal reached, new badges) on results screens and the menu */
+.celebrate { position: relative; display: grid; gap: 8px; margin: 16px 0 4px; text-align: start; animation: pop .4s backwards; }
+.menu .celebrate { margin: 0 0 14px; }
+.goal-toast, .badge-toast {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; padding-inline-end: 52px;
+  border-radius: 18px; border: 3px solid; text-align: start; color: var(--text);
+}
+.goal-toast { border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, var(--surface)); }
+.badge-toast { border-color: var(--sun-d); background: color-mix(in srgb, var(--sun) 22%, var(--surface)); box-shadow: 0 4px 0 var(--sun-d); }
+.badge-toast:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--sun-d); }
+.celebrate > :not(:first-child):not(.cele-close) { padding-inline-end: 12px; }
+.cele-icon { font-size: 30px; line-height: 1; flex: none; }
+.cele-text { display: grid; min-width: 0; line-height: 1.3; }
+.cele-text strong { font-size: 17px; }
+.cele-text small { color: var(--muted); font-size: 14px; font-weight: 600; }
+.cele-close { position: absolute; top: 8px; inset-inline-end: 8px; width: 34px; height: 34px; font-size: 14px; border-radius: 12px; }
+
+/* Badges page */
+.badge-summary { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font-weight: 600; }
+.badge-summary .progress i { background: linear-gradient(180deg, var(--sun), var(--sun-d)); }
+.badge-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+@media (max-width: 370px) { .badge-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
+.badge-card {
+  display: grid; justify-items: center; align-content: start; gap: 4px; padding: 14px 10px 12px; text-align: center;
+  background: var(--surface); border: 3px solid var(--line-strong); border-radius: 20px; box-shadow: 0 5px 0 var(--line-strong);
+}
+.badge-card.unlocked { border-color: var(--sun-d); box-shadow: 0 5px 0 var(--sun-d); background: color-mix(in srgb, var(--sun) 12%, var(--surface)); }
+.badge-icon {
+  width: 62px; height: 62px; display: grid; place-items: center; font-size: 36px; line-height: 1; border-radius: 50%;
+  background: var(--surface-2); margin-bottom: 4px;
+}
+.badge-card.unlocked .badge-icon { background: color-mix(in srgb, var(--sun) 38%, var(--surface)); box-shadow: 0 3px 0 var(--sun-d); }
+.badge-card.locked .badge-icon { filter: grayscale(1); opacity: .5; }
+.badge-name { font-size: 16px; line-height: 1.25; }
+.badge-card.locked .badge-name { color: var(--muted); }
+.badge-desc { font-size: 13px; line-height: 1.3; color: var(--muted); }
+.badge-date, .badge-lock { margin-top: 4px; font-size: 12.5px; font-weight: 700; border-radius: 12px; padding: 1px 9px; }
+@media (max-width: 370px) { .badge-date, .badge-lock { font-size: 11.5px; padding: 1px 7px; white-space: nowrap; } }
+.badge-date { color: var(--ok); background: var(--ok-bg); }
+.badge-lock { color: var(--muted); background: var(--surface-2); }
+.badge-note { font-size: 14px; text-align: center; margin: 18px 4px 0; }
+
+/* Review results: words still due today */
+.srs-left { margin: 6px 0 0; font-weight: 600; }
+/* Celebration banners on the topic page (after the flashcards) */
+.topic-page .celebrate { margin: 0 0 14px; }
+/* Goal just reached on the menu: the card itself celebrates (no extra banner) */
+.goal-card.just { animation: goal-pop .7s ease-out; }
+.goal-card.just .goal-ring-icon { animation: goal-pop .7s .15s ease-out backwards; }
+@keyframes goal-pop { 0% { transform: scale(.9); } 55% { transform: scale(1.05); } 100% { transform: scale(1); } }
+/* Dark mode: a lighter sun tint with warm borders, so badge banners and cards don't turn muddy grey */
+@media (prefers-color-scheme: dark) {
+  .badge-toast { background: color-mix(in srgb, var(--sun) 11%, var(--surface)); border-color: var(--sun); box-shadow: 0 4px 0 var(--sun-d); }
+  .badge-card.unlocked { background: color-mix(in srgb, var(--sun) 7%, var(--surface)); border-color: var(--sun); }
+  .badge-card.unlocked .badge-icon { background: color-mix(in srgb, var(--sun) 24%, var(--surface)); }
+}
