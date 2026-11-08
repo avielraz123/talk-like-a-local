@@ -334,6 +334,8 @@
     return { count: Math.floor(num(sk.count, 0, 1e6)), last: typeof sk.last === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(sk.last) ? sk.last : null };
   }
 
+  /** Own keys of a saved map, without '__proto__' (Object.assign would turn it into a prototype). */
+  const ownCopy = (m) => { const out = {}; Object.keys(obj(m)).forEach((k) => { if (k !== '__proto__') out[k] = m[k]; }); return out; };
   /** v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise. */
   function migrateTopics(topics) {
     topics = obj(topics);
@@ -342,12 +344,12 @@
       if (k === '__proto__') return;
       const rec = obj(topics[k]);
       const stages = rec.stages ? rec.stages : rec.stars ? { mix: rec.stars } : {};
-      out[k] = Object.assign({}, rec, { best: num(rec.best, 0, 100), stages: numMap(stages, 0, 3) });
+      out[k] = Object.assign(ownCopy(rec), { best: num(rec.best, 0, 100), stages: numMap(stages, 0, 3) });
     });
     return out;
   }
   function normLangState(ls) {
-    ls = Object.assign(freshLangState(), obj(ls));
+    ls = Object.assign(freshLangState(), ownCopy(ls));
     ls.topics = migrateTopics(ls.topics);
     ls.words = numMap(ls.words, 0, 5);
     ls.speedBest = Math.floor(num(ls.speedBest, 0, 1e6));
@@ -355,17 +357,21 @@
     if (ls.track !== 'speak' && ls.track !== 'full') ls.track = null;
     return ls;
   }
+  /** Codes from saved or imported data: only real ones count, never inherited names like 'constructor'. */
+  const isLangCode = (k) => LANG_CODES.includes(k);
+  const isUiLang = (k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(STR, k);
   function normalizeState(st) {
-    st = Object.assign(freshState(), obj(st));
+    st = Object.assign(freshState(), ownCopy(st));
     st.v = 2;
     st.xp = Math.floor(num(st.xp, 0, 1e9));
     st.streak = normStreak(st.streak);
-    st.langs = obj(st.langs);
-    Object.keys(st.langs).forEach((k) => { if (LANGS[k]) st.langs[k] = normLangState(st.langs[k]); else delete st.langs[k]; });
+    const langs = obj(st.langs);
+    st.langs = {};
+    Object.keys(langs).forEach((k) => { if (isLangCode(k)) st.langs[k] = normLangState(langs[k]); });
     if (st.settings) {
-      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false }, obj(st.settings));
-      if (!STR[st.settings.uiLang]) st.settings.uiLang = 'en';
-      if (!LANGS[st.settings.lang]) st.settings.lang = null;
+      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false }, ownCopy(st.settings));
+      if (!isUiLang(st.settings.uiLang)) st.settings.uiLang = 'en';
+      if (!isLangCode(st.settings.lang)) st.settings.lang = null;
       st.settings.speech = !!st.settings.speech;
     }
     return st;
@@ -897,7 +903,7 @@
         <h2>${esc(t(titles[key], code))}</h2>
         ${key === 'lang' ? `<p class="muted center sub">${esc(t('chooseLearnSub'))}</p>` : ''}
         ${choices}
-        ${key === 'level' && code ? placeOfferHTML(code, placeFailed) : ''}
+        ${key === 'level' && code ? placeOfferHTML(code, placeFailed === code) : ''}
         <div class="row">
           ${step > 0 || setupOnly ? `<button class="btn ghost" id="ob-back">${esc(t('back'))}</button>` : '<span></span>'}
           <button class="btn primary" id="ob-next" data-enter ${choice[key] === null ? 'disabled' : ''}>
@@ -925,13 +931,13 @@
       });
       const place = $('#place-start', app);
       if (place) place.addEventListener('click', () => renderPlacement(code, {
-        onPick: (lv) => { placeFailed = false; choice.level = lv; advance(); },
-        onBack: () => { placeFailed = false; draw(); },
-        onFail: () => { placeFailed = true; draw(); },
+        onPick: (lv) => { placeFailed = null; choice.level = lv; advance(); },
+        onBack: () => { placeFailed = null; draw(); },
+        onFail: () => { placeFailed = code; draw(); },
       }));
       $('#ob-next', app).addEventListener('click', advance);
     }
-    let placeFailed = false;
+    let placeFailed = null; // the language whose test couldn't load (the note shows only for it)
     /** Next step, or finish. Also used by the placement test's "Use <level>". */
     function advance() {
       const key = stepsNow()[step];
@@ -2043,7 +2049,7 @@
   function dictEntry(row) {
     const it = row.e.it;
     const word = readerMode() ? it.tg : it.tr;
-    return `<div class="dict-entry">${dictRow(row)}<a class="report-flag" href="${esc(reportHref(it, 'dictionary'))}"
+    return `<div class="report-entry">${dictRow(row)}<a class="report-flag" href="${esc(reportHref(it, 'dictionary'))}"
       aria-label="${esc(fmt(t('report_aria'), { word }))}" title="${esc(t('report_link'))}"><span aria-hidden="true">🚩</span></a></div>`;
   }
 
@@ -2088,7 +2094,8 @@
   }
   /** Read a pasted code, or a file's text (JSON or a code). Resolves to a normalized state; rejects with 'empty' | 'nogzip' | 'bad'. */
   async function readProgress(text) {
-    let s = String(text == null ? '' : text).replace(/^﻿/, '').trim();
+    // Chat and mail apps (Hebrew ones above all) may add invisible direction marks, zero-width spaces or a BOM.
+    let s = String(text == null ? '' : text).replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]+/g, '').trim();
     if (!s) throw new Error('empty');
     let json = s;
     if (s[0] !== '{') {
@@ -2134,18 +2141,33 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
-  /** Copy to the clipboard; if that's not allowed, select the code in its box (and try the old copy command). */
-  function copyText(text, box) {
-    const bySelecting = () => {
+  /**
+   * Copy to the clipboard; if that's not allowed, show the code selected in its box (and try the old copy command).
+   * src is the text, or a promise of it. Call this right inside the tap: Safari only allows clipboard writes
+   * that start there, so a ready text is written at once, and a promised one goes through a ClipboardItem.
+   */
+  function copyText(src, box) {
+    const textP = Promise.resolve(src);
+    const bySelecting = (text) => {
+      box.value = text;
+      box.hidden = false;
       box.focus();
       box.select();
       try { box.setSelectionRange(0, text.length); } catch (e) { /* ignore */ }
       try { return document.execCommand('copy'); } catch (e) { return false; }
     };
-    if (!navigator.clipboard || !navigator.clipboard.writeText) return Promise.resolve(bySelecting());
+    const clip = navigator.clipboard;
+    let write = null;
+    try {
+      if (clip && clip.writeText && typeof src === 'string') write = clip.writeText(src);
+      else if (clip && clip.write && typeof ClipboardItem === 'function') {
+        write = clip.write([new ClipboardItem({ 'text/plain': textP.then((c) => new Blob([c], { type: 'text/plain' })) })]);
+      } else if (clip && clip.writeText) write = textP.then((c) => clip.writeText(c));
+    } catch (e) { write = null; }
+    if (!write) return textP.then(bySelecting);
     const late = new Promise((r) => setTimeout(() => r(false), 1500));
-    return Promise.race([navigator.clipboard.writeText(text).then(() => true, () => false), late])
-      .then((ok) => ok || bySelecting());
+    return Promise.race([Promise.resolve(write).then(() => true, () => false), late])
+      .then((ok) => ok || textP.then(bySelecting));
   }
   function xferHTML() {
     return `<section class="xfer" aria-labelledby="xfer-h">
@@ -2176,13 +2198,24 @@
     const paste = $('#xfer-paste', root);
     const file = $('#xfer-file', root);
     const fail = (msg) => { errBox.textContent = msg || ''; errBox.hidden = !msg; };
+    // Make the code ahead of time, so a tap on "Copy" can write it to the clipboard straight away.
+    let ready = null; // { json, code }
+    const prepare = () => {
+      const json = JSON.stringify(S);
+      progressCode(S).then((code) => { if (JSON.stringify(S) === json) ready = { json, code }; }, () => {});
+    };
+    prepare();
     $('#xfer-copy', root).addEventListener('click', async () => {
       status.textContent = '';
-      const code = await progressCode(S);
+      const json = JSON.stringify(S);
+      const codeP = ready && ready.json === json ? ready.code : progressCode(S);
+      const okP = copyText(codeP, codeBox); // synchronously inside the tap
+      const code = await codeP;
       codeBox.value = code;
       codeBox.hidden = false;
-      const ok = await copyText(code, codeBox);
+      const ok = await okP;
       status.textContent = ok ? t('xfer_copied') : t('xfer_copyManual');
+      if (!ready || ready.json !== json) ready = { json, code };
     });
     $('#xfer-download', root).addEventListener('click', () => {
       downloadProgress();
@@ -2218,9 +2251,9 @@
   }
   /** In-app confirmation before replacing this device's progress. */
   function confirmReplace(st, back) {
-    $$('.xfer-modal', app).forEach((m) => m.remove());
+    $$('.xfer-modal', app).forEach((m) => (m.xferShut ? m.xferShut() : m.remove()));
     const langs = Object.keys(st.langs).filter((c) => LANGS[c]);
-    const what = esc(langs.length ? langs.map(langName).join(', ') : t('xfer_noLangs')) + ` · <bdi dir="ltr">${esc(st.xp)} XP</bdi>`;
+    const what = esc(langs.length ? langs.map(langName).join(', ') : t('xfer_noLangs')) + ` · <bdi class="xfer-xp" dir="ltr">${esc(st.xp)} XP</bdi>`;
     const box = document.createElement('div');
     box.className = 'xfer-modal';
     box.innerHTML = `<div class="xfer-dialog" role="alertdialog" aria-modal="true" aria-labelledby="xfer-c-h" aria-describedby="xfer-c-p">
@@ -2230,17 +2263,35 @@
       <div class="row"><button class="btn ghost" id="xfer-cancel">${esc(t('xfer_cancel'))}</button>
       <button class="btn danger" id="xfer-replace">${esc(t('xfer_replace'))}</button></div>
     </div>`;
+    // Everything behind the dialog is inert (no focus, no clicks, hidden from screen readers) while it is open.
+    const behind = Array.from(app.children).filter((el) => !el.inert);
+    behind.forEach((el) => { el.inert = true; });
     app.appendChild(box);
     const cancel = $('#xfer-cancel', box);
     const replace = $('#xfer-replace', box);
-    const close = () => { box.remove(); if (back && back.isConnected) back.focus(); };
+    // Keys are handled on the whole page, so Escape and Tab still work after a click on the dialog's text.
+    const onKey = (e) => {
+      if (!box.isConnected) { unhook(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === 'Tab') { e.preventDefault(); (document.activeElement === cancel ? replace : cancel).focus(); }
+    };
+    const onFocus = (e) => {
+      if (!box.isConnected) { unhook(); return; }
+      if (!box.contains(e.target)) cancel.focus();
+    };
+    function unhook() {
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('focusin', onFocus, true);
+      behind.forEach((el) => { el.inert = false; });
+    }
+    const shut = () => { unhook(); box.remove(); };
+    box.xferShut = shut;
+    const close = () => { shut(); if (back && back.isConnected) back.focus(); };
     cancel.addEventListener('click', close);
-    replace.addEventListener('click', () => { box.remove(); replaceProgress(st); });
+    replace.addEventListener('click', () => { shut(); replaceProgress(st); });
     box.addEventListener('click', (e) => { if (e.target === box) close(); });
-    box.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.stopPropagation(); close(); }
-      if (e.key === 'Tab') { e.preventDefault(); (document.activeElement === cancel ? replace : cancel).focus(); }
-    });
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('focusin', onFocus, true);
     cancel.focus();
   }
 
@@ -2255,17 +2306,53 @@
   const placeMeaning = (it) => it[ui()] || it.en || '';
   const placeFits = (it) => !it.isLetter && visualLen(it.tg) <= 32 && String(placeMeaning(it)).length <= 60;
   /** Plain lowercase words of 4+ letters, without accents (rōmaji macrons, ʿ, á ...). */
-  const placeWords = (s) => String(s || '').normalize('NFD').replace(/[\p{M}\p{Lm}]/gu, '').toLowerCase()
-    .split(/[^\p{L}]+/u).filter((w) => w.length >= 4);
+  const placeWords = (s, min = 4) => String(s || '').normalize('NFD').replace(/[\p{M}\p{Lm}]/gu, '').toLowerCase()
+    .split(/[^\p{L}]+/u).filter((w) => w.length >= min);
   /** True if the answer gives itself away: a loanword or name whose reading is in the meaning ("tatami", "fujisan" = Mount Fuji). */
+  /**
+   * A word's consonant skeleton, with common spelling differences between rōmaji/transliteration and English
+   * evened out: "resutoran" and "restaurant" -> rstrn / rstrnt, "doraiyā" and "dryer" -> dr, "imeyl" and "email" -> mr.
+   */
+  const placeSkeleton = (w) => w.replace(/x/g, 'ks').replace(/ph/g, 'f').replace(/[sc]h/g, 's').replace(/ck|q|c/g, 'k').replace(/l/g, 'r')
+    .replace(/v/g, 'b').replace(/z/g, 's').replace(/[aeiouyw']/g, '').replace(/(.)\1+/g, '$1');
+  function placeEdits(a, b) {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      for (let j = 1; j <= b.length; j++) row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = row;
+    }
+    return prev[b.length];
+  }
+  /** Do these two words sound alike (a loanword and its English source)? loose: for katakana words, which are mostly loanwords. */
+  function placeAlike(a, b, loose) {
+    if (a.startsWith(b) || b.startsWith(a)) return true;
+    const x = placeSkeleton(a);
+    const y = placeSkeleton(b);
+    const n = Math.max(x.length, y.length);
+    return Math.min(x.length, y.length) >= (loose ? 1 : 2) && placeEdits(x, y) / n <= (loose ? 0.5 : 0.3);
+  }
+  /** Japanese written only in katakana: nearly always a loanword ("sētā" = sweater, "doa" = door). */
+  const placeKatakana = (it) => /^[゠-ヿ\s・。、！？!?.]+$/.test(it.tg || '');
+  /** True if the answer gives itself away: a loanword or name whose reading is in the meaning ("tatami", "resutoran" = restaurant). */
   function placeGiveaway(it) {
-    const said = placeWords((it.tr || '') + ' ' + (it.tg || ''));
-    const meant = placeWords(it.en + ' ' + placeMeaning(it));
-    return said.some((a) => meant.some((b) => a.startsWith(b) || b.startsWith(a)));
+    const loose = placeKatakana(it);
+    const words = (s) => (loose ? placeWords(s, 3) : placeWords(s));
+    const said = words((it.tr || '') + ' ' + (it.tg || ''));
+    const meant = words(it.en + ' ' + placeMeaning(it));
+    return said.some((a) => meant.some((b) => placeAlike(a, b, loose)));
   }
   const placeAskable = (it) => placeFits(it) && !placeGiveaway(it);
+  /** A meaning without its notes in brackets: "two hundred (200)" -> "two hundred". */
+  const placeBare = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  /** Each separate gloss of a meaning ("money / cash" -> money, cash), lowercased and without notes. */
+  const placeGlosses = (it) => [placeMeaning(it), it.en].flatMap((m) => placeBare(m).split(/\s*[\/;,]\s*/))
+    .map((g) => low(g).replace(/[.?!؟]+$/, '').trim()).filter(Boolean);
   /** A whole sentence or a short word/phrase? Wrong options get the same shape as the answer, so the shape gives nothing away. */
-  const placeSentence = (it) => { const m = String(placeMeaning(it)).trim(); return /[.?!؟]$/.test(m) || m.split(/\s+/).length >= 3; };
+  const placeSentence = (it) => {
+    const m = String(placeMeaning(it)).trim();
+    return /[.?!؟]$/.test(m) || placeBare(m).split(/\s+/).length >= 4;
+  };
   /** Lessons a question may come from: words, phrases and grammar of one level (never letters or stories). */
   const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind));
   /**
@@ -2274,6 +2361,7 @@
    */
   function placeOptions(it, pool, all, lessonOf) {
     const seen = new Set([low(placeMeaning(it))]);
+    const glosses = new Set(placeGlosses(it)); // a wrong option may not share a meaning with the answer ("money" / "money (colloquial)")
     const out = [];
     const shape = placeSentence(it);
     const same = (p) => p.filter((x) => placeSentence(x) === shape);
@@ -2283,7 +2371,7 @@
     [same(lesson), same(group), same(pool), same(all), pool, all].forEach((p) => shuffle(p).forEach((x) => {
       if (out.length >= 3 || x === it || sameAnswer(it, x)) return;
       const k = low(placeMeaning(x));
-      if (seen.has(k)) return;
+      if (seen.has(k) || placeGlosses(x).some((g) => glosses.has(g))) return;
       seen.add(k);
       out.push(x);
     }));
@@ -2334,14 +2422,23 @@
       right: { beginner: 0, intermediate: 0, advanced: 0 }, asked: { beginner: 0, intermediate: 0, advanced: 0 } };
     placeRun = run;
     const leave = (fn) => { if (placeRun !== run) return; placeRun = null; fn(); };
+    // If files failed to load (e.g. no network), forget that load so the next try fetches them again.
+    const fail = () => {
+      const report = LOAD_REPORT[code];
+      if (placeRun === run && (!report || report.failed.length)) { delete LOADS[code]; delete DBS[code]; }
+      leave(cb.onFail);
+    };
     const start = () => {
       if (placeRun !== run) return;
       let qs = [];
       try { qs = placementQuestions(dbFor(code)); } catch (e) { qs = []; }
-      if (qs.length < PLACE_PER_LEVEL) { leave(cb.onFail); return; }
+      if (qs.length < PLACE_PER_LEVEL) { fail(); return; }
       run.qs = qs;
       drawPlaceQuestion(run);
     };
+    // An earlier load that is over and got nothing at all (e.g. while offline): try again now.
+    const prev = LOAD_REPORT[code];
+    if (LOADS[code] && prev && !prev.loaded.length && prev.failed.length >= filesOf(code).length) { delete LOADS[code]; delete DBS[code]; }
     if (DBS[code] && LOADS[code]) { start(); return; }
     render(`<main class="center-page loading-page place-loading" aria-busy="true">
       ${mascot('happy', 'mascot-hero', code)}
@@ -2351,7 +2448,7 @@
       <div class="stack"><button class="btn ghost" id="place-cancel">${esc(t('place_exit', code))}</button></div>
     </main>`, false);
     $('#place-cancel', app).addEventListener('click', () => leave(cb.onBack));
-    ensureLoaded(code).then(start, () => leave(cb.onFail));
+    ensureLoaded(code).then(start, fail);
   }
   function drawPlaceQuestion(run) {
     const { code } = run;
@@ -2476,7 +2573,7 @@
     finish: finishSession,
     // Report a mistake / move progress / placement test
     reportHref, progressCode, readProgress, importState, replaceProgress, progressFileName, confirmReplace,
-    placementQuestions, placementLevel, renderPlacement, dbFor,
+    placementQuestions, placementLevel, renderPlacement, dbFor, placeGiveaway, placeSentence,
     placement: () => placeRun,
     setPlaceDelay(ms) { placeDelay = ms; },
   };

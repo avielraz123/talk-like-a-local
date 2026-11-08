@@ -895,7 +895,7 @@
       if (!fl || !fl.getAttribute('href').includes(enc('Item: ' + q.item.id)) || !fl.getAttribute('href').includes(enc('Screen: exercise'))) err('report: no link for the item in the answer panel');
       // Dictionary: a small flag per entry, next to (not inside) the row button.
       T.renderDictionary();
-      const entries = $$('.dict-entry');
+      const entries = $$('.report-entry');
       if (!entries.length || entries.length !== $$('.dict-row').length) err('report: dictionary rows not wrapped in entries');
       if (entries.some((e) => !e.querySelector(':scope > .dict-row') || !e.querySelector(':scope > a.report-flag[aria-label]'))) err('report: a dictionary entry without its flag');
       const e0 = entries[0];
@@ -948,6 +948,24 @@
         if (ok) err(`xfer: bad input accepted: ${bad.slice(0, 30)}`);
       }
       if (JSON.stringify(T.state()) !== snapshot) err('xfer: reading codes changed the state');
+      // Invisible marks that chat and mail apps add (LRM/RLM, zero-width space, bidi isolates/embeddings, BOM) are ignored.
+      const ch = (n) => String.fromCharCode(n);
+      const marked = [ch(0x200E) + gz + ch(0x200E), ch(0x200F) + gz, gz.slice(0, 20) + ch(0x200B) + gz.slice(20), ch(0x2066) + gz + ch(0x2069),
+        ch(0x202B) + gz + ch(0x202C), ch(0x2068) + ' ' + plain + ' ' + ch(0x2069), ch(0xFEFF) + ch(0x200F) + snapshot];
+      for (const text of marked) {
+        try { if (JSON.stringify(await T.readProgress(text)) !== snapshot) err('xfer: a code with invisible marks changed the state'); }
+        catch (e) { err(`xfer: a code with invisible marks rejected (${e.message}): ${Array.from(text.slice(0, 3)).map((c) => c.charCodeAt(0).toString(16))}`); }
+      }
+      // Only real language codes count: inherited names ('constructor', 'toString', '__proto__') are dropped, never saved.
+      const protoJSON = `{"v":2,"settings":{"uiLang":"constructor","lang":"constructor","speech":false},"langs":{"constructor":{"level":"beginner"},"toString":{},"__proto__":{"level":"beginner"},"${code}":{"level":"beginner","topics":{"__proto__":{"best":5}},"words":{}}}}`;
+      try {
+        const ps = await T.readProgress(protoJSON);
+        if (ps.settings.lang !== null || ps.settings.uiLang !== 'en' || Object.keys(ps.langs).join() !== code
+          || Object.getPrototypeOf(ps.langs) !== Object.prototype || Object.getPrototypeOf(ps) !== Object.prototype
+          || Object.keys(ps.langs[code].topics).length) err('xfer: inherited names kept: ' + JSON.stringify(ps));
+        const ps2 = T.normalizeState(JSON.parse(`{"v":2,"settings":{"uiLang":"he","lang":"toString"},"langs":{}}`));
+        if (ps2.settings.lang !== null || ps2.settings.uiLang !== 'he') err('xfer: settings.lang "toString" kept');
+      } catch (e) { err('xfer: a save with odd language names was rejected (' + e.message + ')'); }
 
       // Settings section.
       T.renderSettings();
@@ -955,6 +973,7 @@
       const fileIn = $('#xfer-file');
       if (!fileIn || fileIn.type !== 'file' || !fileIn.hidden || fileIn.accept !== '.json,application/json,text/plain') err('xfer: hidden file input');
       if (!$('label[for="xfer-paste"]')) err('xfer: paste box has no label');
+      if (parseFloat(getComputedStyle($('#xfer-paste')).fontSize) < 16) err('xfer: paste box under 16px (iPhones zoom in on focus)');
       $('#xfer-copy').click();
       await waitFor(() => $('#xfer-status') && $('#xfer-status').textContent);
       const box = $('#xfer-code');
@@ -1083,6 +1102,27 @@
       document.activeElement.blur();
       enter(document.body);
       if (!$('.xfer-modal') || !$('.settings')) err('safety: Enter behind the dialog left Settings');
+      // The page behind is inert; Tab and Escape still work after focus left the dialog (e.g. a click on its text).
+      if (!$('.settings') || !$('.settings').closest('[inert]')) err('safety: the page behind the dialog is not inert');
+      if ($('.xfer-modal') && $('.xfer-modal').closest('[inert]')) err('safety: the dialog itself is inert');
+      document.activeElement.blur();
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+      if (!$('.xfer-modal') || !$('.xfer-modal').contains(document.activeElement)) err('safety: Tab from outside did not go back into the dialog');
+      document.activeElement.blur();
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      if ($('.xfer-modal')) err('safety: Escape with focus outside the dialog did not close it');
+      if ($('[inert]')) err('safety: the page stays inert after the dialog closed');
+      if ($('#xfer-cancel')) $('#xfer-cancel').click();
+      // Opening it twice leaves one dialog, and closing it frees the page.
+      T.confirmReplace(T.importState({ v: 2, langs: {} }), null);
+      T.confirmReplace(T.importState({ v: 2, langs: {} }), null);
+      if ($$('.xfer-modal').length !== 1) err('safety: two dialogs open');
+      if ($('#xfer-cancel')) $('#xfer-cancel').click();
+      if ($('[inert]')) err('safety: the page stays inert after a reopened dialog closed');
+      // The XP in the summary never breaks across lines.
+      T.confirmReplace(T.importState({ v: 2, xp: 1234, langs: {} }), null);
+      const xpEl = $('.xfer-modal .xfer-xp');
+      if (!xpEl || getComputedStyle(xpEl).whiteSpace !== 'nowrap') err('safety: XP in the dialog can wrap');
       if ($('#xfer-cancel')) $('#xfer-cancel').click();
     }
 
@@ -1134,13 +1174,20 @@
       if (new Set(seen.map((q) => q.item.en.toLowerCase())).size !== seen.length) err(`${where}: the same meaning asked twice`);
       // No give-aways: the reading is not in the meaning ("tatami = tatami"), and the answer has the shape of the others.
       const words = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f\u02b0-\u02ff]/g, '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);
-      const sentence = (x) => { const m = String(x[html.lang === 'he' ? 'he' : 'en'] || x.en).trim(); return /[.?!؟]$/.test(m) || m.split(/\s+/).length >= 3; };
+      const bare = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').trim();
+      const sentence = (x) => { const m = String(x[html.lang === 'he' ? 'he' : 'en'] || x.en).trim(); return /[.?!؟]$/.test(m) || bare(m).split(/\s+/).length >= 4; };
+      const glosses = (x) => [x[html.lang === 'he' ? 'he' : 'en'], x.en].flatMap((m) => bare(m).split(/\s*[/;,]\s*/)).map((g) => g.toLowerCase().replace(/[.?!؟]+$/, '').trim()).filter(Boolean);
       seen.forEach((q) => {
         const said = words(q.item.tr + ' ' + q.item.tg);
         if (said.some((a) => words(q.item.en).some((b) => a.startsWith(b) || b.startsWith(a)))) err(`${where}: give-away question ${q.item.tr} = ${q.item.en}`);
+        if (T.placeGiveaway(q.item)) err(`${where}: give-away (sounds like the meaning) ${q.item.tr} = ${q.item.en}`);
         if (REAL && q.options) {
           const mine = sentence(q.item);
           if (q.options.filter((o) => sentence(o.item) === mine).length === 1) err(`${where}: the answer is the only ${mine ? 'sentence' : 'short one'}: ${q.options.map((o) => o.item.en).join(' | ')}`);
+        }
+        if (q.options) {
+          const g = new Set(glosses(q.item));
+          q.options.forEach((o) => { if (!o.correct && glosses(o.item).some((x) => g.has(x))) err(`${where}: a wrong option means the same as the answer: ${o.item.en} / ${q.item.en}`); });
         }
       });
     }
@@ -1153,6 +1200,15 @@
         [{ beginner: 4, intermediate: 1, advanced: 4 }, 'beginner'], [{}, 'beginner'],
       ];
       cases.forEach(([r, want]) => { if (T.placementLevel(r) !== want) err(`placementLevel(${JSON.stringify(r)}) = ${T.placementLevel(r)}, want ${want}`); });
+      // Loanwords that sound like their meaning are never asked; real words are.
+      const it = (tg, tr, en, he = 'x') => ({ tg, tr, en, he });
+      [it('レストラン', 'resutoran', 'restaurant'), it('ドア', 'doa', 'door'), it('スーツケース', 'sūtsukēsu', 'suitcase'), it('ティッシュ', 'tisshu', 'tissues'),
+        it('ドライヤー', 'doraiyā', 'hair dryer'), it('ネックレス', 'nekkuresu', 'necklace'), it('ایمیل', 'imeyl', 'email'), it('畳', 'tatami', 'tatami (straw floor mat)'),
+        it('restaurante', 'res-tau-RAN-te', 'restaurant')].forEach((x) => { if (!T.placeGiveaway(x)) err(`placement: give-away not caught: ${x.tr} = ${x.en}`); });
+      [it('猫', 'neko', 'cat'), it('ウサギ', 'usagi', 'rabbit'), it('車', 'kuruma', 'car'), it('کتاب', 'ketâb', 'book'), it('perro', 'PE-rro', 'dog'),
+        it('بيت', 'bēt', 'house')].forEach((x) => { if (T.placeGiveaway(x)) err(`placement: a real word counted as a give-away: ${x.tr} = ${x.en}`); });
+      if (T.placeSentence(it('دویست', 'devist', 'two hundred (200)', 'מאתיים (200)'))) err('placement: "two hundred (200)" counted as a sentence');
+      if (!T.placeSentence(it('x', 'x', 'I am learning Farsi.', 'אני לומד פרסית.'))) err('placement: a sentence not counted as one');
       const code = REAL || 'fa';
       // 1) First-time onboarding, English: everything right.
       localStorage.clear();

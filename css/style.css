@@ -644,14 +644,18 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
   justify-self: start; margin-top: 4px; padding: 2px 10px; font-size: 13px; color: var(--text);
   background: color-mix(in srgb, var(--surface) 55%, transparent); border-color: color-mix(in srgb, currentColor 20%, transparent);
 }
-.dict-entry { position: relative; }
-.dict-entry .dict-row { padding-inline-end: 52px; }
+.report-entry { position: relative; }
+.report-entry .dict-row { padding-inline-end: 52px; }
 .report-flag {
   position: absolute; top: 50%; inset-inline-end: 6px; translate: 0 -50%; width: 40px; height: 40px;
   display: grid; place-items: center; border-radius: 12px; font-size: 16px; text-decoration: none;
   opacity: .5; filter: grayscale(1);
 }
 .report-flag:hover, .report-flag:focus-visible { opacity: 1; filter: none; background: var(--surface-2); }
+@media (prefers-color-scheme: dark) {
+  /* A gray flag at half strength almost disappears on a dark row: keep it quiet but findable. */
+  .report-flag { opacity: .85; filter: grayscale(1) brightness(1.7); }
+}
 
 /* ---------- move progress (Settings) ---------- */
 .xfer {
@@ -669,6 +673,7 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 }
 .xfer-code[hidden] { display: none; }
 .xfer-code::placeholder { color: var(--muted); }
+#xfer-paste { font-size: 16px; } /* under 16px, iPhones zoom the page when the box gets focus */
 .xfer-status { min-height: 1.4em; margin: 8px 0 0; font-size: 15px; font-weight: 600; }
 .xfer-subtitle { font-size: 18px; margin: 12px 0 2px; padding-top: 14px; border-top: 2px dashed var(--line-strong); }
 .settings label.xfer-label { margin: 6px 0 0; font-size: 15px; font-weight: 600; color: var(--muted); }
@@ -689,6 +694,7 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 .xfer-dialog h2 { margin: 0 0 6px; font-size: 22px; }
 .xfer-dialog p { margin: 0 0 6px; }
 .xfer-found { font-size: 15px; }
+.xfer-xp { white-space: nowrap; }
 .xfer-dialog .row { margin-top: 16px; }
 .xfer-dialog .row .btn { flex: 1; }
 
