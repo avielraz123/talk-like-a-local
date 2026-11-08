@@ -317,22 +317,40 @@
   const freshLangState = () => ({ level: null, track: null, topics: {}, words: {}, speedBest: 0 });
   const freshState = () => ({ v: 2, settings: null, xp: 0, streak: { count: 0, last: null }, langs: {} });
   const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+  /** A finite number clamped to lo..hi (anything else becomes lo). Saved data may come from an imported code, so never trust it. */
+  const num = (x, lo, hi) => { const n = +x; return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
+  /** Keep only the entries of a map whose value is a number, clamped to lo..hi. */
+  function numMap(m, lo, hi) {
+    const out = {};
+    Object.keys(obj(m)).forEach((k) => {
+      const v = m[k];
+      if (k === '__proto__' || (typeof v !== 'number' && typeof v !== 'string') || v === '' || !Number.isFinite(+v)) return;
+      out[k] = num(v, lo, hi);
+    });
+    return out;
+  }
+  function normStreak(sk) {
+    sk = obj(sk);
+    return { count: Math.floor(num(sk.count, 0, 1e6)), last: typeof sk.last === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(sk.last) ? sk.last : null };
+  }
 
   /** v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise. */
   function migrateTopics(topics) {
     topics = obj(topics);
+    const out = {};
     Object.keys(topics).forEach((k) => {
+      if (k === '__proto__') return;
       const rec = obj(topics[k]);
-      if (!rec.stages) rec.stages = rec.stars ? { mix: rec.stars } : {};
-      topics[k] = rec;
+      const stages = rec.stages ? rec.stages : rec.stars ? { mix: rec.stars } : {};
+      out[k] = Object.assign({}, rec, { best: num(rec.best, 0, 100), stages: numMap(stages, 0, 3) });
     });
-    return topics;
+    return out;
   }
   function normLangState(ls) {
     ls = Object.assign(freshLangState(), obj(ls));
     ls.topics = migrateTopics(ls.topics);
-    ls.words = obj(ls.words);
-    ls.speedBest = +ls.speedBest || 0;
+    ls.words = numMap(ls.words, 0, 5);
+    ls.speedBest = Math.floor(num(ls.speedBest, 0, 1e6));
     if (!levelOk(ls.level)) ls.level = null;
     if (ls.track !== 'speak' && ls.track !== 'full') ls.track = null;
     return ls;
@@ -340,8 +358,8 @@
   function normalizeState(st) {
     st = Object.assign(freshState(), obj(st));
     st.v = 2;
-    st.xp = +st.xp || 0;
-    st.streak = Object.assign({ count: 0, last: null }, obj(st.streak));
+    st.xp = Math.floor(num(st.xp, 0, 1e9));
+    st.streak = normStreak(st.streak);
     st.langs = obj(st.langs);
     Object.keys(st.langs).forEach((k) => { if (LANGS[k]) st.langs[k] = normLangState(st.langs[k]); else delete st.langs[k]; });
     if (st.settings) {
@@ -356,12 +374,12 @@
   function migrateOld(old) {
     old = obj(old);
     const st = freshState();
-    st.xp = +old.xp || 0;
-    st.streak = Object.assign({ count: 0, last: null }, obj(old.streak));
+    st.xp = old.xp;
+    st.streak = old.streak;
     const fa = freshLangState();
-    fa.topics = migrateTopics(old.topics);
-    fa.words = obj(old.words);
-    fa.speedBest = +old.speedBest || 0;
+    fa.topics = old.topics;
+    fa.words = old.words;
+    fa.speedBest = old.speedBest;
     if (old.settings) {
       const s = obj(old.settings);
       fa.level = s.level; fa.track = s.track;
@@ -687,8 +705,8 @@
           <span class="caret" aria-hidden="true">▾</span></button>` : ''}
       </div>
       <div class="stats">
-        <span class="stat" title="${esc(t('streak'))}">🔥 ${currentStreak()}</span>
-        <span class="stat" title="XP">⭐ ${S.xp}</span>
+        <span class="stat" title="${esc(t('streak'))}">🔥 ${esc(currentStreak())}</span>
+        <span class="stat" title="XP">⭐ ${esc(S.xp)}</span>
         <button class="icon-btn" data-go="settings" aria-label="${esc(t('settings'))}">⚙️</button>
       </div>
     </header>`;
@@ -739,8 +757,11 @@
   // Enter key presses the main button on screen.
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
+    if ($('.xfer-modal', app)) return; // a dialog is open: never press the screen behind it
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (['BUTTON', 'A', 'TEXTAREA', 'SELECT'].includes(tag)) return; // let focused controls handle Enter themselves (typed answers still use it)
     const btn = $('[data-enter]:not([disabled])', app);
-    if (btn && document.activeElement && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); btn.click(); }
+    if (btn && tag) { e.preventDefault(); btn.click(); }
   });
 
   /* ------------------------------------------------------------------ *
@@ -947,7 +968,7 @@
    * Menu
    * ------------------------------------------------------------------ */
   function stars(n) {
-    return `<span class="stars" aria-label="${n}/3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
+    return `<span class="stars" aria-label="${esc(n)}/3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
   }
   /** Lessons of a group this learner can see (no script lessons in the speaking-only track). */
   const visibleLessons = (g) => (readerMode() ? g.lessons : g.lessons.filter((tp) => tp.kind !== 'alphabet'));
@@ -2233,13 +2254,33 @@
   let placeDelay = 650; // how long the right answer stays on screen (ms)
   const placeMeaning = (it) => it[ui()] || it.en || '';
   const placeFits = (it) => !it.isLetter && visualLen(it.tg) <= 32 && String(placeMeaning(it)).length <= 60;
+  /** Plain lowercase words of 4+ letters, without accents (rōmaji macrons, ʿ, á ...). */
+  const placeWords = (s) => String(s || '').normalize('NFD').replace(/[\p{M}\p{Lm}]/gu, '').toLowerCase()
+    .split(/[^\p{L}]+/u).filter((w) => w.length >= 4);
+  /** True if the answer gives itself away: a loanword or name whose reading is in the meaning ("tatami", "fujisan" = Mount Fuji). */
+  function placeGiveaway(it) {
+    const said = placeWords((it.tr || '') + ' ' + (it.tg || ''));
+    const meant = placeWords(it.en + ' ' + placeMeaning(it));
+    return said.some((a) => meant.some((b) => a.startsWith(b) || b.startsWith(a)));
+  }
+  const placeAskable = (it) => placeFits(it) && !placeGiveaway(it);
+  /** A whole sentence or a short word/phrase? Wrong options get the same shape as the answer, so the shape gives nothing away. */
+  const placeSentence = (it) => { const m = String(placeMeaning(it)).trim(); return /[.?!؟]$/.test(m) || m.split(/\s+/).length >= 3; };
   /** Lessons a question may come from: words, phrases and grammar of one level (never letters or stories). */
   const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind));
-  /** Four options with different meanings: the answer and three from the same level (any level if too few). */
-  function placeOptions(it, pool, all) {
+  /**
+   * Four options with different meanings: the answer and three like it, as distractors() picks them:
+   * the same lesson, then the same group, then the whole level, always the same shape (sentence or word) first.
+   */
+  function placeOptions(it, pool, all, lessonOf) {
     const seen = new Set([low(placeMeaning(it))]);
     const out = [];
-    [pool, all].forEach((p) => shuffle(p).forEach((x) => {
+    const shape = placeSentence(it);
+    const same = (p) => p.filter((x) => placeSentence(x) === shape);
+    const tp = lessonOf.get(it);
+    const lesson = pool.filter((x) => lessonOf.get(x) === tp);
+    const group = pool.filter((x) => lessonOf.get(x).group === tp.group);
+    [same(lesson), same(group), same(pool), same(all), pool, all].forEach((p) => shuffle(p).forEach((x) => {
       if (out.length >= 3 || x === it || sameAnswer(it, x)) return;
       const k = low(placeMeaning(x));
       if (seen.has(k)) return;
@@ -2250,7 +2291,9 @@
   }
   /** The questions, easiest level first. Each level takes its items from as many different lessons and groups as it can. */
   function placementQuestions(db) {
-    const all = LEVELS.flatMap((lv) => placeLessons(db, lv)).flatMap((tp) => tp.items).filter(placeFits);
+    const lessonOf = new Map();
+    LEVELS.forEach((lv) => placeLessons(db, lv).forEach((tp) => tp.items.forEach((x) => lessonOf.set(x, tp))));
+    const all = Array.from(lessonOf.keys()).filter(placeFits);
     const asked = [];
     const qs = [];
     LEVELS.forEach((level) => {
@@ -2261,12 +2304,12 @@
       let n = 0;
       for (let k = 0; n < PLACE_PER_LEVEL && k < order.length * PLACE_PER_LEVEL; k++) {
         const tp = order[k % order.length];
-        const it = shuffle(tp.items).find((x) => placeFits(x)
+        const it = shuffle(tp.items).find((x) => placeAskable(x)
           && !asked.some((y) => sameAnswer(x, y) || low(placeMeaning(x)) === low(placeMeaning(y))));
         if (!it) continue;
         asked.push(it);
         n++;
-        qs.push({ level, item: it, options: placeOptions(it, pool, all) });
+        qs.push({ level, item: it, options: placeOptions(it, pool, all, lessonOf) });
       }
     });
     return qs;

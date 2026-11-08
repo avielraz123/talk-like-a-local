@@ -1033,6 +1033,59 @@
       if (!$('.onboard')) err('xfer: a state without settings did not open onboarding');
     }
 
+    /* ---------------- imported progress can't inject HTML; keyboard on links and dialogs ---------------- */
+    async function checkImportSafety() {
+      const code = REAL || 'fa';
+      await T.setSettings({ uiLang: 'en', lang: code, level: 'beginner', track: 'full', speech: false });
+      const tp = T.TOPICS.find((x) => x.kind !== 'alphabet');
+      const evil = '<img class="pwn" src="x" onerror="window.__pwned=1">';
+      const quoteEvil = '"><img class="pwn" src="x" onerror="window.__pwned=1">';
+      const bad = { v: 2, settings: { uiLang: 'en', lang: code, speech: false }, xp: '1e400', streak: { count: evil, last: window.__TODAY + evil },
+        langs: { [code]: { level: 'beginner', track: 'full', speedBest: evil,
+          topics: { [tp.id]: { best: evil, stages: { learn: quoteEvil, choice: 2, mix: 9, x: null } }, __proto__x: 5 },
+          words: { [tp.items[0].id]: evil, [tp.items[1].id]: 4, [tp.items[2] ? tp.items[2].id : 'z:9']: 99 } } } };
+      window.__pwned = 0;
+      let st;
+      try { st = await T.readProgress(await T.progressCode(bad)); } catch (e) { err('safety: a code with odd values was rejected (' + e.message + ')'); return; }
+      await T.replaceProgress(st);
+      await waitFor(() => $('.menu'));
+      T.renderTopic(tp);
+      T.renderMenu();
+      await new Promise((r) => setTimeout(r, 50));
+      if ($('.pwn') || window.__pwned) err('safety: an imported code injected HTML');
+      const S = T.state(); const ls = S.langs[code]; const rec = ls.topics[tp.id];
+      if (S.xp !== 0 || S.streak.count !== 0 || S.streak.last !== null) err('safety: xp/streak not cleaned ' + JSON.stringify([S.xp, S.streak]));
+      if (ls.speedBest !== 0 || rec.best !== 0 || JSON.stringify(rec.stages) !== '{"choice":2,"mix":3}') err('safety: topic record not cleaned ' + JSON.stringify(rec) + ' ' + ls.speedBest);
+      if (ls.words[tp.items[0].id] !== undefined || ls.words[tp.items[1].id] !== 4 || (tp.items[2] && ls.words[tp.items[2].id] !== 5)) err('safety: word strengths not cleaned ' + JSON.stringify(ls.words));
+      if (/Infinity|NaN/.test($('.topbar').textContent)) err('safety: top bar shows ' + $('.topbar').textContent);
+      // A good old save keeps its values.
+      const good = T.normalizeState({ v: 2, xp: 50, streak: { count: 3, last: window.__TODAY }, langs: { [code]: { level: 'beginner', topics: { [tp.id]: { best: 75, stages: { learn: 3 } } }, words: { a: 2 }, speedBest: 6 } } });
+      if (good.xp !== 50 || good.streak.count !== 3 || good.streak.last !== window.__TODAY || good.langs[code].topics[tp.id].best !== 75
+        || good.langs[code].topics[tp.id].stages.learn !== 3 || good.langs[code].words.a !== 2 || good.langs[code].speedBest !== 6) err('safety: a normal save lost values ' + JSON.stringify(good));
+
+      // Enter on a focused report link opens the link, it does not move the lesson on.
+      const enter = (el) => { const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
+      T.renderLearn(tp);
+      const before = $('.learn').innerHTML;
+      const link = $('.learn .report-link');
+      link.focus();
+      const ev = enter(link);
+      if (ev.defaultPrevented || $('.learn').innerHTML !== before) err('safety: Enter on the learn report link moved to the next card');
+      T.startStage(tp, 'choice');
+      $('.opt').click();
+      const fl = $('#feedback .report-link');
+      fl.focus();
+      enter(fl);
+      if (!$('#feedback') || T.session().idx !== 0) err('safety: Enter on the answer report link went on to the next question');
+      // While the replace dialog is open, Enter never presses the screen behind it.
+      T.renderSettings();
+      T.confirmReplace(T.importState({ v: 2, langs: {} }), null);
+      document.activeElement.blur();
+      enter(document.body);
+      if (!$('.xfer-modal') || !$('.settings')) err('safety: Enter behind the dialog left Settings');
+      if ($('#xfer-cancel')) $('#xfer-cancel').click();
+    }
+
     /* ---------------- placement test (onboarding level step) ---------------- */
     async function placeAnswerAll(code, mode, uiLang) {
       const seen = [];
@@ -1079,6 +1132,17 @@
         if (qs.length === 4 && lessons < Math.min(4, avail)) err(`${where}: ${lv} questions from only ${lessons} lessons (of ${avail})`);
       });
       if (new Set(seen.map((q) => q.item.en.toLowerCase())).size !== seen.length) err(`${where}: the same meaning asked twice`);
+      // No give-aways: the reading is not in the meaning ("tatami = tatami"), and the answer has the shape of the others.
+      const words = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f\u02b0-\u02ff]/g, '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);
+      const sentence = (x) => { const m = String(x[html.lang === 'he' ? 'he' : 'en'] || x.en).trim(); return /[.?!؟]$/.test(m) || m.split(/\s+/).length >= 3; };
+      seen.forEach((q) => {
+        const said = words(q.item.tr + ' ' + q.item.tg);
+        if (said.some((a) => words(q.item.en).some((b) => a.startsWith(b) || b.startsWith(a)))) err(`${where}: give-away question ${q.item.tr} = ${q.item.en}`);
+        if (REAL && q.options) {
+          const mine = sentence(q.item);
+          if (q.options.filter((o) => sentence(o.item) === mine).length === 1) err(`${where}: the answer is the only ${mine ? 'sentence' : 'short one'}: ${q.options.map((o) => o.item.en).join(' | ')}`);
+        }
+      });
     }
     async function checkPlacement() {
       T.setPlaceDelay(20);
@@ -1173,6 +1237,7 @@
     await step('answers', checkAnswers);
     await step('report', checkReport);
     await step('transfer', checkTransfer);
+    await step('import safety', checkImportSafety);
     await step('placement', checkPlacement);
 
     // Every string key exists in both languages, and no t('...') key used was missing.

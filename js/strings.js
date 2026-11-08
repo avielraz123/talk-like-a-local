@@ -326,7 +326,7 @@ window.TLAP_STRINGS = {
     xfer_sub: "אפשר להעביר את ההתקדמות לטלפון או למחשב אחר: מעתיקים כאן את הקוד או מורידים קובץ, ואז טוענים אותו בהגדרות במכשיר השני.",
     xfer_copy: "העתקת הקוד שלי", xfer_copied: "הועתק ✓",
     xfer_copyManual: "ההעתקה האוטומטית לא הצליחה. הקוד מסומן למעלה, אפשר להעתיק אותו ידנית.",
-    xfer_codeLabel: "קוד ההתקדמות שלך",
+    xfer_codeLabel: "קוד ההתקדמות שלכם",
     xfer_download: "הורדת קובץ", xfer_downloaded: "ההורדה התחילה ✓",
     xfer_loadTitle: "טעינת התקדמות ממכשיר אחר",
     xfer_pasteLabel: "הדבקת קוד", xfer_load: "טעינה", xfer_openFile: "פתיחת קובץ",
@@ -341,15 +341,15 @@ window.TLAP_STRINGS = {
     // Report a mistake
     report_link: "דיווח על טעות", report_aria: "דיווח על טעות: {word}",
     // Placement test (onboarding level step)
-    place_open: "לא בטוח? מבחן קצר של 2 דקות",
+    place_open: "לא בטוחים? מבחן קצר של 2 דקות",
     place_count: "שאלה {n} מתוך {total}",
-    place_dontKnow: "לא יודע",
+    place_dontKnow: "לא יודעים",
     place_exit: "חזרה לבחירת רמה",
     place_done: "המבחן הסתיים!",
     place_suggest: "ההמלצה שלנו: {level}",
-    place_score: "ענית נכון על {x} מתוך {y}",
+    place_score: "עניתם נכון על {x} מתוך {y}",
     place_note: "אפשר לשנות את הרמה בכל זמן בהגדרות.",
-    place_use: "בחירה ברמה: {level}", place_self: "אבחר בעצמי",
-    place_fail: "לא הצלחנו לטעון את המבחן. אפשר לבחור רמה בעצמך."
+    place_use: "בחירה ברמה: {level}", place_self: "אבחר לבד",
+    place_fail: "לא הצלחנו לטעון את המבחן. אפשר לבחור רמה בעצמכם."
   }
 };
