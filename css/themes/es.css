@@ -1,0 +1,71 @@
+/* Spanish theme: "Lupe the llama". Fiesta pink, marigold orange, sunny yellow, cactus green, turquoise.
+   Pattern: Andean woven textile stripes. Decorations: papel picado, cacti and sun, maracas.
+   Contrast (WCAG): text/bg 14.2 light, 16.3 dark; text/surface 15.2 light, 14.2 dark;
+   white/--green 4.73 light and dark; white/--sky 3.6 light, 3.5 dark;
+   white/--orange 3.3 (also the 20px bold onboarding tagline on --bg: 3.1); #2b2d42/--sun 8.8 light, 9.2 dark. */
+html[data-lang="es"] {
+  --bg: #fff6ec; --surface: #ffffff; --surface-2: #fff0e0;
+  --text: #2a2238; --muted: #7a6478; --line: #f6dfcc; --line-strong: #ecc6ad;
+  --green: #17844a;  --green-d: #0e5f34;   /* cactus green: primary buttons */
+  --sun: #ffc928;    --sun-d: #e0a100;     /* sunny yellow */
+  --coral: #ea3d64;  --coral-d: #c0234a;   /* watermelon rose */
+  --sky: #0e9690;    --sky-d: #0a7671;     /* turquoise */
+  --grape: #9b4dca;  --grape-d: #7633a6;   /* bougainvillea purple */
+  --pink: #ec2f8f;   --pink-d: #c01a6f;    /* fiesta pink */
+  --orange: #e66a00; --orange-d: #c25700;  /* marigold orange */
+  --ok: #1a7733; --ok-bg: #dcf7dc; --bad: #c02a36; --bad-bg: #ffe2e4; --neutral-bg: #f7ebe6;
+  --font-target: "Fredoka", sans-serif;
+  --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpolyline points='0,7 10,17 20,7 30,17 40,7 50,17 60,7 70,17 80,7 90,17 100,7 110,17 120,7' fill='none' stroke='%23ec2f8f' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M10 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M30 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M50 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M70 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M90 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M110 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Ccircle cx='0' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='20' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='40' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='60' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='80' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='100' cy='31' r='1.8' fill='%23ffc928'/%3E%3Cpolyline points='0,44 10,52 20,44 30,52 40,44 50,52 60,44 70,52 80,44 90,52 100,44 110,52 120,44' fill='none' stroke='%23f57a10' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpolyline points='0,51 10,59 20,51 30,59 40,51 50,59 60,51 70,59 80,51 90,59 100,51 110,59 120,51' fill='none' stroke='%23f57a10' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M0 80L10 68L20 80L30 68L40 80L50 68L60 80L70 68L80 80L90 68L100 80L110 68L120 80Z' fill='%2317844a'/%3E%3Cpath d='M10 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='10' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M30 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='30' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M50 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='50' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M70 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='70' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M90 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='90' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M110 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='110' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpolyline points='0,108.5 10,115.5 20,108.5 30,115.5 40,108.5 50,115.5 60,108.5 70,115.5 80,108.5 90,115.5 100,108.5 110,115.5 120,108.5' fill='none' stroke='%230f9e98' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --theme-pattern-size: 120px;
+  --theme-pattern-opacity: .10;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-lang="es"] {
+    --bg: #1d1428; --surface: #2a1f38; --surface-2: #352846;
+    --text: #fbf2ff; --muted: #bfaecb; --line: #3d2f50; --line-strong: #4f3d66;
+    --green: #17844a;  --green-d: #0f6a39;   /* cactus green: primary buttons */
+    --sun: #ffcf3a;    --sun-d: #d9a300;     /* sunny yellow */
+    --coral: #ea3d64;  --coral-d: #b8244a;   /* watermelon rose */
+    --sky: #0f9993;    --sky-d: #0c807a;     /* turquoise */
+    --grape: #a55bd8;  --grape-d: #7e3bb0;   /* bougainvillea purple */
+    --pink: #ec2f8f;   --pink-d: #b8186a;    /* fiesta pink */
+    --orange: #e66a00; --orange-d: #c25700;  /* marigold orange */
+    --ok: #6fe08a; --ok-bg: #183a26; --bad: #ff8a96; --bad-bg: #461f2b; --neutral-bg: #352846;
+    --theme-pattern-opacity: .12;
+  }
+}
+
+/* ---- decorations (purely decorative, scoped) ---- */
+html[data-lang="es"] .theme-deco svg { display: block; width: 100%; height: auto; overflow: visible; }
+html[data-lang="es"] .theme-deco.banner .es-sway { animation: es-sway 3.6s ease-in-out infinite; transform-origin: 0 0; }
+html[data-lang="es"] .theme-deco.banner g:nth-child(4n) > .es-sway { animation-delay: -1.2s; }
+html[data-lang="es"] .theme-deco.results .es-shake { animation: es-shake 1.1s ease-in-out infinite; transform-origin: 0 30px; }
+html[data-lang="es"] .theme-deco.results g + g .es-shake { animation-delay: -.55s; }
+@keyframes es-sway { 50% { transform: rotate(4deg); } }
+@keyframes es-shake { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+
+/* Ambient layer: a few tiny papel picado flecks drifting down, very slowly. */
+html[data-lang="es"] .theme-deco.ambient { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+html[data-lang="es"] .theme-deco.ambient i {
+  position: absolute; top: -24px; width: 11px; height: 13px; opacity: .55;
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 83% 100%, 67% 80%, 50% 100%, 33% 80%, 17% 100%, 0 80%);
+  animation: es-drift 22s linear infinite;
+}
+html[data-lang="es"] .theme-deco.ambient i:nth-child(1) { left: 7%;  background: #ec2f8f;   animation-delay: -3s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(2) { left: 23%; background: #ffc928; animation-delay: -15s; animation-duration: 26s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(3) { left: 41%; background: #0f9e98;   animation-delay: -9s;  animation-duration: 24s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(4) { left: 62%; background: #f57a10; animation-delay: -19s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(5) { left: 79%; background: #17844a;  animation-delay: -6s;  animation-duration: 28s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(6) { left: 93%; background: #9b4dca; animation-delay: -12s; animation-duration: 25s; }
+@keyframes es-drift {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(18px, 26vh) rotate(90deg); }
+  50%  { transform: translate(-6px, 52vh) rotate(180deg); }
+  75%  { transform: translate(16px, 78vh) rotate(270deg); }
+  100% { transform: translate(0, calc(100vh + 40px)) rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-lang="es"] .theme-deco .es-sway,
+  html[data-lang="es"] .theme-deco .es-shake { animation: none; }
+  html[data-lang="es"] .theme-deco.ambient { display: none; }
+}

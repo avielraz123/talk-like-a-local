@@ -3,14 +3,27 @@
 <head>
   <meta charset="utf-8">
   <title>Smoke test</title>
+  <meta name="theme-color" content="#ffc93c">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/themes/fa.css">
+  <link rel="stylesheet" href="../css/themes/es.css">
+  <link rel="stylesheet" href="../css/themes/ja.css">
+  <link rel="stylesheet" href="../css/themes/ar.css">
   <style>*, *::before, *::after { animation: none !important; transition: none !important; }</style>
   <!--
     Automated smoke test. Open this file in a browser, or run headless:
-      msedge --headless --disable-gpu --virtual-time-budget=300000 --dump-dom tests/smoke.html
-    It walks menu -> topic (group) -> sub-topic (lesson) -> every exercise in both UI languages and
-    both learning tracks, checks the dictionary, distractors, the bonus speaking rule and the speed
-    round timer, then prints PASS or FAIL in <pre id="out">.
+      msedge --headless --disable-gpu --user-data-dir=<temp dir> --allow-file-access-from-files
+             --virtual-time-budget=60000 --dump-dom tests/smoke.html
+    It prints PASS or FAIL at the top of the page (the #out box).
+
+    smoke.html          every language, using the small packs in tests/fixtures/data/ (fast).
+    smoke.html?lang=ja  the REAL lessons of one language (js/data/ja/), the other languages from fixtures.
+
+    For every language: menu -> topic -> sub-topic -> every exercise, in English and Hebrew, both tracks
+    (where the language has a script), dictionary, review, speed round timer, distractors, theme
+    (data-lang, mascot, decorations). Plus: onboarding with the language picker, switching languages
+    (progress kept separate), migration of an old Farsi save, lazy loading (missing/broken files skipped),
+    the fallback theme, answer checking per language, and that every string exists in both languages.
   -->
 </head>
 <body>
@@ -18,7 +31,12 @@
   <div id="app" class="app"></div>
   <script>
     window.__errors = [];
-    window.addEventListener('error', (e) => window.__errors.push('window error: ' + e.message + ' ' + (e.filename || '') + ':' + (e.lineno || '')));
+    // The broken fixture file throws a syntax error on purpose; the app must simply skip it.
+    window.addEventListener('error', (e) => {
+      if (/fixtures\/data\/.*broken\.js/.test(e.filename || '')) { window.__brokenSeen = true; return; }
+      window.__errors.push('window error: ' + e.message + ' ' + (e.filename || '') + ':' + (e.lineno || ''));
+    });
+    window.addEventListener('unhandledrejection', (e) => window.__errors.push('unhandled rejection: ' + (e.reason && e.reason.stack || e.reason)));
     window.confirm = () => true;
     // Track running intervals, to check that the speed round's timer stops when the user leaves.
     window.__intervals = new Set();
@@ -27,73 +45,113 @@
     window.clearInterval = function (id) { window.__intervals.delete(id); return realClear.call(window, id); };
     // Fake speech recognition so the optional Speaking exercise can be tested headless.
     window.webkitSpeechRecognition = function () { this.start = () => {}; this.abort = () => {}; };
+
+    // Which language runs on its real files (?lang=xx); all others use the fixtures.
+    window.__REAL = new URLSearchParams(location.search).get('lang');
+    const FIXTURE_FILES = {
+      fa: ['alphabet', 'basics', 'verbs', 'missing', '../es/broken'],
+      es: ['sounds', 'basics', 'verbs', 'missing', 'broken'],
+      ja: ['kana', 'basics', 'verbs'],
+      ar: ['alphabet', 'basics', 'verbs'],
+    };
+    window.TLAP_CONFIG = { files: {}, base: {} };
+    Object.keys(FIXTURE_FILES).forEach((l) => {
+      if (l === window.__REAL) return;
+      window.TLAP_CONFIG.files[l] = FIXTURE_FILES[l];
+      window.TLAP_CONFIG.base[l] = 'fixtures/data/' + l + '/';
+    });
+    window.__TODAY = (() => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); })();
     try {
       localStorage.clear();
-      // A v1 save (one star rating per topic) must be migrated to the "Mix of everything" exercise.
+      // A save from the single-language Farsi app (with a v1 star rating) must move into langs.fa.
       localStorage.setItem('tlap-v1', JSON.stringify({
         settings: { uiLang: 'en', level: 'beginner', track: 'full', speech: false },
-        topics: { 'v1-topic': { stars: 2, best: 80 } }, words: {}, xp: 5,
+        topics: { 'v1-topic': { stars: 2, best: 80 }, greetings: { best: 90, stages: { learn: 3, choice: 2 } } },
+        words: { 'greetings:0': 4, 'greetings:1': 1 }, xp: 5, streak: { count: 3, last: window.__TODAY }, speedBest: 9,
       }));
     } catch (e) {}
   </script>
   <script src="../js/registry.js"></script>
-  <!-- DATA -->
-  <script src="../js/data/alphabet.js"></script>
-  <script src="../js/data/basics.js"></script>
-  <script src="../js/data/people.js"></script>
-  <script src="../js/data/food.js"></script>
-  <script src="../js/data/colors.js"></script>
-  <script src="../js/data/animals.js"></script>
-  <script src="../js/data/body.js"></script>
-  <script src="../js/data/home.js"></script>
-  <script src="../js/data/clothes.js"></script>
-  <script src="../js/data/time.js"></script>
-  <script src="../js/data/city.js"></script>
-  <script src="../js/data/nature.js"></script>
-  <script src="../js/data/school.js"></script>
-  <script src="../js/data/shopping.js"></script>
-  <script src="../js/data/feelings.js"></script>
-  <script src="../js/data/hobbies.js"></script>
-  <script src="../js/data/verbs.js"></script>
-  <script src="../js/data/grammar.js"></script>
-  <script src="../js/data/culture.js"></script>
-  <script src="../js/data/talk.js"></script>
-  <!-- /DATA -->
+  <script src="../js/themes/fa.js"></script>
+  <script src="../js/themes/es.js"></script>
+  <script src="../js/themes/ja.js"></script>
+  <script src="../js/themes/ar.js"></script>
   <script src="../js/strings.js"></script>
   <script src="../js/app.js"></script>
   <script>
-  (function () {
+  (async function () {
     const T = window.__TLAP_TEST__;
     const STR = window.TLAP_STRINGS;
+    const REAL = window.__REAL;
     const app = document.getElementById('app');
     const out = document.getElementById('out');
+    const html = document.documentElement;
     const errors = window.__errors;
     const $ = (s) => app.querySelector(s);
     const $$ = (s) => Array.from(app.querySelectorAll(s));
     const tmp = document.createElement('div');
-    const textOf = (html) => { tmp.innerHTML = html; return tmp.textContent.replace(/\s+/g, ' ').trim(); };
+    const textOf = (h) => { tmp.innerHTML = h; return tmp.textContent.replace(/\s+/g, ' ').trim(); };
     const low = (s) => String(s == null ? '' : s).trim().toLowerCase();
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn() && Date.now() - t0 < ms) await sleep(10); return fn(); };
     const started = Date.now();
     let questions = 0, sessions = 0, cards = 0, distractorChecks = 0;
+    const stats = [];
     const err = (m) => { if (errors.length < 400) errors.push(m); };
+    const step = async (where, fn) => { try { await fn(); } catch (e) { err(`${where}: ${e.message}\n${e.stack}`); } };
+    const clearConfetti = () => document.querySelectorAll('.confetti').forEach((c) => c.remove());
+    const langState = (code) => T.state().langs[code] || {};
 
     function finishOutput() {
-      out.textContent = (errors.length ? 'FAIL (' + errors.length + ' problems)\n' + errors.slice(0, 60).join('\n') : 'PASS')
-        + `\ngroups=${T.GROUPS.length} lessons=${T.TOPICS.length} sessions=${sessions} questions=${questions} cards=${cards}`
-        + ` distractorChecks=${distractorChecks} seconds=${Math.round((Date.now() - started) / 1000)}`;
+      out.textContent = (errors.length ? 'FAIL (' + errors.length + ' problems)\n' + errors.slice(0, 80).join('\n') : 'PASS')
+        + `\nmode=${REAL ? 'real data for ' + REAL : 'fixtures'} ${stats.join(' | ')}`
+        + `\nsessions=${sessions} questions=${questions} cards=${cards} distractorChecks=${distractorChecks}`
+        + ` seconds=${Math.round((Date.now() - started) / 1000)}`;
       app.innerHTML = '';
     }
 
-    try {
-      // v1 migration ran while the app started.
-      const v1 = T.state().topics['v1-topic'];
-      if (!v1 || !v1.stages || v1.stages.mix !== 2) err('v1 save was not migrated to stages.mix');
-      if (!T.TOPICS.length || !T.GROUPS.length) err('no lessons loaded');
-    } catch (e) { err('startup: ' + e.message); }
+    /* ---------------- startup: migration + lazy loading ---------------- */
+    await step('startup', async () => {
+      await T.ready();
+      const S = T.state();
+      if (S.v !== 2) err('state version not 2');
+      if (!S.settings || S.settings.lang !== 'fa' || S.settings.uiLang !== 'en' || S.settings.speech !== false) err('old save: settings not migrated ' + JSON.stringify(S.settings));
+      const fa = S.langs.fa;
+      if (!fa) { err('old save: no langs.fa'); return; }
+      if (fa.level !== 'beginner' || fa.track !== 'full') err('old save: level/track not moved to langs.fa');
+      if (!fa.topics['v1-topic'] || fa.topics['v1-topic'].stages.mix !== 2) err('v1 star rating not migrated to stages.mix');
+      if (!fa.topics.greetings || fa.topics.greetings.stages.choice !== 2) err('topic stages not migrated');
+      if (fa.words['greetings:0'] !== 4 || fa.speedBest !== 9) err('words / speedBest not migrated');
+      if (S.xp !== 5 || S.streak.count !== 3) err('xp / streak not kept (global)');
+      if (S.topics || S.words) err('old top-level topics/words left in the state');
+      const saved = JSON.parse(localStorage.getItem(T.STORE_KEY) || 'null');
+      if (!saved || !saved.langs || !saved.langs.fa) err('migrated state not saved under the new key');
+      if (html.dataset.lang !== 'fa') err('data-lang not set to fa at startup: ' + html.dataset.lang);
+      if (!$('.menu')) err('startup did not show the Farsi menu');
+      // Only the current language was loaded.
+      ['es', 'ja', 'ar'].forEach((c) => {
+        if (T.loaded(c) || (window.TLAP_DATA.langs[c] && window.TLAP_DATA.langs[c].groups.length)) err(`${c} lessons loaded at startup`);
+        if (document.querySelector(`script[data-tlap-lang="${c}"]`)) err(`${c} script tags injected at startup`);
+      });
+      // A missing file and a broken file are skipped; the rest still loads, in manifest order.
+      const lazy = REAL === 'fa' ? 'es' : 'fa';
+      if (lazy !== 'fa') await T.ensureLoaded(lazy);
+      const rep = T.loadReport(lazy);
+      if (!rep) { err('no load report'); return; }
+      if (!rep.failed.includes('missing')) err(`${lazy}: missing file not reported as failed`);
+      if (!rep.failed.some((f) => /broken/.test(f))) err(`${lazy}: broken file not reported as failed`);
+      if (rep.loaded.length !== 3) err(`${lazy}: ${rep.loaded.length} files loaded, expected 3`);
+      if (!window.__brokenSeen) err('broken fixture never ran (test setup)');
+      if (lazy === 'fa') {
+        const ids = T.GROUPS.map((g) => g.id).join();
+        if (ids !== 'g-alphabet,g-basics,g-verbs') err('groups not in manifest order: ' + ids);
+      }
+    });
 
+    /* ---------------- one language, all screens ---------------- */
     function autoAnswer(where) {
       const q = T.session().queue[T.session().idx];
-      if ($('.type-in')) { $('.type-in').value = q.item.tr; $('#check').click(); }
+      if ($('.type-in')) { $('.type-in').value = T.typedAnswer(q.item); $('#check').click(); }
       else if ($('.match')) {
         const left = $$('.m-btn[data-side="l"]');
         left.forEach((l) => { l.click(); app.querySelector(`.m-btn[data-side="r"][data-id="${CSS.escape(l.dataset.id)}"]`).click(); });
@@ -116,7 +174,6 @@
       cont.click();
       return true;
     }
-
     function playSession(where) {
       sessions++;
       let guard = 0;
@@ -128,11 +185,19 @@
       if (!$('.results')) err(where + ': session never finished');
       clearConfetti();
     }
-    // Confetti removes itself after 4s, but timers can't run during this synchronous test.
-    const clearConfetti = () => document.querySelectorAll('.confetti').forEach((c) => c.remove());
 
-    /** Learn cards + every exercise of one lesson, through the real buttons. */
-    function playLesson(topic, where, nextExpected) {
+    /** Every target-language span on screen is tagged with the language and its direction. */
+    function checkTargetSpans(code, where) {
+      const dir = T.LANGS[code].dir;
+      $$('.tg').forEach((s) => {
+        const l = s.getAttribute('lang');
+        if (s.closest('.lang-card, .hero-tg, .lang-chip')) return;
+        if (l === code && s.getAttribute('dir') !== dir && !s.classList.contains('num')) err(`${where}: .tg span lang=${l} dir=${s.getAttribute('dir')}`);
+        if (!l) err(`${where}: .tg span without lang`);
+      });
+    }
+
+    function playLesson(code, topic, where, nextExpected) {
       T.renderTopic(topic);
       const stages = $$('[data-stage]').map((b) => b.dataset.stage);
       const all = T.stagesFor(topic);
@@ -142,6 +207,14 @@
       if (counted.includes('speaking')) err(`${where}: speaking counted toward completion`);
       if (all.includes('speaking') && !$('[data-stage="speaking"] .bonus-chip')) err(`${where}: speaking card has no bonus chip`);
       if ($$('.lesson-head h1 > *').length !== 2) err(`${where}: lesson h1 should hold icon + one title span`);
+      const L = T.LANGS[code];
+      if (topic.kind !== 'alphabet') {
+        const script = !L.script || T.scriptTrack();
+        if (all.includes('reading') !== (L.script && T.scriptTrack())) err(`${where}: reading stage shown=${all.includes('reading')}`);
+        if (!L.script && (all.includes('spelling') || all.includes('reading'))) err(`${where}: reading/spelling offered for ${code}`);
+        void script;
+      } else if (all.includes('shapes') !== !!L.shapes) err(`${where}: letter shapes stage shown=${all.includes('shapes')} for ${code}`);
+      checkTargetSpans(code, where);
 
       // Learn cards via the lesson page.
       app.querySelector('[data-stage="learn"]').click();
@@ -149,24 +222,26 @@
       if ($$('.learn .lesson-head h1 > *').length !== 1) err(`${where}: learn h1 should hold one title span`);
       for (let i = 0; i < topic.items.length; i++) {
         if (!$('#card')) { err(where + ': learn card missing'); break; }
+        const it = topic.items[i];
+        if (it.isLetter && !!$('.face.back .forms') !== !!L.shapes) err(`${where}: letter forms shown=${!!$('.forms')} for ${code}`);
+        if (code === 'ja' && !it.isLetter && T.readerMode() && /[一-鿿]/.test(it.tg) && it.kana && !$('.face.front .reading')) err(`${where}/${it.id}: no kana reading under a kanji word`);
+        if (code === 'es' && !it.isLetter && (!$('.face.front .tg.primary') || $('.face.front .tg.primary').textContent !== it.tg)) err(`${where}/${it.id}: Spanish word is not the primary text`);
         $('#card').click(); cards++;
         if (i < topic.items.length - 1) $('#next').click();
       }
       $('#next').click(); // "Done!" returns to the lesson page
       clearConfetti();
       if (!$('.stages')) err(where + ': learn did not return to lesson page');
-      if (!T.state().topics[topic.id].stages.learn) err(where + ': learn not recorded');
+      if (!langState(code).topics[topic.id].stages.learn) err(where + ': learn not recorded');
 
-      // Every other exercise type, started by clicking its card, in a shuffled order. Choice is last.
       all.filter((s) => s !== 'learn').reverse().forEach((stage, k, arr) => {
         T.renderTopic(topic);
         app.querySelector(`[data-stage="${stage}"]`).click();
         if (stage === 'speaking') {
-          // Skip everything: must be allowed and must not record stars.
           let g = 0;
           while ($('#skip') && g++ < 60) { $('#skip').click(); $('#continue').click(); }
           if (!$('.results')) err(`${where}/speaking: skip-all did not finish`);
-          if (T.state().topics[topic.id].stages.speaking) err(`${where}/speaking: skipped session gave stars`);
+          if (langState(code).topics[topic.id].stages.speaking) err(`${where}/speaking: skipped session gave stars`);
           if ($('#to-topic')) $('#to-topic').click();
           return;
         }
@@ -181,11 +256,12 @@
           if (T.session().queue.some((q) => q.items.length < 3 || q.items.length > 5)) err(`${where}/match: bad group size`);
         }
         playSession(`${where}/${stage}`);
-        if (!T.state().topics[topic.id].stages[stage]) err(`${where}/${stage}: stars not recorded`);
+        if ($('.results') && T.theme(code) && T.theme(code).decorations && T.theme(code).decorations.results
+          && !$('.results-hero .theme-deco.results')) err(`${where}/${stage}: results decoration missing`);
+        if (!langState(code).topics[topic.id].stages[stage]) err(`${where}/${stage}: stars not recorded`);
         const nx = $('#next-stage');
         if (nx && nx.dataset.next === 'speaking') err(`${where}/${stage}: speaking suggested as next exercise`);
         if (k === arr.length - 1) {
-          // Last one: every counted exercise is done (speaking was skipped), so no next exercise.
           if (nx) err(`${where}: "next exercise" offered although the lesson is complete`);
           const nl = $('#next-lesson');
           if (nextExpected && (!nl || nl.dataset.next !== nextExpected.id)) err(`${where}: expected "next sub-topic" ${nextExpected.id}, got ${nl && nl.dataset.next}`);
@@ -203,21 +279,45 @@
       if (p.done !== p.total) err(`${where}: ${p.done}/${p.total} counted stages recorded after doing all (speaking skipped)`);
     }
 
-    /** Menu -> group -> lesson -> back -> group -> back -> menu, via clicks. */
-    function checkNavigation(c, where) {
+    function checkNavigation(code, c, where) {
       T.renderMenu();
+      const L = T.LANGS[code];
       const groups = T.visibleGroups();
       const cards = $$('[data-group]');
       if (cards.length !== groups.length) err(`${where}: menu shows ${cards.length} groups, expected ${groups.length}`);
-      const hasAlpha = cards.some((b) => b.dataset.group === 'g-alphabet');
-      if (hasAlpha !== (c.track === 'full') && T.GROUPS.some((g) => g.id === 'g-alphabet')) err(`${where}: alphabet group shown=${hasAlpha} in track ${c.track}`);
+      T.GROUPS.filter((g) => g.lessons.every((l) => l.kind === 'alphabet')).forEach((g) => {
+        const shown = cards.some((b) => b.dataset.group === g.id);
+        const wanted = !L.script || c.track === 'full';
+        if (shown !== wanted) err(`${where}: script group ${g.id} shown=${shown} in track ${c.track}`);
+      });
       const sections = $$('details.section');
-      if (sections.length && sections[0].dataset.level !== c.level) err(`${where}: first section is ${sections[0].dataset.level}, learner is ${c.level}`);
+      if (sections.length && sections[0].dataset.level !== c.level && T.GROUPS.some((g) => g.level === c.level)) err(`${where}: first section is ${sections[0].dataset.level}, learner is ${c.level}`);
       sections.forEach((s) => s.querySelectorAll('[data-group]').forEach((b) => {
         const g = T.GROUPS.find((x) => x.id === b.dataset.group);
         if (g.level !== s.dataset.level) err(`${where}: group ${g.id} (${g.level}) in section ${s.dataset.level}`);
       }));
       if (!$('#m-dict')) err(`${where}: no dictionary card`);
+      if (!$('.topbar .lang-chip')) err(`${where}: no language chip in the top bar`);
+      if (!$('.topbar .brand-text') || $('.topbar .brand-text').textContent !== 'Talk like a local') err(`${where}: brand text`);
+      // Theme on the menu.
+      if (html.dataset.lang !== code) err(`${where}: data-lang=${html.dataset.lang}`);
+      const th = T.theme(code);
+      const deco = (th && th.decorations) || {};
+      if (th) {
+        if ($('.menu .mascot .fallback-mascot') || !$('.menu .mascot svg')) err(`${where}: menu mascot is not the theme's`);
+        const greets = ((th.lines && th.lines.greet && th.lines.greet[c.uiLang]) || []);
+        const bubble = $('.menu .mascot-row .bubble');
+        if (greets.length && (!bubble || !greets.includes(bubble.textContent))) err(`${where}: greeting "${bubble && bubble.textContent}" is not one of the theme's lines`);
+        if (!!deco.banner !== !!$('.menu > .theme-deco.banner')) err(`${where}: banner decoration shown=${!!$('.menu > .theme-deco.banner')}`);
+        const corner = document.querySelector('#theme-layer .theme-deco.corner');
+        if (!!deco.corner !== !!corner) err(`${where}: corner decoration shown=${!!corner}`);
+        if (corner) {
+          const layer = document.getElementById('theme-layer');
+          if (getComputedStyle(layer).pointerEvents !== 'none' || getComputedStyle(corner).pointerEvents !== 'none') err(`${where}: corner decoration catches clicks`);
+          if (!(+getComputedStyle(app).zIndex > +getComputedStyle(layer).zIndex)) err(`${where}: corner decoration is not behind the app`);
+        }
+        if (deco.banner && $('.menu > .theme-deco.banner').getAttribute('aria-hidden') !== 'true') err(`${where}: banner not aria-hidden`);
+      } else if (!$('.menu .mascot .fallback-mascot')) err(`${where}: no theme and no fallback mascot`);
       groups.forEach((g) => {
         T.renderMenu();
         app.querySelector(`[data-group="${CSS.escape(g.id)}"]`).click();
@@ -229,7 +329,7 @@
           const l = lessons.find((x) => x.id === b.dataset.topic);
           const chip = !!b.querySelector('.level-chip');
           if (l && chip !== (l.level !== g.level)) err(`${where}/${l.id}: level chip ${chip} but lesson ${l.level} / group ${g.level}`);
-          if (c.track !== 'full' && l && l.kind === 'alphabet') err(`${where}: alphabet lesson shown in speak track`);
+          if (L.script && c.track !== 'full' && l && l.kind === 'alphabet') err(`${where}: script lesson shown in speak track`);
         });
         lc[0].click();
         if (!$('.topic-page')) { err(`${where}/${g.id}: lesson page did not open`); return; }
@@ -240,12 +340,12 @@
       });
     }
 
-    /** Every choice question, a few times per item: one right option, distinct labels, no other right answer. */
-    function checkDistractors(c, where) {
-      const types = (it) => (it.isLetter ? ['letterName', 'soundLetter', 'formLetter', 'exampleRead']
-        : ['mcMeaning', 'mcReverse'].concat(c.track === 'full' ? ['readScript'] : []));
+    function checkDistractors(code, c, where) {
+      const L = T.LANGS[code];
+      const types = (it) => (it.isLetter ? ['letterName', 'soundLetter', 'exampleRead'].concat(L.shapes ? ['formLetter'] : [])
+        : ['mcMeaning', 'mcReverse'].concat(T.scriptTrack() ? ['readScript'] : []));
       T.TOPICS.forEach((topic) => {
-        if (topic.kind === 'alphabet' && c.track !== 'full') return;
+        if (topic.kind === 'alphabet' && !T.visibleLessons(T.GROUPS.find((g) => g.id === topic.group)).includes(topic)) return;
         topic.items.forEach((it) => types(it).forEach((type) => {
           for (let r = 0; r < 3; r++) {
             distractorChecks++;
@@ -258,22 +358,20 @@
             if (right.length !== 1 || right[0].item !== it) err(`${tag}: ${right.length} correct options`);
             if (new Set(labels).size !== labels.length) err(`${tag}: duplicate option labels ${labels.join(' | ')}`);
             opts.filter((o) => !o.correct).forEach((o) => {
-              if (T.sameAnswer(it, o.item)) err(`${tag}: wrong option ${o.item.id} shares fa/tr/en/he with the answer`);
+              if (T.sameAnswer(it, o.item)) err(`${tag}: wrong option ${o.item.id} shares tg/tr/en/he with the answer`);
             });
           }
         }));
-        // Ask for many wrong options so the group-wide and global pools are used too.
         topic.items.forEach((it) => {
           const many = T.distractors(it, 25, (x) => x.id);
           distractorChecks++;
           many.forEach((x) => {
-            if (x === it || T.sameAnswer(it, x)) err(`${where}/${it.id}: distractor ${x.id} could also be right (${x.fa} / ${x.tr})`);
+            if (x === it || T.sameAnswer(it, x)) err(`${where}/${it.id}: distractor ${x.id} could also be right (${x.tg} / ${x.tr})`);
             if (!!x.isLetter !== !!it.isLetter) err(`${where}/${it.id}: distractor ${x.id} mixes letters and words`);
           });
           const own = topic.items.filter((x) => x !== it && !T.sameAnswer(it, x)).length;
           if (many.slice(0, Math.min(own, 25)).some((x) => x.topic !== it.topic)) err(`${where}/${it.id}: same-lesson distractors not preferred`);
         });
-        // True/false: a "false" pairing must never show a meaning that is actually right.
         if (topic.kind !== 'alphabet') topic.items.forEach((it) => {
           for (let r = 0; r < 4; r++) {
             const q = T.QUESTIONS.trueFalse({ type: 'trueFalse', item: it });
@@ -283,40 +381,50 @@
       });
     }
 
-    /** Every exercise type for every item, rendered. */
-    function everyTypeEveryItem(c, where) {
+    /** Every exercise type for every item, rendered and answered. */
+    function everyTypeEveryItem(code, c, where) {
       T.TOPICS.forEach((topic) => {
-        if (topic.kind === 'alphabet' && c.track !== 'full') return;
+        if (!T.visibleLessons(T.GROUPS.find((g) => g.id === topic.group)).includes(topic)) return;
         T.startStage(topic, 'mix');
         const s = T.session();
-        const types = topic.kind === 'alphabet'
-          ? ['letterName', 'soundLetter', 'formLetter', 'exampleRead']
-          : ['mcMeaning', 'mcReverse', 'trueFalse', 'typeTr', 'order', 'speak'].concat(c.track === 'full' ? ['readScript', 'spell'] : []);
-        topic.items.forEach((item) => types.forEach((type) => {
-          if (type === 'order' && item.tr.split(/\s+/).length < 3) return;
-          if (type === 'spell' && /[\s‌]/.test(item.fa)) return;
-          try {
-            s.queue = [{ type, item }, { type: 'mcMeaning', item: topic.items[0] }];
-            T.renderAt(0);
-            questions++;
-            if (['mcMeaning', 'mcReverse', 'readScript', 'letterName', 'soundLetter', 'formLetter', 'exampleRead'].includes(type)) {
-              const n = $$('.opt').length;
-              if (n !== 4) err(`${topic.id}/${item.tr}/${type}: ${n} options instead of 4`);
-            }
-            autoAnswer(`${where}/${topic.id}/${item.tr}/${type}`);
-          } catch (e) { err(`${topic.id}/${item.tr}/${type}: ${e.message}\n${e.stack}`); }
-        }));
+        topic.items.forEach((item) => {
+          const types = new Set(T.typesFor(item));
+          if (!item.isLetter) types.add('speak');
+          types.forEach((type) => {
+            try {
+              s.queue = [{ type, item }, { type: 'mcMeaning', item: topic.items[0] }];
+              T.renderAt(0);
+              questions++;
+              if (['mcMeaning', 'mcReverse', 'readScript', 'letterName', 'soundLetter', 'formLetter', 'exampleRead'].includes(type)) {
+                const n = $$('.opt').length;
+                if (n !== 4) err(`${where}/${topic.id}/${item.tr}/${type}: ${n} options instead of 4`);
+              }
+              if (type === 'order') {
+                const tiles = $$('#bank .tile');
+                const ow = T.orderWords(item);
+                if (tiles.length !== ow.words.length || tiles.length < 2) err(`${where}/${item.id}/order: ${tiles.length} tiles`);
+                if (code === 'ja' && T.readerMode() && item.extra && item.extra.parts && !ow.script) err(`${where}/${item.id}/order: Japanese parts not used`);
+                if (ow.script && $('#bank').getAttribute('dir') !== T.LANGS[code].dir) err(`${where}/${item.id}/order: bank dir`);
+              }
+              if (type === 'spell') {
+                const w = T.spellWord(item);
+                if (code === 'ja' && w !== (item.kana || '').replace(/[。、！？.!?]/g, '')) err(`${where}/${item.id}/spell: not built from kana (${w})`);
+                if (/[ً-ٰٟـ]/.test(w)) err(`${where}/${item.id}/spell: harakat in the spelling tiles`);
+              }
+              autoAnswer(`${where}/${topic.id}/${item.tr}/${type}`);
+            } catch (e) { err(`${where}/${topic.id}/${item.tr}/${type}: ${e.message}\n${e.stack}`); }
+          });
+        });
       });
     }
 
-    /** Long sentences must stay inside the learn card (speak-only track, phone width). */
     function checkLearnCardFit(where) {
       clearConfetti();
       app.style.maxWidth = '360px';
       const words = T.TOPICS.filter((tp) => tp.kind !== 'alphabet');
-      // The longest few items of every lesson.
+      const shown = (it) => (T.readerMode() ? it.tg : it.tr);
       words.forEach((topic) => {
-        const longest = topic.items.map((it, i) => [it.tr.length, i]).sort((a, b) => b[0] - a[0]).slice(0, 2);
+        const longest = topic.items.map((it, i) => [shown(it).length, i]).sort((a, b) => b[0] - a[0]).slice(0, 2);
         longest.forEach(([, idx]) => {
           T.renderLearn(topic);
           for (let k = 0; k < idx; k++) $('#next').click();
@@ -329,7 +437,6 @@
           if (head.getBoundingClientRect().bottom > cr.top + 1) err(`${where}/${topic.items[idx].id}: card covers the header`);
         });
       });
-      // Mix card: round icon, nothing outside the card.
       T.renderTopic(words[0] || T.TOPICS[0]);
       const mix = $('.stage.mix');
       if (mix) {
@@ -341,26 +448,29 @@
           if (r.width && (r.right > mr.right + 1 || r.left < mr.left - 1)) err(`${where}: mix card content overflows (${el.className})`);
         });
       }
+      // Top bar fits a 360px phone.
+      T.renderMenu();
+      const bar = $('.topbar');
+      if (bar && bar.scrollWidth > bar.clientWidth + 1) err(`${where}: top bar overflows at 360px (${bar.scrollWidth}px)`);
       app.style.maxWidth = '';
     }
 
-    function checkDictionary(c, where) {
+    function checkDictionary(code, c, where) {
       const words = T.TOPICS.filter((tp) => tp.kind !== 'alphabet').flatMap((tp) => tp.items);
       const letters = T.TOPICS.filter((tp) => tp.kind === 'alphabet').flatMap((tp) => tp.items);
-      const S = T.state();
-      // Some progress: 3 learned, 3 learning.
-      words.slice(0, 3).forEach((it) => (S.words[it.id] = 4));
-      words.slice(3, 6).forEach((it) => (S.words[it.id] = 1));
-      if (letters[0]) S.words[letters[0].id] = 5;
+      const W = langState(code).words;
+      words.slice(0, 3).forEach((it) => (W[it.id] = 4));
+      words.slice(3, 6).forEach((it) => (W[it.id] = 1));
+      if (letters[0]) W[letters[0].id] = 5;
       T.renderMenu();
       $('#m-dict').click();
       if (!$('.dictionary')) { err(`${where}: dictionary did not open`); return; }
-      // The page remembers the last search and filters; start clean.
       const sel0 = $('#dict-group'); sel0.value = ''; sel0.dispatchEvent(new Event('change'));
       app.querySelector('[data-filter="all"]').click();
       $('#dict-q').value = ''; $('#dict-q').dispatchEvent(new Event('input')); T.dictUpdate();
       const head = $('#dict-learned').textContent;
-      if (!head.includes(String(words.length)) || !head.includes('3')) err(`${where}: header "${head}" (want 3 of ${words.length})`);
+      const name = T.LANGS[code].name[c.uiLang];
+      if (!head.includes(String(words.length)) || !head.includes('3') || !head.includes(name)) err(`${where}: header "${head}" (want 3 of ${words.length} ${name})`);
       const rows = () => $$('.dict-row');
       if (rows().length !== Math.min(200, words.length)) err(`${where}: ${rows().length} rows for an empty search`);
       if (words.length > 200 && !$('.dict-more')) err(`${where}: no "showing first 200" note`);
@@ -373,22 +483,43 @@
         T.dictUpdate();
         return rows().map((r) => r.dataset.id);
       };
-      const accented = words.find((it) => /[âāáîû]/.test(it.tr) && it.tr.split(' ').length === 1) || words[0];
-      const plain = accented.tr.normalize('NFD').replace(/[̀-ͯ]/g, '');
-      if (!search(plain).includes(accented.id)) err(`${where}: Latin search "${plain}" did not find ${accented.tr}`);
-      if (!search(plain.toUpperCase()).includes(accented.id)) err(`${where}: uppercase Latin search failed`);
-      const heItem = words[Math.floor(words.length / 2)];
-      if (!search(heItem.he).includes(heItem.id)) err(`${where}: Hebrew search "${heItem.he}" failed`);
-      if (!search(heItem.en).includes(heItem.id)) err(`${where}: English search "${heItem.en}" failed`);
-      if (!search(heItem.fa).includes(heItem.id)) err(`${where}: Farsi search "${heItem.fa}" failed`);
+      const strip = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      // Latin letters without accents (Spanish: the word itself without accents).
+      const field = code === 'es' ? 'tg' : 'tr';
+      const accented = words.find((it) => /[âāáéíóúîûōūḥṣñ]/.test(it[field]) && it[field].split(' ').length === 1) || words[0];
+      const plain = strip(accented[field]).replace(/[¿¡?!.]/g, '');
+      if (!search(plain).includes(accented.id)) err(`${where}: search "${plain}" did not find ${accented[field]}`);
+      if (!search(plain.toUpperCase()).includes(accented.id)) err(`${where}: uppercase search "${plain.toUpperCase()}" failed`);
+      if (code === 'es') {
+        const syl = words.find((it) => /-/.test(it.tr)) || words[0];
+        if (!search(strip(syl.tr).toLowerCase()).includes(syl.id)) err(`${where}: syllable-guide search "${syl.tr}" failed`);
+      }
+      if (code === 'ja') {
+        const kanji = words.find((it) => /[一-鿿]/.test(it.tg) && it.kana);
+        if (kanji && !search(kanji.kana).includes(kanji.id)) err(`${where}: kana search "${kanji.kana}" did not find ${kanji.tg}`);
+        const kata = words.find((it) => /^[゠-ヿ]+$/.test(it.tg));
+        if (kata) {
+          const hira = kata.tg.replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+          if (!search(hira).includes(kata.id)) err(`${where}: hiragana search "${hira}" did not find katakana ${kata.tg}`);
+        }
+        const macron = words.find((it) => /ō/.test(it.tr) && it.tr.split(' ').length === 1);
+        if (macron && !search(macron.tr.replace(/ō/g, 'ou')).includes(macron.id)) err(`${where}: rōmaji "ou" search failed for ${macron.tr}`);
+      }
+      if (code === 'ar') {
+        const hamza = words.find((it) => /[أإآ]/.test(it.tg));
+        if (hamza && !search(hamza.tg.replace(/[أإآ]/g, 'ا')).includes(hamza.id)) err(`${where}: search without hamza did not find ${hamza.tg}`);
+      }
+      const mid = words[Math.floor(words.length / 2)];
+      if (!search(mid.he).includes(mid.id)) err(`${where}: Hebrew search "${mid.he}" failed`);
+      if (!search(mid.en).includes(mid.id)) err(`${where}: English search "${mid.en}" failed`);
+      if (!search(mid.tg).includes(mid.id)) err(`${where}: target search "${mid.tg}" failed`);
       const got = search('zzqqxxnotaword');
       if (got.length || !$('.dict-empty')) err(`${where}: nonsense search shows ${got.length} rows`);
-      // Debounce: typing alone does not re-render synchronously.
+      if (T.theme(code) && T.theme(code).lines && T.theme(code).lines.empty && $('.dict-empty .bubble').textContent !== T.theme(code).lines.empty[c.uiLang]) err(`${where}: empty-search line is not the theme's`);
       search('');
-      const inp = $('#dict-q'); inp.value = heItem.he; inp.dispatchEvent(new Event('input'));
+      const inp = $('#dict-q'); inp.value = mid.he; inp.dispatchEvent(new Event('input'));
       if (rows().length !== Math.min(200, words.length)) err(`${where}: input was not debounced`);
       search('');
-      // Filters.
       const clickFilter = (f) => { app.querySelector(`[data-filter="${f}"]`).click(); return rows(); };
       let r = clickFilter('learned');
       if (r.length !== 3 || r.some((x) => !x.querySelector('.dot.st-learned'))) err(`${where}: learned filter shows ${r.length}`);
@@ -397,25 +528,22 @@
       r = clickFilter('new');
       if (r.some((x) => !x.querySelector('.dot.st-new')) || r.length !== Math.min(200, words.length - 6)) err(`${where}: new filter shows ${r.length}`);
       clickFilter('all');
-      // Group filter.
       const sel = $('#dict-group');
-      const g = T.visibleGroups().find((x) => x.id !== 'g-alphabet');
+      const g = T.visibleGroups().find((x) => x.lessons.some((l) => l.kind !== 'alphabet'));
       sel.value = g.id; sel.dispatchEvent(new Event('change'));
       const inGroup = new Set(g.items.map((i) => i.id));
       r = rows();
       if (!r.length || r.some((x) => !inGroup.has(x.dataset.id))) err(`${where}: group filter shows rows outside ${g.id}`);
       sel.value = ''; sel.dispatchEvent(new Event('change'));
-      // Row click opens that lesson.
-      search(heItem.he);
-      const row = rows().find((x) => x.dataset.id === heItem.id);
+      search(mid.he);
+      const row = rows().find((x) => x.dataset.id === mid.id);
       row.click();
       if (!$('.topic-page')) err(`${where}: row click did not open a lesson`);
       else {
         const title = $('.lesson-head .title-text').textContent;
-        const lesson = T.TOPICS.find((tp) => tp.id === heItem.topic);
+        const lesson = T.TOPICS.find((tp) => tp.id === mid.topic);
         if (title !== lesson.title[c.uiLang]) err(`${where}: row opened "${title}", expected "${lesson.title[c.uiLang]}"`);
       }
-      // Speed with ~1,000 words.
       const t0 = performance.now();
       for (let k = 0; k < 20; k++) T.dictSearch('a', 'all', '');
       const ms = (performance.now() - t0) / 20;
@@ -427,6 +555,7 @@
       const leave = [
         ['the logo', () => $('.brand').click()],
         ['settings', () => $('[data-go="settings"]').click()],
+        ['the language chip', () => $('.lang-chip').click()],
         ['quit', () => $('#quit').click()],
         ['answer + menu', () => { $('.opt').click(); T.renderMenu(); }],
         ['dictionary', () => T.renderDictionary()],
@@ -437,39 +566,47 @@
         fn();
         if (running()) err(`${where}: speed timer still running after leaving via ${how}`);
       });
-      // Starting twice never leaves two timers.
       T.startSpeed(); T.startSpeed();
       if (window.__intervals.size !== 1) err(`${where}: ${window.__intervals.size} timers after starting twice`);
       T.renderMenu();
     }
 
-    function checkMisc(where) {
-      // Digits keep their order: no digit-only run inside a right-to-left span.
-      const m = T.mixed('Farsi digits: ۰ ۱ ۲ ۳ and the word سلام دوست ۲ من.');
-      tmp.innerHTML = m;
-      tmp.querySelectorAll('[dir="rtl"]').forEach((s) => { if (/^[\s۰-۹٠-٩]+$/.test(s.textContent)) err(`${where}: digits wrapped right-to-left`); });
-      if (tmp.querySelectorAll('.num').length !== 4) err(`${where}: digit runs not isolated (${tmp.querySelectorAll('.num').length})`);
-      if (!/سلام دوست ۲ من/.test([...tmp.querySelectorAll('[dir="rtl"]')].map((s) => s.textContent).join('|'))) err(`${where}: Farsi phrase with a digit split`);
-      T.TOPICS.filter((tp) => tp.intro && /[۰-۹]/.test(tp.intro.en)).forEach((tp) => {
+    function checkMisc(code, c, where) {
+      if (code === 'fa') {
+        const m = T.mixed('Farsi digits: ۰ ۱ ۲ ۳ and the word سلام دوست ۲ من.');
+        tmp.innerHTML = m;
+        tmp.querySelectorAll('[dir="rtl"]').forEach((s) => { if (/^[\s۰-۹٠-٩]+$/.test(s.textContent)) err(`${where}: digits wrapped right-to-left`); });
+        if (tmp.querySelectorAll('.num').length !== 4) err(`${where}: digit runs not isolated (${tmp.querySelectorAll('.num').length})`);
+        if (!/سلام دوست ۲ من/.test([...tmp.querySelectorAll('[dir="rtl"]')].map((s) => s.textContent).join('|'))) err(`${where}: Farsi phrase with a digit split`);
+      }
+      if (code === 'ja') {
+        tmp.innerHTML = T.mixed('Hiragana (ひらがな) and kanji (漢字).');
+        const js = [...tmp.querySelectorAll('.tg[lang="ja"]')].map((s) => s.textContent);
+        if (js.join('|') !== 'ひらがな|漢字') err(`${where}: Japanese runs in titles not isolated: ${js}`);
+      }
+      if (code === 'ar') {
+        tmp.innerHTML = T.mixed('Say مرحبا (marḥaba) ٣ times.');
+        if (!tmp.querySelector('.tg[lang="ar"][dir="rtl"]') || !tmp.querySelector('.tg.num')) err(`${where}: Arabic runs in titles not isolated`);
+      }
+      T.TOPICS.filter((tp) => tp.intro && /[۰-۹٠-٩]/.test(tp.intro.en)).forEach((tp) => {
         T.renderTopic(tp);
         $$('.intro [dir="rtl"]').forEach((s) => { if (/^[\s۰-۹٠-٩]+$/.test(s.textContent)) err(`${where}/${tp.id}: intro digits right-to-left`); });
       });
-      // Text on yellow is dark in both themes.
       T.renderMenu();
       const c1 = getComputedStyle($('.brand-mark')).color;
       if (c1 !== 'rgb(43, 45, 66)') err(`${where}: logo text color ${c1}`);
-      const alpha = T.TOPICS.find((tp) => tp.kind === 'alphabet');
-      if (alpha) {
-        T.renderTopic(alpha);
-        const c2 = getComputedStyle($('.title-icon .icon-fa')).color;
-        if (c2 !== 'rgb(43, 45, 66)') err(`${where}: alphabet header icon color ${c2}`);
+      const glyph = T.TOPICS.find((tp) => /\p{L}/u.test(tp.icon || ''));
+      if (glyph) {
+        T.renderTopic(glyph);
+        const c2 = getComputedStyle($('.title-icon .icon-tg')).color;
+        if (c2 !== 'rgb(43, 45, 66)') err(`${where}: letter header icon color ${c2}`);
       }
       // Bonus rule on the menu: all counted stages done (no speaking) => trophy on lesson and group.
-      const g = T.visibleGroups().find((x) => x.id !== 'g-alphabet');
-      const S = T.state();
+      const g = T.visibleGroups().find((x) => x.lessons.some((l) => l.kind !== 'alphabet'));
+      const topics = langState(code).topics;
       T.visibleLessons(g).forEach((tp) => {
-        S.topics[tp.id] = { best: 100, stages: {} };
-        T.countedStages(tp).forEach((s) => (S.topics[tp.id].stages[s] = 3));
+        topics[tp.id] = { best: 100, stages: {} };
+        T.countedStages(tp).forEach((s) => (topics[tp.id].stages[s] = 3));
       });
       if (!T.stagesFor(g.lessons[0]).includes('speaking')) err(`${where}: speech on but no speaking stage`);
       T.renderMenu();
@@ -477,61 +614,257 @@
       T.renderGroup(g);
       if ($$('[data-topic] .done-badge').length !== T.visibleLessons(g).length) err(`${where}: lessons without speaking not complete`);
       if (T.nextLessonAfter(g.lessons[0]) && T.visibleLessons(g).length > 1 && T.nextLessonAfter(g.lessons[0]) !== g.lessons[1]) err(`${where}: nextLessonAfter fallback wrong`);
+      // Settings: track only for languages with a script; the language list is there.
+      T.renderSettings();
+      if (!!$('.seg[data-name="track"]') !== !!T.LANGS[code].script) err(`${where}: track setting shown=${!!$('.seg[data-name="track"]')}`);
+      if ($$('.lang-seg [data-pick]').length !== 4) err(`${where}: settings language list`);
     }
 
-    // uiLang × track; the full click-through of every lesson runs in two combos (covering both
-    // languages, both tracks and speech on/off), the other two play the first lesson of each group.
-    const combos = [
-      { uiLang: 'en', track: 'full', level: 'beginner', speech: true, full: true },
-      { uiLang: 'he', track: 'speak', level: 'intermediate', speech: false, full: true },
-      { uiLang: 'en', track: 'speak', level: 'advanced', speech: true, full: false },
-      { uiLang: 'he', track: 'full', level: 'beginner', speech: false, full: false },
-    ];
-    combos.forEach((c) => {
-      const where = `${c.uiLang}/${c.track}`;
-      const step = (name, fn) => { try { fn(); } catch (e) { err(`${where} ${name}: ${e.message}\n${e.stack}`); } };
-      T.setSettings({ uiLang: c.uiLang, level: c.level, track: c.track, speech: c.speech });
-      step('navigation', () => checkNavigation(c, where));
-      step('lessons', () => T.visibleGroups().forEach((g) => {
-        const lessons = T.visibleLessons(g);
-        const play = c.full ? lessons : lessons.slice(0, 1);
-        play.forEach((tp, i) => {
-          try { playLesson(tp, `${where}/${tp.id}`, lessons[i + 1] || null); }
-          catch (e) { err(`${where}/${tp.id}: ${e.message}\n${e.stack}`); }
+    async function runLanguage(code) {
+      const L = T.LANGS[code];
+      const combos = L.script ? [
+        { uiLang: 'en', track: 'full', level: 'beginner', speech: true, full: true },
+        { uiLang: 'he', track: 'speak', level: 'intermediate', speech: false, full: true },
+        { uiLang: 'en', track: 'speak', level: 'advanced', speech: true, full: false },
+        { uiLang: 'he', track: 'full', level: 'beginner', speech: false, full: false },
+      ] : [
+        { uiLang: 'en', track: 'full', level: 'beginner', speech: true, full: true },
+        { uiLang: 'he', track: 'full', level: 'intermediate', speech: false, full: true },
+        { uiLang: 'en', track: 'full', level: 'advanced', speech: false, full: false },
+      ];
+      for (const c of combos) {
+        const where = `${code}/${c.uiLang}/${c.track}`;
+        const set = () => T.setSettings(Object.assign({ lang: code }, c));
+        await step(where + ' load', set);
+        if (T.cur() !== code || !T.GROUPS.length) { err(`${where}: language did not load`); continue; }
+        await step(where + ' navigation', () => checkNavigation(code, c, where));
+        await step(where + ' lessons', () => T.visibleGroups().forEach((g) => {
+          const lessons = T.visibleLessons(g);
+          const play = c.full ? lessons : lessons.slice(0, 1);
+          play.forEach((tp, i) => {
+            try { playLesson(code, tp, `${where}/${tp.id}`, lessons[i + 1] || null); }
+            catch (e) { err(`${where}/${tp.id}: ${e.message}\n${e.stack}`); }
+          });
+        }));
+        await step(where + ' review', () => {
+          T.startReview(); sessions++;
+          let guard = 0;
+          while (!$('.results') && guard++ < 100) { questions++; if (!autoAnswer('review')) break; }
+          if (!$('.results')) err(`${where}: review never finished`);
+          T.renderSettings();
         });
-      }));
-      step('review', () => {
-        T.startReview(); sessions++;
-        let guard = 0;
-        while (!$('.results') && guard++ < 100) { questions++; if (!autoAnswer('review')) break; }
-        if (!$('.results')) err(`${where}: review never finished`);
-        T.renderSettings();
-      });
-      step('distractors', () => checkDistractors(c, where));
-      if (!c.full) step('every type', () => everyTypeEveryItem(c, where));
-      if (c.track === 'speak') step('learn card fit', () => checkLearnCardFit(where));
-      T.setSettings({ uiLang: c.uiLang, level: c.level, track: c.track, speech: c.speech });
-      step('dictionary', () => checkDictionary(c, where));
-      step('speed timer', () => checkSpeedTimer(where));
-      T.setSettings({ uiLang: c.uiLang, level: c.level, track: c.track, speech: true });
-      step('misc', () => checkMisc(where));
-    });
+        await step(where + ' distractors', () => checkDistractors(code, c, where));
+        if (!c.full) await step(where + ' every type', () => everyTypeEveryItem(code, c, where));
+        if (c.track === 'speak' || (!L.script && c.uiLang === 'he')) await step(where + ' learn card fit', () => checkLearnCardFit(where));
+        await set();
+        await step(where + ' dictionary', () => checkDictionary(code, c, where));
+        await step(where + ' speed timer', () => checkSpeedTimer(where));
+        T.patchSettings({ speech: true });
+        await step(where + ' misc', () => checkMisc(code, c, where));
+      }
+      const words = T.TOPICS.filter((tp) => tp.kind !== 'alphabet').reduce((n, tp) => n + tp.items.length, 0);
+      const letters = T.TOPICS.filter((tp) => tp.kind === 'alphabet').reduce((n, tp) => n + tp.items.length, 0);
+      stats.push(`${code}: groups=${T.GROUPS.length} lessons=${T.TOPICS.length} words=${words} letters=${letters} theme=${T.theme(code) ? 'yes' : 'FALLBACK'}`);
+    }
 
-    // Every string key exists in both languages.
+    /* ---------------- onboarding: the language picker ---------------- */
+    async function checkOnboarding() {
+      const fresh = async () => { localStorage.clear(); await T.reload(); };
+      // 1) Hebrew interface, Japanese with a track step.
+      await fresh();
+      if (!$('.onboard')) { err('onboarding not shown for a fresh state'); return; }
+      if ($('.topbar')) err('onboarding shows the top bar');
+      if ($('.hero h1').textContent !== 'Talk like a local') err('onboarding hero title: ' + $('.hero h1').textContent);
+      if ($$('.choice').length !== 2) err('step 1 is not the interface language');
+      $$('.choice')[1].click(); // עברית
+      if (html.dir !== 'rtl' || html.lang !== 'he') err('Hebrew interface not right-to-left');
+      $('#ob-next').click();
+      const cards = $$('.lang-card');
+      if (cards.length !== 4) err(`language picker shows ${cards.length} cards`);
+      if (cards.some((c) => !c.querySelector('.mascot svg'))) err('a language card has no mascot');
+      ['fa', 'es', 'ja', 'ar'].forEach((code) => {
+        const card = app.querySelector(`[data-pick="${code}"]`);
+        const th = T.theme(code);
+        if (!card) return err(`no card for ${code}`);
+        const native = card.querySelector('.lang-native');
+        if (!native || native.getAttribute('lang') !== code || native.getAttribute('dir') !== T.LANGS[code].dir) err(`${code} card: native name not tagged`);
+        if (th && !card.textContent.includes(th.name.he)) err(`${code} card: theme name missing`);
+        if (th && th.mascot && !card.textContent.includes(th.mascot.name.he)) err(`${code} card: mascot name missing`);
+        if (th && th.tagline && !card.textContent.includes(th.tagline.target)) err(`${code} card: tagline missing`);
+      });
+      if (!$('#ob-next').disabled) err('Next enabled before a language is picked');
+      app.querySelector('[data-pick="ja"]').click();
+      if (html.dataset.lang !== 'ja') err('picking Japanese did not preview its theme');
+      if (!app.querySelector('[data-pick="ja"]').classList.contains('selected')) err('picked card not selected');
+      $('#ob-next').click();
+      if (!$('.onboard h2').textContent.includes('יפנית')) err('level step does not name the language: ' + $('.onboard h2').textContent);
+      const th = T.theme('ja');
+      if (th && th.lines && th.lines.intro && (!$('.bubble.wide') || $('.bubble.wide').textContent !== th.lines.intro.he)) err('level step: theme intro line not shown');
+      $$('.choice')[0].click(); $('#ob-next').click();
+      if ($('.onboard h2').textContent !== STR.he.chooseTrack) err('Japanese onboarding has no track step');
+      $$('.choice')[1].click(); $('#ob-next').click();
+      if ($('.onboard h2').textContent !== STR.he.chooseSpeech) err('no speech step');
+      $$('.choice')[1].click(); $('#ob-next').click();
+      await waitFor(() => $('.menu'));
+      if (!$('.menu')) { err('onboarding did not end on the menu'); return; }
+      const S = T.state();
+      if (S.settings.lang !== 'ja' || S.settings.uiLang !== 'he' || S.settings.speech !== false) err('onboarding settings: ' + JSON.stringify(S.settings));
+      if (!S.langs.ja || S.langs.ja.level !== 'beginner' || S.langs.ja.track !== 'full') err('onboarding: langs.ja not set up');
+      if (html.dataset.lang !== 'ja') err('menu after onboarding: data-lang ' + html.dataset.lang);
+      if (!$('.lang-chip .lang-chip-name') || $('.lang-chip .lang-chip-name').getAttribute('lang') !== 'ja') err('language chip not showing Japanese');
+      // 2) Spanish: no track step.
+      await fresh();
+      $$('.choice')[0].click(); $('#ob-next').click();
+      app.querySelector('[data-pick="es"]').click(); $('#ob-next').click();
+      $$('.choice')[0].click(); $('#ob-next').click();
+      if ($('.onboard h2').textContent !== STR.en.chooseSpeech) err('Spanish onboarding shows a track step: ' + $('.onboard h2').textContent);
+      if ($$('.dots i').length !== 4) err(`Spanish onboarding has ${$$('.dots i').length} steps, expected 4`);
+      $$('.choice')[0].click(); $('#ob-next').click();
+      await waitFor(() => $('.menu'));
+      if (!$('.menu') || T.cur() !== 'es') err('Spanish onboarding did not open the Spanish menu');
+      if (T.state().langs.es.track !== 'full') err('Spanish track should be stored as full');
+    }
+
+    /* ---------------- switching languages keeps progress separate ---------------- */
+    async function checkSwitching() {
+      await T.setSettings({ uiLang: 'en', lang: 'fa', level: 'beginner', track: 'full', speech: false });
+      const S = T.state();
+      const faTopic = T.TOPICS.find((tp) => tp.kind !== 'alphabet');
+      S.langs.fa.topics[faTopic.id] = { best: 100, stages: { learn: 3, choice: 3 } };
+      S.langs.fa.words[faTopic.items[0].id] = 5;
+      S.langs.fa.speedBest = 12;
+      S.xp = 50;
+      T.renderMenu();
+      $('.lang-chip').click();
+      if (!$('.lang-page') || $$('.lang-card').length !== 4) { err('language chip did not open the picker'); return; }
+      if (!app.querySelector('[data-pick="fa"].selected')) err('current language not marked in the picker');
+      app.querySelector('[data-pick="ar"]').click();
+      // A new language is set up first (level + track only).
+      if (!$('.onboard')) { err('new language: no set-up screen'); return; }
+      if (html.dataset.lang !== 'ar') err('set-up screen not in the Arabic theme');
+      if ($$('.dots i').length !== 2) err(`new-language set-up has ${$$('.dots i').length} steps, expected 2`);
+      $$('.choice')[1].click(); $('#ob-next').click();
+      $$('.choice')[0].click(); $('#ob-next').click();
+      await waitFor(() => $('.menu') && T.cur() === 'ar');
+      if (T.cur() !== 'ar' || !$('.menu')) { err('switch to Arabic failed'); return; }
+      if (S.langs.ar.level !== 'intermediate' || S.langs.ar.track !== 'speak') err('Arabic set-up not saved');
+      if (Object.keys(S.langs.ar.topics).length || Object.keys(S.langs.ar.words).length) err('Arabic started with progress from another language');
+      if (S.langs.fa.topics[faTopic.id].stages.choice !== 3 || S.langs.fa.words[faTopic.items[0].id] !== 5) err('Farsi progress changed by switching');
+      if (S.xp !== 50) err('XP is not global');
+      if ($('.mode.speed small').textContent.includes('12')) err('Farsi speed record shown for Arabic');
+      if ($$('.menu .mini-bar i').some((i) => parseFloat(i.style.width) > 0)) err('Arabic menu shows progress');
+      // Practise a bit in Arabic: only Arabic progress changes.
+      const arTopic = T.TOPICS.find((tp) => tp.kind !== 'alphabet');
+      T.startStage(arTopic, 'truefalse');
+      playSession('switch/ar');
+      if (!S.langs.ar.topics[arTopic.id]) err('Arabic progress not recorded under langs.ar');
+      const faWords = JSON.stringify(S.langs.fa.words);
+      // Back to Farsi from Settings: it's set up, so it opens straight away with its own progress.
+      T.renderSettings();
+      app.querySelector('.lang-seg [data-pick="fa"]').click();
+      await waitFor(() => $('.menu') && T.cur() === 'fa');
+      if (T.cur() !== 'fa' || html.dataset.lang !== 'fa') { err('switch back to Farsi failed'); return; }
+      if (JSON.stringify(S.langs.fa.words) !== faWords) err('Farsi words changed while practising Arabic');
+      if (!$('.mode.speed small').textContent.includes('12')) err('Farsi speed record lost');
+      if (!$$('.menu .mini-bar i').some((i) => parseFloat(i.style.width) > 0)) err('Farsi progress not shown after switching back');
+      T.renderDictionary();
+      if (!$('#dict-learned').textContent.includes('1')) err('Farsi dictionary lost its learned word');
+      // Same lesson ids in two languages never share progress.
+      if (S.langs.ar.topics[faTopic.id] && faTopic.id !== arTopic.id) err('Farsi topic id showed up in Arabic');
+      // Persisted.
+      const saved = JSON.parse(localStorage.getItem(T.STORE_KEY));
+      if (!saved.langs.ar || !saved.langs.fa || saved.settings.lang !== 'fa') err('per-language state not saved');
+    }
+
+    /* ---------------- themes: fallback when missing or broken ---------------- */
+    async function checkThemes() {
+      await T.setSettings({ uiLang: 'en', lang: 'es', level: 'beginner', track: 'full', speech: false });
+      const real = window.TLAP_THEMES.es;
+      delete window.TLAP_THEMES.es;
+      T.applyTheme('es');
+      T.renderMenu();
+      if (!$('.menu .mascot .fallback-mascot')) err('missing theme: no fallback mascot');
+      if ($('.theme-deco')) err('missing theme: decorations shown');
+      if (!html.classList.contains('theme-fallback')) err('missing theme: html has no theme-fallback class');
+      const fb = STR.en.m_greet.map((s) => s.replace('{lang}', 'Spanish'));
+      if (!fb.includes($('.menu .bubble').textContent)) err('missing theme: greeting is not a built-in line: ' + $('.menu .bubble').textContent);
+      // A theme whose mascot throws, with half its lines missing.
+      window.TLAP_THEMES.es = { name: { en: 'Spanish' }, mascot: { svg() { throw new Error('boom'); } }, lines: { greet: { en: [] } }, decorations: { banner: 7 } };
+      T.applyTheme('es');
+      T.renderMenu();
+      if (!$('.menu .mascot .fallback-mascot')) err('broken theme: no fallback mascot');
+      T.renderGroup(T.visibleGroups()[0]);
+      if (!$('.mascot-row .bubble').textContent) err('broken theme: empty mascot line');
+      if (real) window.TLAP_THEMES.es = real; else delete window.TLAP_THEMES.es;
+      T.applyTheme('es');
+      T.renderMenu();
+      if (real && $('.menu .mascot .fallback-mascot')) err('theme not restored');
+      // Every real theme renders all three moods as SVG, and has every line in both languages.
+      ['fa', 'es', 'ja', 'ar'].forEach((code) => {
+        const th = window.TLAP_THEMES[code];
+        if (!th) return;
+        ['happy', 'cheer', 'sad'].forEach((m) => { if (!/^\s*<svg/i.test(T.mascotSVG(m, code)) || /fallback-mascot/.test(T.mascotSVG(m, code))) err(`${code} theme: mascot mood ${m}`); });
+        ['intro', 'greet', 'group', 'topic', 'right', 'wrong', 'empty'].forEach((k) => ['en', 'he'].forEach((u) => {
+          if (!th.lines || !th.lines[k] || !th.lines[k][u] || !th.lines[k][u].length) err(`${code} theme: line ${k}.${u} missing`);
+        }));
+        if (!Array.isArray(th.confetti) || !th.confetti.length) err(`${code} theme: no confetti colors`);
+      });
+    }
+
+    /* ---------------- answer checking per language ---------------- */
+    function checkAnswers() {
+      const ct = [
+        ['fa', 'salam', 'salâm', 'exact'], ['fa', 'khodahafez', 'khodâhâfez', 'exact'], ['fa', 'xodahafez', 'khodâhâfez', 'exact'],
+        ['fa', 'khodahafz', 'khodâhâfez', 'almost'], ['fa', 'hello', 'salâm', 'no'], ['fa', '', 'salâm', 'no'],
+        ['fa', 'esme man sara ast', 'esm-e man sârâ ast.', 'exact'], ['fa', 'to', 'to', 'exact'], ['fa', 'ta', 'to', 'no'],
+        ['ar', 'marhaba', 'marḥaba', 'exact'], ['ar', 'arabi', '3arabi', 'exact'], ['ar', '3arabi', '3arabi', 'exact'],
+        ['ar', '7abibi', 'ḥabībi', 'exact'], ['ar', 'shukran', 'shukran', 'exact'], ['ar', 'shukra', 'shukran', 'almost'],
+        ['ja', 'toukyou', 'tōkyō', 'exact'], ['ja', 'tokyo', 'tōkyō', 'exact'], ['ja', 'arigato', 'arigatō', 'exact'],
+        ['ja', 'arigatou', 'arigatō', 'exact'], ['ja', 'konichiwa', 'konnichiwa', 'almost'], ['ja', 'sayonara', 'konnichiwa', 'no'],
+        ['ja', 'shinbun', 'shimbun', 'exact'], ['ja', 'watashi wa gakusei desu', 'watashi wa gakusei desu', 'exact'],
+      ];
+      ct.forEach(([code, a, b, want]) => { const got = T.compareTr(a, b, code); if (got !== want) err(`compareTr[${code}](${a}, ${b}) = ${got}, want ${want}`); });
+      const typed = [
+        ['es', 'adiós', { tg: 'adiós' }, 'exact'], ['es', 'Adios', { tg: 'adiós' }, 'almost'], ['es', 'que tal', { tg: '¿Qué tal?' }, 'almost'],
+        ['es', '¿Qué tal?', { tg: '¿Qué tal?' }, 'exact'], ['es', 'nino', { tg: 'niño' }, 'almost'], ['es', 'HOLA', { tg: 'hola' }, 'exact'],
+        ['es', 'gato', { tg: 'perro' }, 'no'], ['es', 'buenos dias', { tg: 'buenos días' }, 'almost'],
+        ['ja', 'こんにちは', { tg: 'こんにちは', tr: 'konnichiwa', kana: 'こんにちは' }, 'exact'],
+        ['ja', 'コンニチハ', { tg: 'こんにちは', tr: 'konnichiwa', kana: 'こんにちは' }, 'exact'],
+        ['ja', 'たべる', { tg: '食べる', tr: 'taberu', kana: 'たべる' }, 'exact'], ['ja', 'taberu', { tg: '食べる', tr: 'taberu', kana: 'たべる' }, 'exact'],
+        ['ja', 'のむ', { tg: '食べる', tr: 'taberu', kana: 'たべる' }, 'no'],
+        ['fa', 'salam', { tg: 'سلام', tr: 'salâm' }, 'exact'],
+      ];
+      typed.forEach(([code, a, it, want]) => { const got = T.checkTyped(a, it, code); if (got !== want) err(`checkTyped[${code}](${a}, ${it.tg}) = ${got}, want ${want}`); });
+      const sp = [
+        ['fa', 'سلام', 'سلام', null, true], ['fa', 'سلام خوبی', 'سلام', null, true], ['fa', 'خداحافظ', 'سلام', null, false],
+        ['fa', 'سلام', 'سلام', null, true],
+        ['ar', 'مَرْحَبًا', 'مرحبا', null, true], ['ar', 'احمد', 'أحمد', null, true], ['ar', 'تلاته', 'تلاتة', null, true],
+        ['ar', 'حكي', 'حكى', null, true], ['ar', 'مرحبا', 'شكرا', null, false], ['ar', 'شـكـرا', 'شكرا', null, true],
+        ['ja', '東京', '東京', 'とうきょう', true], ['ja', 'とうきょう', '東京', 'とうきょう', true], ['ja', 'トウキョウ', '東京', 'とうきょう', true],
+        ['ja', 'お元気 ですか？', 'お元気ですか', 'おげんきですか', true], ['ja', 'さようなら', 'こんにちは', 'こんにちは', false],
+        ['es', 'Adiós', 'adiós', null, true], ['es', 'que tal', '¿Qué tal?', null, true], ['es', 'gracias', 'adiós', null, false],
+      ];
+      sp.forEach(([code, heard, tg, kana, want]) => { if (T.speechMatches(heard, tg, kana, code) !== want) err(`speechMatches[${code}](${heard}, ${tg}) != ${want}`); });
+    }
+
+    /* ---------------- run ---------------- */
+    const langs = REAL ? [REAL] : ['fa', 'es', 'ja', 'ar'];
+    for (const code of langs) await runLanguage(code);
+    await step('onboarding', checkOnboarding);
+    await step('switching', checkSwitching);
+    await step('themes', checkThemes);
+    await step('answers', checkAnswers);
+
+    // Every string key exists in both languages, and no t('...') key used was missing.
     Object.keys(STR.en).forEach((k) => { if (STR.he[k] === undefined) err(`string ${k} missing in Hebrew`); });
     Object.keys(STR.he).forEach((k) => { if (STR.en[k] === undefined) err(`string ${k} missing in English`); });
-
-    // Answer checking.
-    const ct = [['salam', 'salâm', 'exact'], ['khodahafez', 'khodâhâfez', 'exact'], ['xodahafez', 'khodâhâfez', 'exact'],
-      ['khodahafz', 'khodâhâfez', 'almost'], ['hello', 'salâm', 'no'], ['', 'salâm', 'no'],
-      ['esme man sara ast', 'esm-e man sârâ ast.', 'exact'], ['to', 'to', 'exact'], ['ta', 'to', 'no']];
-    ct.forEach(([a, b, want]) => { const got = T.compareTr(a, b); if (got !== want) err(`compareTr(${a}, ${b}) = ${got}, want ${want}`); });
-    if (!T.speechMatches('سلام', 'سلام')) err('speechMatches exact failed');
-    if (!T.speechMatches('سلام خوبی', 'سلام')) err('speechMatches contains failed');
-    if (T.speechMatches('خداحافظ', 'سلام')) err('speechMatches false positive');
+    T.missingStrings().forEach((k) => err(`string used but missing: ${k}`));
+    ['en', 'he'].forEach((u) => Object.keys(STR[u]).forEach((k) => {
+      if (!/_fa$/.test(k) && /Pishi|Farsi|Persian|פישי|פרסית|פרסי/.test(JSON.stringify(STR[u][k]))) err(`string ${u}.${k} still mentions Farsi/Pishi: ${STR[u][k]}`);
+    }));
 
     // Finally: a speed round left through the top bar must never pop up "Time's up!" later.
-    T.setSettings({ uiLang: 'en', level: 'beginner', track: 'speak', speech: false });
+    await T.setSettings({ uiLang: 'en', lang: langs[0], level: 'beginner', track: 'speak', speech: false });
     T.startSpeed();
     $('.brand').click();
     const xp = T.state().xp;
@@ -542,7 +875,7 @@
       if (window.__intervals.size) err('an interval is still running at the end');
       finishOutput();
     }, 3000);
-  })();
+  })().catch((e) => { window.__errors.push('test crashed: ' + e.stack); document.getElementById('out').textContent = 'FAIL\n' + window.__errors.join('\n'); });
   </script>
 </body>
 </html>

@@ -1,34 +1,37 @@
-"""Validate the lesson content in js/data/*.js.
+"""Validate the lesson content in js/data/<lang>/*.js. See docs/content-format.md.
 
-Run:  python tools/check_data.py              (all files)
-      python tools/check_data.py js/data/food.js   (only some files; global checks still use all files)
+Run:  python tools/check_data.py                         (everything)
+      python tools/check_data.py --lang ja               (one language)
+      python tools/check_data.py js/data/es/food.js ...  (only these files; global checks still use the whole language)
 
-Each data file must contain exactly one call:  TLAP_ADD({...JSON...});
-  group:   {"id": "g-...", "level": beginner|intermediate|advanced, "icon": "...", "title": {"en","he"}}
-  lessons: [{"id", "kind": vocab|phrases|grammar|alphabet, "icon", "title": {"en","he"},
-             "intro"?: {"en","he"}, "level"?: ..., "items": [...]}]
-
-Word/phrase items:  [farsi, latin, english, hebrew, extra?]
-  extra: {"digit": "۱"} | {"form": [farsi, latin]} | {"lit": [english, hebrew]}
-Alphabet items:     [letter, name, sound, joinsToNext, exampleFarsi, exampleLatin, exampleEnglish, exampleHebrew]
-
-Errors (exit code 1): bad structure, Arabic-only letters ي ك instead of Persian ی ک, duplicate ids,
-lessons with fewer than 6 items, two items in one lesson with the same English or Hebrew meaning,
-multi-word phrases whose Farsi and Latin word counts differ.
-Warnings: the same Farsi word appearing in more than one lesson.
+Errors (exit code 1): bad structure, wrong script for the language, duplicate ids, lessons with
+fewer than 6 items, two items in one lesson with the same English or Hebrew meaning, word-count
+mismatches for the word-order exercise, missing/invalid Japanese "kana"/"parts".
+Warnings: the same target word appearing in more than one lesson of a language.
 """
 import json
 import pathlib
 import re
 import sys
+import unicodedata
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "js" / "data"
 LEVELS = {"beginner", "intermediate", "advanced"}
 KINDS = {"alphabet", "vocab", "phrases", "grammar"}
-ARABIC_ONLY = re.compile("[يك]")  # ي ك
-FARSI_CHARS = re.compile("[؀-ۿ]")
-PUNCT = re.compile(r"[.,!?؟،:;]")
+PUNCT = re.compile(r"[.,!?؟،:;¿¡。、！？「」…]")
+ARABIC_BLOCK = re.compile("[؀-ۿ]")
+JAPANESE = re.compile("[぀-ヿ一-鿿々]")
+KANJI = re.compile("[一-鿿々]")
+KANA_ONLY = re.compile("^[぀-ヿー・]+$")
+HEBREW_NIQQUD = re.compile("[֑-ׇֽֿׁׂׅׄ]")  # vowel/cantillation marks, not maqaf ־
+
+LANGS = {
+    "fa": {"extra": {"digit", "form", "lit"}, "tokens": True},
+    "ar": {"extra": {"digit", "form", "lit"}, "tokens": True},
+    "es": {"extra": {"form", "lit"}, "tokens": True},
+    "ja": {"extra": {"digit", "form", "lit", "kana", "parts"}, "tokens": False},
+}
 
 
 def tokens(s):
@@ -40,12 +43,36 @@ def load(path):
     calls = text.count("TLAP_ADD(")
     if calls != 1:
         raise ValueError(f"must contain exactly one TLAP_ADD( call, found {calls}")
-    start = text.index("{", text.index("TLAP_ADD("))
+    m = re.search(r'TLAP_ADD\(\s*"([a-z]{2})"\s*,', text)
+    if not m:
+        raise ValueError('call must start with TLAP_ADD("<lang>", {')
+    start = text.index("{", m.end())
     end = text.rindex("}")
-    return json.loads(text[start : end + 1])
+    return m.group(1), json.loads(text[start : end + 1])
 
 
-def check_pack(pack, where, errors):
+def check_script(lang, s, where, errors, field="target"):
+    """The target text must be written in the right script for its language."""
+    if lang == "fa":
+        if not ARABIC_BLOCK.search(s):
+            errors.append(f"{where}: {field} has no Persian letters: {s}")
+        if re.search("[يك]", s):
+            errors.append(f"{where}: Farsi uses ی ک, not Arabic ي ك: {s}")
+    elif lang == "ar":
+        if not ARABIC_BLOCK.search(s):
+            errors.append(f"{where}: {field} has no Arabic letters: {s}")
+        if re.search("[یک]", s):
+            errors.append(f"{where}: Arabic uses ي ك, not Persian ی ک: {s}")
+    elif lang == "ja":
+        if not JAPANESE.search(s):
+            errors.append(f"{where}: {field} has no Japanese characters: {s}")
+    elif lang == "es":
+        if ARABIC_BLOCK.search(s) or JAPANESE.search(s) or not re.search("[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]", s):
+            errors.append(f"{where}: {field} should be Spanish in Latin letters: {s}")
+
+
+def check_pack(lang, pack, where, errors):
+    rules = LANGS[lang]
     g = pack.get("group", {})
     for key in ("id", "level", "icon", "title"):
         if key not in g:
@@ -54,25 +81,30 @@ def check_pack(pack, where, errors):
         errors.append(f"{where}: group id must start with 'g-'")
     if g.get("level") not in LEVELS:
         errors.append(f"{where}: bad group level {g.get('level')}")
-    for lang in ("en", "he"):
-        if not g.get("title", {}).get(lang):
-            errors.append(f"{where}: group missing title.{lang}")
+    for lg in ("en", "he"):
+        if not g.get("title", {}).get(lg):
+            errors.append(f"{where}: group missing title.{lg}")
     if not pack.get("lessons"):
         errors.append(f"{where}: no lessons")
     for lesson in pack.get("lessons", []):
         lid = lesson.get("id", "?")
         lw = f"{where}:{lid}"
+        if not re.fullmatch(r"[a-z0-9_]+", str(lid)):
+            errors.append(f"{lw}: lesson id must be lowercase letters/digits/_")
         if lesson.get("kind") not in KINDS:
             errors.append(f"{lw}: bad kind")
         if "level" in lesson and lesson["level"] not in LEVELS:
             errors.append(f"{lw}: bad level")
         if not lesson.get("icon"):
             errors.append(f"{lw}: missing icon")
-        for lang in ("en", "he"):
-            if not lesson.get("title", {}).get(lang):
-                errors.append(f"{lw}: missing title.{lang}")
-            if "intro" in lesson and not lesson["intro"].get(lang):
-                errors.append(f"{lw}: missing intro.{lang}")
+        for lg in ("en", "he"):
+            if not lesson.get("title", {}).get(lg):
+                errors.append(f"{lw}: missing title.{lg}")
+            if "intro" in lesson and not lesson["intro"].get(lg):
+                errors.append(f"{lw}: missing intro.{lg}")
+        for txt in (lesson.get("title", {}).get("he", ""), lesson.get("intro", {}).get("he", "")):
+            if HEBREW_NIQQUD.search(txt):
+                errors.append(f"{lw}: Hebrew title/intro contains niqqud")
         items = lesson.get("items", [])
         if len(items) < 6:
             errors.append(f"{lw}: needs at least 6 items (has {len(items)})")
@@ -80,88 +112,151 @@ def check_pack(pack, where, errors):
         for i, item in enumerate(items):
             iw = f"{lw}[{i}]"
             if lesson.get("kind") == "alphabet":
-                if len(item) != 8 or not isinstance(item[3], bool):
-                    errors.append(f"{iw}: alphabet item must have 8 fields")
+                if len(item) != 8 or not isinstance(item[3], bool) or not all(isinstance(x, str) and x for x in item[:3] + item[4:]):
+                    errors.append(f"{iw}: alphabet item must be [char, name, sound, joins(bool), exTarget, exLatin, exEn, exHe]")
                     continue
-                farsi = [item[0], item[4]]
-            else:
-                if len(item) not in (4, 5) or not all(isinstance(x, str) and x.strip() for x in item[:4]):
-                    errors.append(f"{iw}: word item must be [fa, tr, en, he, extra?]")
-                    continue
-                fa, tr, en, he = item[:4]
-                farsi = [fa]
-                if not FARSI_CHARS.search(fa):
-                    errors.append(f"{iw}: Farsi field has no Farsi letters: {fa}")
-                if FARSI_CHARS.search(tr):
-                    errors.append(f"{iw}: Latin field contains Farsi letters: {tr}")
-                if len(item) == 5:
-                    extra = item[4]
-                    if not isinstance(extra, dict) or len(extra) != 1 or not set(extra) <= {"digit", "form", "lit"}:
-                        errors.append(f"{iw}: bad extra {extra}")
-                    elif "form" in extra:
-                        farsi.append(extra["form"][0])
-                fa_t, tr_t = tokens(fa), tokens(tr)
-                if len(fa_t) >= 3 and len(fa_t) != len(tr_t):
-                    errors.append(f"{iw}: {len(fa_t)} Farsi words vs {len(tr_t)} Latin words: {fa} / {tr}")
-                for seen, val, lang in ((seen_en, en, "English"), (seen_he, he, "Hebrew")):
-                    k = val.strip().lower()
-                    if k in seen:
-                        errors.append(f"{iw}: same {lang} meaning as item {seen[k]} in this lesson: {val}")
-                    seen[k] = i
-            for s in farsi:
-                if ARABIC_ONLY.search(s):
-                    errors.append(f"{iw}: uses Arabic ي/ك instead of Persian ی/ک: {s}")
+                check_script(lang, item[0], iw, errors, "character")
+                check_script(lang, item[4], iw, errors, "example")
+                continue
+            if len(item) not in (4, 5) or not all(isinstance(x, str) and x.strip() for x in item[:4]):
+                errors.append(f"{iw}: word item must be [target, latin, en, he, extra?]")
+                continue
+            target, latin, en, he = item[:4]
+            check_script(lang, target, iw, errors)
+            if ARABIC_BLOCK.search(latin) or JAPANESE.search(latin):
+                errors.append(f"{iw}: latin field contains non-Latin script: {latin}")
+            if HEBREW_NIQQUD.search(he):
+                errors.append(f"{iw}: Hebrew contains niqqud: {he}")
+            extra = item[4] if len(item) == 5 else {}
+            if not isinstance(extra, dict) or (len(item) == 5 and not extra):
+                errors.append(f"{iw}: extra must be a non-empty object")
+                extra = {}
+            bad = set(extra) - rules["extra"]
+            if bad:
+                errors.append(f"{iw}: extra keys not allowed for {lang}: {sorted(bad)}")
+            if "form" in extra:
+                f = extra["form"]
+                if not (isinstance(f, list) and len(f) == 2 and all(isinstance(x, str) and x for x in f)):
+                    errors.append(f"{iw}: form must be [target, latin]")
+                else:
+                    check_script(lang, f[0], iw, errors, "form")
+            if "lit" in extra:
+                f = extra["lit"]
+                if not (isinstance(f, list) and len(f) == 2 and all(isinstance(x, str) and x for x in f)):
+                    errors.append(f"{iw}: lit must be [english, hebrew]")
+            if "digit" in extra and not isinstance(extra["digit"], str):
+                errors.append(f"{iw}: digit must be a string")
+            if lang == "ja":
+                if KANJI.search(target) and not extra.get("kana"):
+                    errors.append(f"{iw}: target has kanji but no \"kana\" reading: {target}")
+                if "kana" in extra and not KANA_ONLY.match(extra["kana"] or ""):
+                    errors.append(f"{iw}: kana must be only hiragana/katakana, no spaces: {extra['kana']}")
+                rt = tokens(latin)
+                if len(rt) >= 3:
+                    parts = extra.get("parts")
+                    if not parts:
+                        errors.append(f"{iw}: phrase with {len(rt)} rōmaji words needs \"parts\"")
+                    elif len(parts) != len(rt):
+                        errors.append(f"{iw}: {len(parts)} parts vs {len(rt)} rōmaji words: {parts} / {latin}")
+                    elif "".join(parts) != PUNCT.sub("", target).replace(" ", ""):
+                        errors.append(f"{iw}: parts don't join to the target: {''.join(parts)} vs {target}")
+                if latin != latin.lower():
+                    errors.append(f"{iw}: rōmaji must be lowercase: {latin}")
+            if rules["tokens"]:
+                tt, lt = tokens(target), tokens(latin)
+                if len(tt) >= 3 and len(tt) != len(lt):
+                    errors.append(f"{iw}: {len(tt)} target words vs {len(lt)} latin words: {target} / {latin}")
+            if lang == "es" and "-" not in latin and not re.search("[A-ZÁÉÍÓÚÑ]", latin):
+                errors.append(f"{iw}: Spanish syllable guide needs hyphens/CAPITAL stress: {latin}")
+            for seen, val, lg in ((seen_en, en, "English"), (seen_he, he, "Hebrew")):
+                k = unicodedata.normalize("NFC", val.strip().lower())
+                if k in seen:
+                    errors.append(f"{iw}: same {lg} meaning as item {seen[k]} in this lesson: {val}")
+                seen[k] = i
 
 
 def main():
-    all_files = sorted(DATA_DIR.glob("*.js"))
-    chosen = [pathlib.Path(a).resolve() for a in sys.argv[1:]] or all_files
+    args = sys.argv[1:]
+    only_lang = None
+    if "--lang" in args:
+        i = args.index("--lang")
+        only_lang = args[i + 1]
+        args = args[:i] + args[i + 2 :]
     errors, warnings = [], []
-    packs = {}
-    for path in all_files:
+    packs = {}  # path -> (lang, pack)
+    for path in sorted(DATA_DIR.glob("*/*.js")):
+        folder = path.parent.name
         try:
-            packs[path.resolve()] = load(path)
+            lang, pack = load(path)
         except Exception as e:  # noqa: BLE001
-            errors.append(f"{path.name}: cannot parse: {e}")
-    for path in chosen:
-        if path in packs:
-            check_pack(packs[path], path.name, errors)
-        elif path.exists():
-            pass  # parse error already reported
-        else:
-            errors.append(f"{path}: file not found")
+            errors.append(f"{folder}/{path.name}: cannot parse: {e}")
+            continue
+        if lang != folder:
+            errors.append(f"{folder}/{path.name}: TLAP_ADD language \"{lang}\" doesn't match folder")
+        if lang not in LANGS:
+            errors.append(f"{folder}/{path.name}: unknown language {lang}")
+            continue
+        packs[path.resolve()] = (lang, pack)
+    for stray in DATA_DIR.glob("*.js"):
+        errors.append(f"{stray.name}: data files must be inside js/data/<lang>/")
 
-    # Global checks across every file.
-    group_ids, lesson_ids, farsi_where = {}, {}, {}
-    for path, pack in packs.items():
-        gid = pack.get("group", {}).get("id")
-        if gid in group_ids:
-            errors.append(f"duplicate group id {gid} in {path.name} and {group_ids[gid]}")
-        group_ids[gid] = path.name
-        for lesson in pack.get("lessons", []):
-            lid = lesson.get("id")
-            if lid in lesson_ids:
-                errors.append(f"duplicate lesson id {lid} in {path.name} and {lesson_ids[lid]}")
-            lesson_ids[lid] = path.name
-            if lesson.get("kind") in ("vocab", "phrases"):
-                for item in lesson.get("items", []):
-                    if isinstance(item, list) and item and isinstance(item[0], str):
-                        farsi_where.setdefault(item[0], []).append(lid)
-    for fa, where in farsi_where.items():
-        if len(where) > 1:
-            warnings.append(f"'{fa}' appears in several lessons: {', '.join(where)}")
+    if args:
+        chosen = [pathlib.Path(a).resolve() for a in args]
+        for c in chosen:
+            if c not in packs and not c.exists():
+                errors.append(f"{c}: file not found")
+    else:
+        chosen = [p for p, (lg, _) in packs.items() if not only_lang or lg == only_lang]
+    chosen_langs = {packs[p][0] for p in chosen if p in packs}
+    for p in chosen:
+        if p in packs:
+            lang, pack = packs[p]
+            check_pack(lang, pack, f"{lang}/{p.name}", errors)
 
-    words = sum(len(l.get("items", [])) for p in packs.values() for l in p.get("lessons", []) if l.get("kind") != "alphabet")
-    letters = sum(len(l.get("items", [])) for p in packs.values() for l in p.get("lessons", []) if l.get("kind") == "alphabet")
+    summary = []
+    for lang in sorted(chosen_langs):
+        group_ids, lesson_ids, where = {}, {}, {}
+        words = letters = 0
+        for p, (lg, pack) in packs.items():
+            if lg != lang:
+                continue
+            gid = pack.get("group", {}).get("id")
+            if gid in group_ids:
+                errors.append(f"{lang}: duplicate group id {gid} in {p.name} and {group_ids[gid]}")
+            group_ids[gid] = p.name
+            for lesson in pack.get("lessons", []):
+                lid = lesson.get("id")
+                if lid in lesson_ids:
+                    errors.append(f"{lang}: duplicate lesson id {lid} in {p.name} and {lesson_ids[lid]}")
+                lesson_ids[lid] = p.name
+                n = len(lesson.get("items", []))
+                if lesson.get("kind") == "alphabet":
+                    letters += n
+                else:
+                    words += n
+                if lesson.get("kind") in ("vocab", "phrases"):
+                    for item in lesson.get("items", []):
+                        if isinstance(item, list) and item and isinstance(item[0], str):
+                            where.setdefault(item[0], []).append(lid)
+        for w, ls in where.items():
+            if len(ls) > 1:
+                warnings.append(f"{lang}: '{w}' appears in several lessons: {', '.join(ls)}")
+        summary.append(f"{lang}: {len(group_ids)} groups, {len(lesson_ids)} lessons, {words} words/phrases, {letters} letters/characters")
+
+    out = sys.stdout
     if warnings:
-        print(f"{len(warnings)} warning(s):")
-        print("\n".join("  " + w for w in warnings))
+        print(f"{len(warnings)} warning(s):", file=out)
+        print("\n".join("  " + w for w in warnings), file=out)
     if errors:
-        print(f"{len(errors)} error(s):")
-        print("\n".join("  " + e for e in errors))
+        print(f"{len(errors)} error(s):", file=out)
+        print("\n".join("  " + e for e in errors), file=out)
         sys.exit(1)
-    print(f"OK: {len(packs)} groups, {len(lesson_ids)} lessons, {words} words/phrases, {letters} letters")
+    print("OK: " + " | ".join(summary), file=out)
 
 
 if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
     main()

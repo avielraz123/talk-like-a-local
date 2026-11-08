@@ -1,17 +1,24 @@
-# Talk like a Persian · مثل یک ایرانی حرف بزن
+# Talk like a local
 
-A free, playful web app for learning **Farsi (Persian)**, for English and Hebrew speakers. Pishi the cat (پیشی, Farsi for "kitty") learns with you.
+A free, playful web app for learning languages, for English and Hebrew speakers. Each language comes with its own culture, colors and mascot.
 
-**▶ Try it:** https://avielraz123.github.io/talk-like-a-persian/
+**▶ Try it:** https://avielraz123.github.io/talk-like-a-local/
+
+| Language | Variety | Mascot | Words & phrases | Script |
+|---|---|---|---|---|
+| 🇮🇷 Farsi | Iranian (Tehran) | Shir the lion 🦁 | 1,081 | 32 letters |
+| 🌎 Spanish | Latin American | Lupe the llama 🦙 | 1,114 | 34 sounds |
+| 🇯🇵 Japanese | Standard (Tokyo) | Hana the shiba inu 🐕 | 1,106 | 107 hiragana & katakana |
+| 🫒 Arabic | Spoken Levantine | Hudhud the hoopoe 🐦 | 1,103 | 35 letters & signs |
 
 ## Features
 
-- **English or Hebrew interface.** The whole app switches language, and Hebrew is shown right to left.
-- **Choose your level:** beginner, intermediate or advanced.
-- **Choose what to learn:**
-  - **Speaking only:** words and phrases in Latin letters (like *salâm*), with the Farsi script shown small next to them.
-  - **Speak, read & write:** also the full Farsi alphabet, letter shapes, reading and spelling.
-- **1,081 words and phrases, plus the 32 letters.** They're organized in 20 topics and 79 sub-topics, for example Animals → Birds and Food & drink → Fruits. Topics include basics, people, food, animals, home, clothes, the body, time and weather, city and travel, nature, school and work, shopping, feelings, hobbies, verbs, grammar, Persian culture, ta'ârof politeness and spoken Tehran Farsi.
+- **Pick a language.** Switch any time from the language button at the top. Progress is saved separately for each language.
+- **Each language has its own theme:** colors, background patterns, cultural decorations, and a mascot who cheers you on with words in that language.
+- **English or Hebrew interface.** Hebrew is shown right to left.
+- **Choose your level:** beginner, intermediate or advanced, set separately for each language.
+- **Speaking only, or also reading & writing.** Speaking only uses Latin letters (or rōmaji). Reading & writing adds the alphabets: the Farsi and Arabic letters with their shapes, and Japanese kana, with kana readings shown for kanji.
+- **About 1,100 words and phrases per language,** in 20 topics and 77–84 sub-topics. They cover everyday life, grammar, culture and "talk like a local" slang and expressions.
 - **Pick any exercise, in any order.** Every sub-topic has its own exercise menu, and nothing is locked:
   - learn cards
   - multiple choice
@@ -19,15 +26,15 @@ A free, playful web app for learning **Farsi (Persian)**, for English and Hebrew
   - matching game
   - typing
   - word order
-  - reading the Farsi script
+  - reading
   - spelling
   - letter drills
   - mix of everything
-- **Optional speaking practice.** Say the word into your microphone and the browser checks it (Chrome or Edge). It's a bonus exercise: you can always skip it or turn it off in Settings, and you never need it to finish anything.
-- **Dictionary:** search every word in Farsi, Latin letters, English or Hebrew, and see which ones you've learned.
+- **Optional speaking practice** with the microphone (Chrome or Edge). It's always skippable and never needed to finish anything.
+- **Dictionary:** search every word in its own script, Latin letters, English or Hebrew.
 - **Review mode** brings back the words you get wrong most often.
 - **Speed round:** how many can you answer in 60 seconds?
-- **Progress is saved in your browser:** stars per exercise, XP points and a daily streak.
+- **Progress is saved in your browser:** stars, XP points and a daily streak.
 
 ## Running it on your computer
 
@@ -40,30 +47,33 @@ It's a plain website with no installation or build step. Either:
 
 ```
 index.html                    the page
-css/style.css                 design (light & dark mode, phone-friendly)
-js/registry.js                collects the lesson files
-js/data/*.js                  lesson content, one file per topic (Farsi, Latin letters, English, Hebrew)
+css/style.css                 shared playful design (light & dark mode, phone-friendly)
+css/themes/<lang>.css         each language's colors, patterns and decorations
+js/themes/<lang>.js           each language's mascot, its lines and decorations
+js/registry.js                collects lesson and theme files
+js/data/<lang>/*.js           lesson content, one file per topic; loaded only when that language is picked
 js/strings.js                 interface text in English and Hebrew
 js/app.js                     the app logic
 tools/check_data.py           checks the lesson content for mistakes
-tests/smoke.html              automated test: open it in a browser, it plays every lesson and prints PASS/FAIL
-docs/native-speaker-review.md items a Persian speaker should double-check
+tests/smoke.html              automated test (add ?lang=fa / es / ja / ar to test one language's real content)
+docs/content-format.md        how lesson files are written, per language
+docs/theme-format.md          how themes are written
+docs/native-speaker-review.md items native speakers should double-check
 ```
 
 ## Adding or fixing content
 
-Each topic is one file in [`js/data/`](js/data/), and each word is one line:
+Each topic is one file in `js/data/<lang>/`, and each word is one line, for example:
 
 ```
-["سلام", "salâm", "hello", "שלום"]
+["hola", "HO-la", "hello", "שלום"]
 ```
 
-To add or fix words:
+Read [`docs/content-format.md`](docs/content-format.md) for the rules for each language. Then:
 
-1. Edit the file.
-2. Run `python tools/check_data.py` to check for mistakes.
-3. Open `tests/smoke.html` to make sure everything still works.
+1. Run `python tools/check_data.py` to check for mistakes.
+2. Open `tests/smoke.html?lang=<code>` to make sure everything still works.
 
 In existing sub-topics, add new words at the **end** of the list, because saved progress depends on each word's position.
 
-The Farsi was written and cross-checked by AI and hasn't been reviewed by a native speaker yet, so corrections are very welcome. [`docs/native-speaker-review.md`](docs/native-speaker-review.md) lists the items that most need a native speaker's check. Please open an issue or a pull request.
+All content was written and cross-checked by AI. No native speakers have reviewed it yet, so corrections are very welcome. [`docs/native-speaker-review.md`](docs/native-speaker-review.md) lists the items that most need a native speaker's check, for every language. Please open an issue or a pull request.

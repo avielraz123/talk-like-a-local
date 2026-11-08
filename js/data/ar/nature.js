@@ -1,0 +1,67 @@
+// Nature: landscape, sky & earth, plants (spoken Levantine Arabic).
+TLAP_ADD("ar", {
+  "group": {"id": "g-nature", "level": "intermediate", "icon": "🌳", "title": {"en": "Nature", "he": "טבע"}},
+  "lessons": [
+    {"id": "landscape", "kind": "vocab", "icon": "🏔️", "title": {"en": "Landscape", "he": "נוף"},
+     "intro": {"en": "بحيرة (buḥayra, lake) is literally a \"little sea\": it is the small form of بحر (baḥr, sea). And at the beach people say شط (shatt), not the standard شاطئ (shāti').",
+               "he": "بحيرة (buḥayra, אגם) היא מילולית \"ים קטן\": זו צורת ההקטנה של بحر (baḥr, ים). ועל החוף אומרים شط (shatt), ולא شاطئ (shāti') התקנית."},
+     "items": [
+       ["طبيعة", "tabī3a", "nature", "טבע"],
+       ["جبل", "jabal", "mountain", "הר"],
+       ["تلة", "talle", "hill", "גבעה"],
+       ["بحر", "baḥr", "sea", "ים"],
+       ["محيط", "muḥīt", "ocean", "אוקיינוס"],
+       ["نهر", "nahr", "river", "נהר"],
+       ["بحيرة", "buḥayra", "lake", "אגם", {"lit": ["little sea", "ים קטן"]}],
+       ["غابة", "ghābe", "forest", "יער"],
+       ["صحرا", "saḥra", "desert", "מדבר"],
+       ["جزيرة", "jazīre", "island", "אי"],
+       ["وادي", "wādi", "valley", "עמק / ואדי"],
+       ["سهل", "sahel", "plain (flat land)", "מישור"],
+       ["شط", "shatt", "beach / shore", "חוף"],
+       ["مغارة", "maghāra", "cave", "מערה"],
+       ["شلال", "shallāl", "waterfall", "מפל"],
+       ["نبع", "nabe3", "spring (of water)", "מעיין"]
+     ]},
+    {"id": "sky", "kind": "vocab", "icon": "🌙", "title": {"en": "Sky & earth", "he": "שמיים וארץ"},
+     "intro": {"en": "In spoken Arabic many words drop their final hamza: the sky is سما (sama, standard سماء samā') and space is فضا (fada). Note too: قمر ('amar, moon) is a classic compliment, يا قمر (ya 'amar), \"you're beautiful\".",
+               "he": "בערבית המדוברת מילים רבות מאבדות את ההמזה שבסופן: השמיים הם سما (sama, בתקנית سماء samā') והחלל הוא فضا (fada). ועוד: قمر ('amar, ירח) הוא מחמאה קלאסית, يا قمر (ya 'amar), \"את/ה יפה\"."},
+     "items": [
+       ["سما", "sama", "sky", "שמיים"],
+       ["شمس", "shams", "sun", "שמש"],
+       ["قمر", "'amar", "moon", "ירח"],
+       ["هلال", "hlāl", "crescent moon", "סהר"],
+       ["نجمة", "nijme", "star", "כוכב"],
+       ["كوكب", "kawkab", "planet", "כוכב לכת"],
+       ["أرض", "ard", "earth / ground", "כדור הארץ / אדמה"],
+       ["عالم", "3ālam", "world", "עולם"],
+       ["فضا", "fada", "space (outer space)", "חלל"],
+       ["طلوع الشمس", "tlū3 ish-shams", "sunrise", "זריחה"],
+       ["غروب الشمس", "ghurūb ish-shams", "sunset", "שקיעה"],
+       ["ضو", "daww", "light", "אור"],
+       ["فيّ", "fayy", "shade", "צל"],
+       ["نار", "nār", "fire", "אש"],
+       ["تراب", "trāb", "soil / dirt", "עפר"]
+     ]},
+    {"id": "plants", "kind": "vocab", "icon": "🌷", "title": {"en": "Plants & flowers", "he": "צמחים ופרחים"},
+     "intro": {"en": "وردة (warde) means \"rose\" and is also used for any flower. The prized fragrant rose is the وردة جورية (warde jūriyye), the damask rose (its English name comes from Damascus).",
+               "he": "وردة (warde) פירושה \"ורד\", ומשתמשים בה גם לכל פרח. הוורד הריחני והמוערך הוא وردة جورية (warde jūriyye), ורד דמשקאי (השם העברי והאנגלי שלו באים מדמשק)."},
+     "items": [
+       ["نبتة", "nabte", "plant", "צמח"],
+       ["شجرة", "shajara", "tree", "עץ"],
+       ["وردة", "warde", "flower", "פרח"],
+       ["ورقة", "wara'a", "leaf", "עלה"],
+       ["عشب", "3ushb", "grass", "עשב / דשא"],
+       ["جذر", "jidr", "root", "שורש"],
+       ["غصن", "ghusn", "branch", "ענף"],
+       ["بزرة", "bizre", "seed", "זרע"],
+       ["شوك", "shōk", "thorns", "קוצים"],
+       ["جنينة", "jnēne", "garden", "גינה"],
+       ["وردة جورية", "warde jūriyye", "damask rose", "ורד דמשקאי"],
+       ["ياسمين", "yasmīn", "jasmine", "יסמין"],
+       ["زيتونة", "zētūne", "olive tree", "עץ זית"],
+       ["صبر", "sabr", "prickly pear (cactus)", "צבר"],
+       ["زعتر", "za3tar", "za'atar (wild thyme)", "זעתר"]
+     ]}
+  ]
+});

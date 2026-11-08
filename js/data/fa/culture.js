@@ -1,0 +1,78 @@
+// Persian culture: holidays, places, proverbs and poetry.
+TLAP_ADD("fa", {
+  "group": {"id": "g-culture", "level": "advanced", "icon": "🇮🇷", "title": {"en": "Persian culture", "he": "תרבות פרסית"}},
+  "lessons": [
+    {"id": "holidays", "kind": "vocab", "icon": "🌸",
+     "title": {"en": "Holidays: Nowruz & Yalda", "he": "חגים: נורוז וילדא"},
+     "intro": {"en": "Nowruz (\"new day\") is the Persian New Year. It begins on the first day of spring, around March 20-21. Families clean the house, set a haft-sin table, wear new clothes, visit relatives, and give children eydi. The holiday ends on the 13th day with Sizdah Bedar, when everyone goes out for a picnic.", "he": "נורוז (\"יום חדש\") הוא ראש השנה הפרסי. הוא מתחיל ביום הראשון של האביב, בערך ב-20-21 במרץ. משפחות מנקות את הבית, עורכות שולחן הפת-סין, לובשות בגדים חדשים, מבקרות קרובים ונותנות לילדים עידי. החג מסתיים ביום ה-13 בסיזדה בדר, כשכולם יוצאים לפיקניק."},
+     "items": [
+       ["نوروز", "noruz", "Nowruz (Persian New Year)", "נורוז (ראש השנה הפרסי)", {"lit": ["new day", "יום חדש"]}],
+       ["سال نو", "sâl-e no", "the new year", "השנה החדשה"],
+       ["تحویل سال", "tahvil-e sâl", "the exact moment the new year begins", "הרגע המדויק שבו מתחילה השנה החדשה"],
+       ["خانه\u200cتکانی", "khâne-tekâni", "big spring cleaning (before Nowruz)", "ניקיון האביב הגדול (לפני נורוז)", {"lit": ["shaking the house", "ניעור הבית"]}],
+       ["هفت\u200cسین", "haft-sin", "haft-sin (Nowruz table with 7 things starting with S)", "הפת-סין (שולחן נורוז עם 7 דברים שמתחילים ב-S)", {"lit": ["seven S's", "שבע אותיות S"]}],
+       ["سبزه", "sabze", "sabze (sprouted wheat or lentils for Nowruz)", "סבזה (נבטי חיטה או עדשים לנורוז)"],
+       ["سمنو", "samanu", "samanu (sweet wheat pudding)", "סמנו (פודינג חיטה מתוק)"],
+       ["سکه", "sekke", "coin (also put on the haft-sin table)", "מטבע (מונח גם על שולחן ההפת-סין)"],
+       ["ماهی قرمز", "mâhi-ye ghermez", "goldfish (on the haft-sin table)", "דג זהב (על שולחן ההפת-סין)", {"lit": ["red fish", "דג אדום"]}],
+       ["عیدی", "eydi", "eydi (New Year gift money)", "עידי (דמי חג לשנה החדשה)"],
+       ["دید و بازدید", "did o bâzdid", "visiting family & friends (at Nowruz)", "ביקורים אצל משפחה וחברים (בנורוז)"],
+       ["چهارشنبه\u200cسوری", "chahârshanbe-suri", "Chahârshanbe Suri (fire-jumping night before Nowruz)", "צ'הארשנבה סורי (ליל הקפיצה מעל מדורות לפני נורוז)"],
+       ["سیزده\u200cبه\u200cدر", "sizdah-be-dar", "Sizdah Bedar (picnic day, 13th day of the new year)", "סיזדה בדר (יום פיקניק, היום ה-13 של השנה)", {"lit": ["thirteen out (of the house)", "שלושה-עשר בחוץ"]}],
+       ["شب یلدا", "shab-e yaldâ", "Yalda night (the longest night of the year)", "ליל ילדא (הלילה הארוך בשנה)"]
+     ]},
+    {"id": "cities", "kind": "vocab", "icon": "🏛️",
+     "title": {"en": "Cities & places of Iran", "he": "ערים ומקומות באיראן"},
+     "intro": {"en": "Iran is a big country of mountains and deserts, with the Caspian Sea in the north and the Persian Gulf in the south. Tehran is the capital, and Isfahan, Shiraz and Yazd are the cities visitors love most.", "he": "איראן היא ארץ גדולה של הרים ומדבריות, עם הים הכספי בצפון והמפרץ הפרסי בדרום. טהרן היא הבירה, ואספהאן, שיראז ויזד הן הערים שמבקרים הכי אוהבים."},
+     "items": [
+       ["تهران", "tehrân", "Tehran (the capital)", "טהרן (הבירה)"],
+       ["اصفهان", "esfahân", "Isfahan (city of blue mosques and bridges)", "אספהאן (עיר המסגדים הכחולים והגשרים)"],
+       ["شیراز", "shirâz", "Shiraz (city of poets and gardens)", "שיראז (עיר המשוררים והגנים)"],
+       ["تبریز", "tabriz", "Tabriz (in the northwest, with a huge old bazaar)", "תבריז (בצפון-מערב, עם שוק עתיק ענק)"],
+       ["مشهد", "mashhad", "Mashhad (holy city in the northeast)", "משהד (עיר קדושה בצפון-מזרח)"],
+       ["یزد", "yazd", "Yazd (desert city of wind towers)", "יזד (עיר מדבר עם מגדלי רוח)"],
+       ["کرمان", "kermân", "Kerman (city in the southeast)", "כרמאן (עיר בדרום-מזרח)"],
+       ["رشت", "rasht", "Rasht (green, rainy city near the Caspian Sea)", "רשת (עיר ירוקה וגשומה ליד הים הכספי)"],
+       ["کیش", "kish", "Kish Island (in the Persian Gulf)", "האי קיש (במפרץ הפרסי)"],
+       ["تخت جمشید", "takht-e jamshid", "Persepolis (ancient royal city)", "פרספוליס (עיר מלכותית עתיקה)", {"lit": ["the throne of Jamshid", "כס המלכות של ג'משיד"]}],
+       ["دریای خزر", "daryâ-ye khazar", "the Caspian Sea", "הים הכספי"],
+       ["خلیج فارس", "khalij-e fârs", "the Persian Gulf", "המפרץ הפרסי"],
+       ["البرز", "alborz", "the Alborz mountains (north of Tehran)", "הרי אלבורז (צפונית לטהרן)"],
+       ["دماوند", "damâvand", "Damavand (Iran's highest mountain)", "דמאוונד (ההר הגבוה ביותר באיראן)"]
+     ]},
+    {"id": "proverbs", "kind": "phrases", "icon": "📜",
+     "title": {"en": "Persian proverbs", "he": "פתגמים פרסיים"},
+     "intro": {"en": "Iranians love to drop a proverb (zarb-ol-masal) into everyday conversation. Under each proverb you'll see what it says word for word; the answer is what it really means.", "he": "איראנים אוהבים לשלב פתגם (zarb-ol-masal) בשיחה יומיומית. מתחת לכל פתגם תראו מה הוא אומר מילה במילה; התשובה היא מה שהוא באמת אומר."},
+     "items": [
+       ["قطره قطره جمع گردد، وانگهی دریا شود", "ghatre ghatre jam' gardad, vângahi daryâ shavad", "Little by little, small things add up to a lot", "פרוטה לפרוטה מצטרפת לחשבון גדול", {"lit": ["drop by drop gathers, and then becomes a sea", "טיפה אחר טיפה נאספת, ואז נעשית ים"]}],
+       ["از تو حرکت، از خدا برکت", "az to harekat, az khodâ barekat", "Do your part, and God will help you", "עשה את שלך, והשמיים יעזרו", {"lit": ["from you movement, from God blessing", "ממך תנועה, מאלוהים ברכה"]}],
+       ["دیوار موش دارد، موش هم گوش دارد", "divâr mush dârad, mush ham gush dârad", "Walls have ears", "גם לקירות יש אוזניים", {"lit": ["the wall has mice, and mice have ears", "לקיר יש עכברים, ולעכברים יש אוזניים"]}],
+       ["کار نیکو کردن از پر کردن است", "kâr-e niku kardan az por kardan ast", "Practice makes perfect", "האימון מביא לשלמות", {"lit": ["doing good work comes from doing a lot", "עבודה טובה באה מעשייה מרובה"]}],
+       ["یک دست صدا ندارد", "yek dast sedâ nadârad", "It takes two; you can't do it alone", "צריך שניים; לבד אי אפשר", {"lit": ["one hand makes no sound", "יד אחת לא משמיעה קול"]}],
+       ["هر که بامش بیش، برفش بیشتر", "har ke bâmash bish, barfash bishtar", "The more you own, the more you worry", "מרבה נכסים מרבה דאגה", {"lit": ["whoever has a bigger roof has more snow", "למי שיש גג גדול יותר, יש יותר שלג"]}],
+       ["شتر دیدی، ندیدی", "shotor didi, nadidi", "Keep it to yourself: you saw nothing", "שמור את זה לעצמך: לא ראית כלום", {"lit": ["did you see a camel? you didn't see it", "ראית גמל? לא ראית"]}],
+       ["ماهی را هر وقت از آب بگیری تازه است", "mâhi râ har vaght az âb begiri tâze ast", "It's never too late", "אף פעם לא מאוחר מדי", {"lit": ["whenever you take the fish out of the water, it's fresh", "מתי שלא תוציא את הדג מהמים, הוא טרי"]}],
+       ["آب که از سر گذشت، چه یک وجب چه صد وجب", "âb ke az sar gozasht, che yek vajab che sad vajab", "When you're already in deep trouble, a bit more doesn't matter", "כשכבר שקועים בצרות, עוד קצת לא משנה", {"lit": ["once the water is over your head, one span or a hundred spans, it's the same", "כשהמים מעל הראש, זרת אחת או מאה זרתות, זה אותו דבר"]}],
+       ["مشک آن است که خود ببوید، نه آنکه عطار بگوید", "moshk ân ast ke khod bebuyad, na ânke attâr beguyad", "Real quality speaks for itself", "איכות אמיתית מדברת בעד עצמה", {"lit": ["musk is what smells by itself, not what the perfume seller says", "מושק הוא מה שמריח בעצמו, לא מה שהבשם אומר"]}]
+     ]},
+    {"id": "poetry", "kind": "vocab", "icon": "🪶",
+     "title": {"en": "Poetry words", "he": "מילים מעולם השירה"},
+     "intro": {"en": "Poetry is everywhere in Iran. People quote Hafez and Saadi in daily conversation, and almost every home has a book of Hafez. On Yalda night and at Nowruz, families open Hafez at a random page to read their fortune (fâl-e hâfez).", "he": "שירה נמצאת בכל מקום באיראן. אנשים מצטטים את חאפז ואת סעדי בשיחה יומיומית, וכמעט בכל בית יש ספר של חאפז. בליל ילדא ובנורוז משפחות פותחות את חאפז בעמוד אקראי כדי לקרוא את גורלן (fâl-e hâfez)."},
+     "items": [
+       ["شعر", "she'r", "poem / poetry", "שיר / שירה"],
+       ["شاعر", "shâ'er", "poet", "משורר"],
+       ["غزل", "ghazal", "ghazal (a love poem)", "גזל (שיר אהבה)"],
+       ["بیت", "beyt", "couplet (two lines of a poem)", "בית (שתי שורות בשיר)"],
+       ["دیوان", "divân", "collected poems (of one poet)", "קובץ שירים (של משורר אחד)"],
+       ["حافظ", "hâfez", "Hafez (great poet of Shiraz, 14th century)", "חאפז (משורר גדול משיראז, המאה ה-14)"],
+       ["سعدی", "sa'di", "Saadi (poet of Shiraz, wrote the Golestan)", "סעדי (משורר משיראז, כתב את 'גולסתאן')"],
+       ["مولوی", "molavi", "Rumi (also called Mowlânâ)", "רומי (נקרא גם מולאנא)"],
+       ["فردوسی", "ferdosi", "Ferdowsi (wrote the Shahnameh)", "פרדוסי (כתב את השאהנאמה)"],
+       ["خیام", "khayyâm", "Omar Khayyam (poet and mathematician)", "עומר כיאם (משורר ומתמטיקאי)"],
+       ["شاهنامه", "shâhnâme", "the Shahnameh (Book of Kings)", "השאהנאמה (ספר המלכים)"],
+       ["دل", "del", "heart (feelings, in poems and in daily speech)", "לב (רגשות, בשירה ובדיבור)"],
+       ["جان", "jân", "soul / life (also \"dear\")", "נשמה / חיים (גם \"יקירי\")"],
+       ["یار", "yâr", "beloved / companion", "אהוב / חבר קרוב"]
+     ]}
+  ]
+});

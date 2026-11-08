@@ -1,0 +1,68 @@
+// Nature: landscape, sky & earth, plants & flowers.
+TLAP_ADD("ja", {
+  "group": {"id": "g-nature", "level": "intermediate", "icon": "🌳", "title": {"en": "Nature", "he": "טבע"}},
+  "lessons": [
+    {"id": "landscape", "kind": "vocab", "icon": "🏔️", "title": {"en": "Landscape", "he": "נוף"},
+     "intro": {"en": "In mountain names, 山 is usually read さん (san): 富士山 is Fuji-san. This \"san\" is not the polite -さん added to people's names, just another reading of the kanji 山 (yama, mountain).",
+               "he": "בשמות של הרים, 山 נקרא בדרך כלל さん (san): 富士山 הוא Fuji-san. ה-\"san\" הזה אינו התוספת המנומסת -さん שמוסיפים לשמות של אנשים, אלא פשוט קריאה אחרת של הקאנג'י 山 (yama, הר)."},
+     "items": [
+       ["自然", "shizen", "nature", "טבע", {"kana": "しぜん"}],
+       ["山", "yama", "mountain", "הר", {"kana": "やま"}],
+       ["丘", "oka", "hill", "גבעה", {"kana": "おか"}],
+       ["海", "umi", "sea", "ים", {"kana": "うみ"}],
+       ["川", "kawa", "river", "נהר", {"kana": "かわ"}],
+       ["湖", "mizuumi", "lake", "אגם", {"kana": "みずうみ"}],
+       ["森", "mori", "forest", "יער", {"kana": "もり"}],
+       ["林", "hayashi", "woods", "חורשה", {"kana": "はやし"}],
+       ["砂漠", "sabaku", "desert", "מדבר", {"kana": "さばく"}],
+       ["島", "shima", "island", "אי", {"kana": "しま"}],
+       ["谷", "tani", "valley", "עמק", {"kana": "たに"}],
+       ["海岸", "kaigan", "coast / shore", "חוף", {"kana": "かいがん"}],
+       ["滝", "taki", "waterfall", "מפל", {"kana": "たき"}],
+       ["洞窟", "dōkutsu", "cave", "מערה", {"kana": "どうくつ"}],
+       ["火山", "kazan", "volcano", "הר געש", {"kana": "かざん", "lit": ["fire mountain", "הר אש"]}],
+       ["温泉", "onsen", "hot spring", "מעיין חם", {"kana": "おんせん", "lit": ["warm spring", "מעיין חמים"]}]
+     ]},
+    {"id": "sky", "kind": "vocab", "icon": "🌙", "title": {"en": "Sky & earth", "he": "שמיים וארץ"},
+     "intro": {"en": "月 (tsuki) means \"moon\", and the same kanji is used for months: 一月 (ichigatsu, January). 日 means \"sun\" and \"day\", which is why Japan is 日本 (Nihon): \"the origin of the sun\", the land of the rising sun.",
+               "he": "月 (tsuki) פירושו \"ירח\", ואותו קאנג'י משמש גם לחודשים: 一月 (ichigatsu, ינואר). 日 פירושו \"שמש\" וגם \"יום\", ולכן יפן היא 日本 (Nihon): \"מקור השמש\", ארץ השמש העולה."},
+     "items": [
+       ["空", "sora", "sky", "שמיים", {"kana": "そら"}],
+       ["太陽", "taiyō", "sun", "שמש", {"kana": "たいよう"}],
+       ["月", "tsuki", "moon", "ירח", {"kana": "つき"}],
+       ["星", "hoshi", "star", "כוכב", {"kana": "ほし"}],
+       ["惑星", "wakusei", "planet", "כוכב לכת", {"kana": "わくせい"}],
+       ["地球", "chikyū", "Earth (the planet)", "כדור הארץ", {"kana": "ちきゅう", "lit": ["earth ball", "כדור אדמה"]}],
+       ["地面", "jimen", "ground", "קרקע", {"kana": "じめん"}],
+       ["土", "tsuchi", "soil / earth", "אדמה", {"kana": "つち"}],
+       ["宇宙", "uchū", "space (outer space)", "חלל", {"kana": "うちゅう"}],
+       ["世界", "sekai", "world", "עולם", {"kana": "せかい"}],
+       ["日の出", "hinode", "sunrise", "זריחה", {"kana": "ひので", "lit": ["the sun coming out", "יציאת השמש"]}],
+       ["夕日", "yūhi", "sunset (evening sun)", "שקיעה", {"kana": "ゆうひ"}],
+       ["光", "hikari", "light", "אור", {"kana": "ひかり"}],
+       ["影", "kage", "shadow", "צל", {"kana": "かげ"}],
+       ["火", "hi", "fire", "אש", {"kana": "ひ"}]
+     ]},
+    {"id": "plants", "kind": "vocab", "icon": "🌸", "title": {"en": "Plants & flowers", "he": "צמחים ופרחים"},
+     "intro": {"en": "Japan follows its plants through the year. In spring, friends and coworkers hold お花見 (ohanami), picnics under the 桜 (sakura, cherry blossoms); in autumn, people travel to see the red and gold 紅葉 (kōyō, autumn leaves).",
+               "he": "ביפן עוקבים אחרי הצמחים לאורך כל השנה. באביב, חברים ועמיתים לעבודה עורכים お花見 (ohanami), פיקניקים מתחת ל-桜 (sakura, פריחת הדובדבן); בסתיו, אנשים נוסעים לראות את ה-紅葉 (kōyō, עלי השלכת) האדומים והזהובים."},
+     "items": [
+       ["植物", "shokubutsu", "plant", "צמח", {"kana": "しょくぶつ"}],
+       ["木", "ki", "tree", "עץ", {"kana": "き"}],
+       ["花", "hana", "flower", "פרח", {"kana": "はな"}],
+       ["葉っぱ", "happa", "leaf", "עלה", {"kana": "はっぱ"}],
+       ["草", "kusa", "grass", "עשב", {"kana": "くさ"}],
+       ["根", "ne", "root", "שורש", {"kana": "ね"}],
+       ["枝", "eda", "branch", "ענף", {"kana": "えだ"}],
+       ["種", "tane", "seed", "זרע", {"kana": "たね"}],
+       ["とげ", "toge", "thorn", "קוץ"],
+       ["桜", "sakura", "cherry blossom", "פריחת הדובדבן", {"kana": "さくら"}],
+       ["梅", "ume", "Japanese plum (ume)", "שזיף יפני", {"kana": "うめ"}],
+       ["竹", "take", "bamboo", "במבוק", {"kana": "たけ"}],
+       ["松", "matsu", "pine", "אורן", {"kana": "まつ"}],
+       ["バラ", "bara", "rose", "ורד"],
+       ["ひまわり", "himawari", "sunflower", "חמנייה"],
+       ["紅葉", "kōyō", "autumn leaves", "עלי שלכת", {"kana": "こうよう"}]
+     ]}
+  ]
+});

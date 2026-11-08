@@ -1,0 +1,66 @@
+// Body & health: the body, the face, at the doctor (spoken Levantine Arabic).
+TLAP_ADD("ar", {
+  "group": {"id": "g-body", "level": "beginner", "icon": "🖐️", "title": {"en": "Body & health", "he": "גוף ובריאות"}},
+  "lessons": [
+    {"id": "body", "kind": "vocab", "icon": "🖐️", "title": {"en": "The body", "he": "הגוף"},
+     "intro": {"en": "Levantine body words differ from the standard ones: إيد (īd, standard يد yad) is the hand and also the whole arm, إجر (ijr, standard رجل rijl) is the leg and also the foot, and the ear is دينة (dēne).",
+               "he": "מילות הגוף בערבית הלבנטינית שונות מהתקניות: إيد (īd, בתקנית يد yad) היא כף היד וגם היד כולה, إجر (ijr, בתקנית رجل rijl) היא הרגל וגם כף הרגל, והאוזן היא دينة (dēne)."},
+     "items": [
+       ["جسم", "jism", "body", "גוף"],
+       ["راس", "rās", "head", "ראש"],
+       ["عين", "3ēn", "eye", "עין"],
+       ["دينة", "dēne", "ear", "אוזן"],
+       ["إيد", "īd", "hand / arm", "יד"],
+       ["إجر", "ijr", "leg / foot", "רגל"],
+       ["شعر", "sha3r", "hair", "שיער"],
+       ["قلب", "'alb", "heart", "לב"],
+       ["إصبع", "isba3", "finger", "אצבע"],
+       ["كتف", "kitf", "shoulder", "כתף"],
+       ["كوع", "kū3", "elbow", "מרפק"],
+       ["بطن", "batn", "stomach / belly", "בטן"],
+       ["ضهر", "dahr", "back", "גב"],
+       ["صدر", "sadr", "chest", "חזה"],
+       ["رقبة", "ra'abe", "neck", "צוואר"],
+       ["ركبة", "rukbe", "knee", "ברך"]
+     ]},
+    {"id": "face", "kind": "vocab", "icon": "🙂", "title": {"en": "The face", "he": "הפנים"},
+     "intro": {"en": "In Levantine the mouth is تم (timm), not the standard فم (fam). دقن (da'n) means both \"chin\" and \"beard\".",
+               "he": "בערבית הלבנטינית הפה הוא تم (timm), ולא فم (fam) התקני. دقن (da'n) פירושו גם \"סנטר\" וגם \"זקן\"."},
+     "items": [
+       ["وجه", "wijh", "face", "פנים"],
+       ["تم", "timm", "mouth", "פה"],
+       ["أنف", "anf", "nose", "אף"],
+       ["سن", "sinn", "tooth", "שן"],
+       ["جبين", "jbīn", "forehead", "מצח"],
+       ["حاجب", "ḥājeb", "eyebrow", "גבה"],
+       ["رمش", "rimsh", "eyelash", "ריס"],
+       ["خد", "khadd", "cheek", "לחי"],
+       ["دقن", "da'n", "chin / beard", "סנטר / זקן"],
+       ["شفة", "shiffe", "lip", "שפה (של הפה)"],
+       ["لسان", "lsān", "tongue", "לשון"],
+       ["شوارب", "shawāreb", "mustache", "שפם"],
+       ["جلد", "jild", "skin", "עור"]
+     ]},
+    {"id": "doctor", "kind": "vocab", "level": "intermediate", "icon": "🩺", "title": {"en": "At the doctor", "he": "אצל הרופא"},
+     "intro": {"en": "To say something hurts, use بيوجعني (byūja3ni, \"it hurts me\") after the body part: راسي بيوجعني (rāsi byūja3ni), \"my head hurts\". When someone is sick, wish them well with سلامتك (salāmtak)!",
+               "he": "כדי לומר שמשהו כואב, אומרים بيوجعني (byūja3ni, \"כואב לי\") אחרי איבר הגוף: راسي بيوجعني (rāsi byūja3ni), \"כואב לי הראש\". כשמישהו חולה, מאחלים לו سلامتك (salāmtak)!"},
+     "items": [
+       ["وصفة", "wasfe", "prescription", "מרשם"],
+       ["عيادة", "3iyāde", "clinic", "מרפאה"],
+       ["دوا", "dawa", "medicine", "תרופה"],
+       ["صيدلية", "saydaliyye", "pharmacy", "בית מרקחת"],
+       ["وجع", "waja3", "pain", "כאב"],
+       ["سخونة", "skhūne", "fever", "חום"],
+       ["كحة", "kaḥḥa", "cough", "שיעול"],
+       ["رشح", "rasheḥ", "a cold", "הצטננות"],
+       ["مريض", "marīd", "sick", "חולה"],
+       ["إبرة", "ibre", "injection", "זריקה"],
+       ["أنا مريض.", "ana marīd.", "I am sick.", "אני חולה."],
+       ["راسي بيوجعني.", "rāsi byūja3ni.", "My head hurts.", "כואב לי הראש."],
+       ["بطني بيوجعني.", "batni byūja3ni.", "My stomach hurts.", "כואבת לי הבטן."],
+       ["مش حاسس حالي منيح.", "mish ḥāses ḥāli mnīḥ.", "I don't feel well.", "אני לא מרגיש טוב."],
+       ["لازم روح عالدكتور.", "lāzim rūḥ 3ad-doktōr.", "I need to go to the doctor.", "אני צריך ללכת לרופא."],
+       ["سلامتك!", "salāmtak!", "Get well soon!", "רפואה שלמה!", {"lit": ["your safety", "שלומך"]}]
+     ]}
+  ]
+});

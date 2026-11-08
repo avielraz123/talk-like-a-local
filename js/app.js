@@ -1,96 +1,383 @@
-/* Talk like a Persian — app logic (no frameworks, no build step). */
+/* Talk like a local — app logic (no frameworks, no build step). */
 (function () {
   'use strict';
 
-  // js/registry.js fills TLAP_DATA = {groups, topics}. A data file that is missing or fails
-  // to load simply never calls TLAP_ADD, so whatever did load is used.
-  const DATA = window.TLAP_DATA || {};
   const STR = window.TLAP_STRINGS;
-  const STORE_KEY = 'tlap-v1';
+  // Optional overrides (used by tests/smoke.html): { files: {lang: [...]}, base: {lang: 'path/'}, dataBase, timeout }
+  const CFG = window.TLAP_CONFIG || {};
+  const BRAND = 'Talk like a local';
+  const STORE_KEY = 'tlap-local-v2';
+  const OLD_KEY = 'tlap-v1'; // the single-language "Talk like a Persian" save, migrated into langs.fa
   const LEVELS = ['beginner', 'intermediate', 'advanced'];
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   const ZWJ = '‍';
 
   /* ------------------------------------------------------------------ *
+   * Languages
+   * ------------------------------------------------------------------ */
+  /** Lesson files per language, in menu order (js/data/<lang>/<file>.js). Loaded on demand. */
+  const TOPIC_FILES = ['basics', 'people', 'food', 'colors', 'animals', 'body', 'home', 'clothes', 'time', 'city',
+    'nature', 'school', 'shopping', 'feelings', 'hobbies', 'verbs', 'grammar', 'culture', 'talk'];
+  const MANIFEST = {
+    fa: ['alphabet'].concat(TOPIC_FILES),
+    es: ['sounds'].concat(TOPIC_FILES),
+    ja: ['kana'].concat(TOPIC_FILES),
+    ar: ['alphabet'].concat(TOPIC_FILES),
+  };
+  /**
+   * Per-language behaviour.
+   *  script: has a non-Latin script, so the learner picks "speaking only" or "read & write".
+   *  shapes: letters have 4 contextual forms (shown with ZWJ).  digits: extra.digit is shown.
+   *  latin:  what the 2nd item field is called.  mark: glyph in the logo tile.
+   *  name/native/flag: fallbacks when the theme file is missing.
+   */
+  const LANGS = {
+    fa: {
+      code: 'fa', dir: 'rtl', speech: 'fa-IR', script: true, shapes: true, digits: true, mark: 'ف', hello: 'سلام',
+      name: { en: 'Farsi', he: 'פרסית' }, native: 'فارسی', flag: '🌹',
+      variety: { en: 'Persian, as spoken in Tehran', he: 'פרסית כפי שמדברים בטהרן' },
+      latin: { en: 'Latin letters', he: 'אותיות לטיניות' },
+    },
+    es: {
+      code: 'es', dir: 'ltr', speech: 'es-MX', script: false, shapes: false, digits: false, mark: 'ñ', hello: '¡Hola!',
+      name: { en: 'Spanish', he: 'ספרדית' }, native: 'Español', flag: '🌵',
+      variety: { en: 'Latin American Spanish', he: 'ספרדית של אמריקה הלטינית' },
+      latin: { en: 'syllables', he: 'הברות' },
+    },
+    ja: {
+      code: 'ja', dir: 'ltr', speech: 'ja-JP', script: true, shapes: false, digits: true, mark: 'あ', hello: 'こんにちは',
+      name: { en: 'Japanese', he: 'יפנית' }, native: '日本語', flag: '🌸',
+      variety: { en: 'Standard Tokyo Japanese', he: 'יפנית תקנית (טוקיו)' },
+      latin: { en: 'rōmaji', he: 'רומאג׳י' },
+    },
+    ar: {
+      code: 'ar', dir: 'rtl', speech: 'ar-JO', script: true, shapes: true, digits: true, mark: 'ض', hello: 'مرحبا',
+      name: { en: 'Arabic', he: 'ערבית' }, native: 'عربي', flag: '🫒',
+      variety: { en: 'Spoken Levantine Arabic', he: 'ערבית מדוברת (לבנטינית)' },
+      latin: { en: 'Latin letters', he: 'אותיות לטיניות' },
+    },
+  };
+  const LANG_CODES = Object.keys(LANGS);
+
+  /** The language being learned right now, its config, and its built lessons. */
+  let cur = null;
+  let L = null;
+  let DB = null;
+  let GROUPS = [], GROUP_BY_ID = {}, TOPICS = [], TOPIC_BY_ID = {}, ITEM_BY_ID = {}, ALL_LETTERS = [], ALL_WORDS = [];
+
+  /* ------------------------------------------------------------------ *
+   * Text normalization per language
+   * ------------------------------------------------------------------ */
+  const PUNCT = /[.,!?؟،:;¿¡。、！？「」『』…・〜~"“”«»()（）]/g;
+  const HARAKAT = /[ً-ٰٟـ]/g; // short vowels, shadda, sukun, dagger alef, tatweel
+  const ARABIC_RE = /[؀-ۿ]/;
+  const JA_RE = /[぀-ヿ㐀-䶿一-鿿々]/;
+  const KANJI_RE = /[㐀-䶿一-鿿々]/;
+  const KANA_ONLY = /^[぀-ヿー・]+$/;
+  const HIRA = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+  const KATA = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+  const toHira = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  const stripMarks = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  /** Fix common keyboard mix-ups in the target script (Persian ی ک vs Arabic ي ك). */
+  function fixTarget(s, code) {
+    s = String(s);
+    if (code === 'fa') return s.replace(/ي/g, 'ی').replace(/ك/g, 'ک');
+    if (code === 'ar') return s.replace(/ی/g, 'ي').replace(/ک/g, 'ك');
+    return s.normalize('NFC');
+  }
+  /** Target-script text reduced for lenient comparison (speech, typing in the script, search). */
+  const NORM = {
+    fa: (s) => fixTarget(s, 'fa').replace(/[ً-ٰٟ‌‍]/g, '').replace(/[آأإ]/g, 'ا').replace(/ة/g, 'ه')
+      .replace(PUNCT, '').replace(/\s+/g, ''),
+    ar: (s) => fixTarget(s, 'ar').normalize('NFC').replace(HARAKAT, '').replace(/[‌‍]/g, '')
+      .replace(/[آأإٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
+      .replace(PUNCT, '').replace(/\s+/g, ''),
+    ja: (s) => toHira(String(s).normalize('NFKC')).replace(PUNCT, '').replace(/[\s　]+/g, ''),
+    es: (s) => stripMarks(String(s).toLowerCase()).replace(/[^a-z0-9]/g, ''),
+  };
+  const normTarget = (s, code = cur) => (NORM[code] || NORM.es)(String(s || ''));
+  /** Latin-letter text (transliteration / rōmaji / syllables) reduced for lenient comparison. */
+  const NORM_LATIN = {
+    fa: (s) => stripMarks(s.toLowerCase()).replace(/x/g, 'kh').replace(/q/g, 'gh').replace(/w/g, 'v')
+      .replace(/aa/g, 'a').replace(/ee/g, 'i').replace(/oo|ou/g, 'u').replace(/[^a-z]/g, ''),
+    ar: (s) => stripMarks(s.toLowerCase()).replace(/7/g, 'h').replace(/5/g, 'kh')
+      .replace(/aa/g, 'a').replace(/ee/g, 'i').replace(/oo|ou/g, 'u').replace(/[^a-z]/g, ''),
+    ja: (s) => stripMarks(s.toLowerCase()).replace(/n'/g, 'n').replace(/m(?=[bp])/g, 'n')
+      .replace(/ou|oo/g, 'o').replace(/uu/g, 'u').replace(/aa/g, 'a').replace(/ee/g, 'e').replace(/[^a-z]/g, ''),
+    es: (s) => stripMarks(s.toLowerCase()).replace(/[^a-z]/g, ''),
+  };
+  const normLatin = (s, code = cur) => (NORM_LATIN[code] || NORM_LATIN.fa)(String(s || ''));
+  const normText = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-֑ͯ-ׇ]/g, '').replace(/\s+/g, ' ').trim();
+
+  function lev(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n; if (!n) return m;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const row = [i];
+      for (let j = 1; j <= n; j++) row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = row;
+    }
+    return prev[n];
+  }
+  function compareNorm(a, b) {
+    if (!a) return 'no';
+    if (a === b) return 'exact';
+    const d = lev(a, b);
+    if ((b.length >= 4 && d <= 1) || (b.length >= 10 && d <= 2)) return 'almost';
+    return 'no';
+  }
+  /** Lenient comparison of typed Latin letters (transliteration / rōmaji). */
+  const compareTr = (input, target, code = cur) => compareNorm(normLatin(input, code), normLatin(target, code));
+  const accentKey = (s) => String(s).normalize('NFC').toLowerCase().replace(PUNCT, '').replace(/\s+/g, ' ').trim();
+  /** Check what the learner typed for an item: 'exact' | 'almost' (counts as right) | 'no'. */
+  function checkTyped(input, it, code = cur) {
+    if (code === 'es') {
+      // The Spanish word itself: case, accents, ñ and ¿¡ are forgiven (an accent slip shows the exact spelling).
+      const r = compareNorm(normTarget(input, 'es'), normTarget(it.tg, 'es'));
+      return r === 'exact' && accentKey(input) !== accentKey(it.tg) ? 'almost' : r;
+    }
+    if (code === 'ja' && JA_RE.test(input)) {
+      const a = normTarget(input, 'ja');
+      return a && (a === normTarget(it.tg, 'ja') || (it.kana && a === normTarget(it.kana, 'ja'))) ? 'exact' : 'no';
+    }
+    return compareTr(input, it.tr, code);
+  }
+  /** Did the speech recognizer hear the target (or its kana reading)? */
+  function speechMatches(heard, target, alt, code = cur) {
+    const a = normTarget(heard, code);
+    if (!a) return false;
+    return [target, alt].filter(Boolean).some((tg) => {
+      const b = normTarget(tg, code);
+      if (!b) return false;
+      if (a === b || a.includes(b)) return true;
+      return lev(a, b) <= Math.max(1, Math.floor(b.length * 0.25));
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
    * Data: groups ("topics" on the menu) contain lessons ("sub-topics").
    * ------------------------------------------------------------------ */
-  const fixFa = (s) => s.replace(/ي/g, 'ی').replace(/ك/g, 'ک');
   const levelOk = (l) => LEVELS.indexOf(l) >= 0;
+  const isKana = (s) => KANA_ONLY.test(String(s).replace(PUNCT, '').replace(/\s+/g, ''));
 
   /** Turn one raw lesson into the app's lesson object. Broken items are skipped (ids keep their index). */
-  function buildLesson(tp) {
+  function buildLesson(tp, code) {
+    const fx = (s) => fixTarget(s, code);
     const topic = Object.assign({}, tp);
     topic.items = [];
     tp.items.forEach((raw, i) => {
       try {
         const id = tp.id + ':' + i;
         if (tp.kind === 'alphabet') {
-          const [letter, name, sound, joins, exFa, exTr, exEn, exHe] = raw;
+          const [letter, name, sound, joins, exTg, exTr, exEn, exHe] = raw;
+          if (![letter, name, exTg].every((x) => typeof x === 'string' && x)) return;
           topic.items.push({
-            id, topic: tp.id, isLetter: true, fa: fixFa(letter), tr: name, name, sound, joins,
-            ex: { fa: fixFa(exFa), tr: exTr, en: exEn, he: exHe },
+            id, topic: tp.id, isLetter: true, tg: fx(letter), tr: name, name, sound: sound || name, joins: !!joins,
+            kana: code === 'ja' ? letter : null,
+            ex: { tg: fx(exTg), tr: exTr || '', en: exEn || '', he: exHe || '' },
           });
           return;
         }
-        const [fa, tr, en, he, extra] = raw;
-        if (![fa, tr, en, he].every((x) => typeof x === 'string')) return;
-        const item = { id, topic: tp.id, fa: fixFa(fa), tr, en, he, extra: extra || null };
-        if (item.extra && item.extra.form) item.extra.form = [fixFa(item.extra.form[0]), item.extra.form[1]];
+        const [tg, tr, en, he, extra] = raw;
+        if (![tg, tr, en, he].every((x) => typeof x === 'string' && x)) return;
+        const x = extra && typeof extra === 'object' ? Object.assign({}, extra) : null;
+        const item = { id, topic: tp.id, tg: fx(tg), tr, en, he, extra: x, kana: null };
+        if (x && Array.isArray(x.form) && x.form.length === 2) x.form = [fx(x.form[0]), x.form[1]];
+        else if (x) delete x.form;
+        if (code === 'ja') {
+          if (x && typeof x.kana === 'string' && x.kana) item.kana = x.kana;
+          else if (isKana(item.tg)) item.kana = item.tg.replace(PUNCT, '').replace(/\s+/g, '');
+        }
         topic.items.push(item);
       } catch (e) { /* skip a broken item */ }
     });
     return topic;
   }
 
-  const LESSON_POOL = {};
-  (Array.isArray(DATA.topics) ? DATA.topics : []).forEach((tp) => {
-    try {
-      if (!tp || !tp.id || LESSON_POOL[tp.id] || !tp.title || !Array.isArray(tp.items)) return;
-      const topic = buildLesson(tp);
-      if (!levelOk(topic.level)) topic.level = 'beginner';
-      if (topic.items.length) LESSON_POOL[tp.id] = topic;
-    } catch (e) { /* skip a broken lesson */ }
-  });
-  const GROUPS = [];
-  const GROUP_BY_ID = {};
-  (Array.isArray(DATA.groups) ? DATA.groups : []).forEach((g) => {
-    if (!g || !g.id || GROUP_BY_ID[g.id] || !g.title) return;
-    const lessons = (Array.isArray(g.lessons) ? g.lessons : [])
-      .map((id) => LESSON_POOL[id]).filter((tp) => tp && tp.group === g.id);
-    if (!lessons.length) return;
-    const group = Object.assign({}, g, { level: levelOk(g.level) ? g.level : 'beginner', lessons });
-    group.items = lessons.flatMap((tp) => tp.items);
-    GROUPS.push(group);
-    GROUP_BY_ID[g.id] = group;
-  });
-  /** Every lesson, in menu order. */
-  const TOPICS = GROUPS.flatMap((g) => g.lessons);
-  const TOPIC_BY_ID = {};
-  const ITEM_BY_ID = {};
-  TOPICS.forEach((tp) => {
-    TOPIC_BY_ID[tp.id] = tp;
-    tp.items.forEach((it) => (ITEM_BY_ID[it.id] = it));
-  });
-  const ALL_LETTERS = TOPICS.filter((tp) => tp.kind === 'alphabet').flatMap((tp) => tp.items);
-  const ALL_WORDS = TOPICS.filter((tp) => tp.kind !== 'alphabet').flatMap((tp) => tp.items);
+  /** Build the lessons of one language from window.TLAP_DATA.langs[code]. */
+  function buildDB(code) {
+    const raw = ((window.TLAP_DATA || {}).langs || {})[code] || {};
+    const pool = {};
+    (Array.isArray(raw.topics) ? raw.topics : []).forEach((tp) => {
+      try {
+        if (!tp || !tp.id || pool[tp.id] || !tp.title || !Array.isArray(tp.items)) return;
+        const topic = buildLesson(tp, code);
+        if (!levelOk(topic.level)) topic.level = 'beginner';
+        if (topic.items.length) pool[tp.id] = topic;
+      } catch (e) { /* skip a broken lesson */ }
+    });
+    // Files load in parallel; put the groups back in manifest order.
+    const ord = (g) => (g && typeof g._order === 'number' ? g._order : -1);
+    const rawGroups = (Array.isArray(raw.groups) ? raw.groups : []).slice().sort((a, b) => ord(a) - ord(b));
+    const db = { code, GROUPS: [], GROUP_BY_ID: {}, TOPICS: [], TOPIC_BY_ID: {}, ITEM_BY_ID: {}, dict: null };
+    rawGroups.forEach((g) => {
+      if (!g || !g.id || db.GROUP_BY_ID[g.id] || !g.title) return;
+      const lessons = (Array.isArray(g.lessons) ? g.lessons : []).map((id) => pool[id]).filter((tp) => tp && tp.group === g.id);
+      if (!lessons.length) return;
+      const group = Object.assign({}, g, { level: levelOk(g.level) ? g.level : 'beginner', lessons });
+      group.items = lessons.flatMap((tp) => tp.items);
+      db.GROUPS.push(group);
+      db.GROUP_BY_ID[g.id] = group;
+    });
+    db.TOPICS = db.GROUPS.flatMap((g) => g.lessons);
+    db.TOPICS.forEach((tp) => {
+      db.TOPIC_BY_ID[tp.id] = tp;
+      tp.items.forEach((it) => (db.ITEM_BY_ID[it.id] = it));
+    });
+    db.ALL_LETTERS = db.TOPICS.filter((tp) => tp.kind === 'alphabet').flatMap((tp) => tp.items);
+    db.ALL_WORDS = db.TOPICS.filter((tp) => tp.kind !== 'alphabet').flatMap((tp) => tp.items);
+    return db;
+  }
+  function useDB(db) {
+    DB = db;
+    ({ GROUPS, GROUP_BY_ID, TOPICS, TOPIC_BY_ID, ITEM_BY_ID, ALL_LETTERS, ALL_WORDS } = db || {
+      GROUPS: [], GROUP_BY_ID: {}, TOPICS: [], TOPIC_BY_ID: {}, ITEM_BY_ID: {}, ALL_LETTERS: [], ALL_WORDS: [],
+    });
+  }
   const groupOf = (tp) => GROUP_BY_ID[tp.group];
 
   /* ------------------------------------------------------------------ *
-   * Saved state (localStorage)
+   * Lazy loading: inject a language's <script> files when it's first needed
    * ------------------------------------------------------------------ */
-  const freshState = () => ({
-    settings: null, topics: {}, words: {}, xp: 0, streak: { count: 0, last: null }, speedBest: 0,
-  });
+  const ME = (document.currentScript && document.currentScript.src) || '';
+  const DATA_BASE = CFG.dataBase || (ME ? ME.replace(/[^/]*$/, '') + 'data/' : 'js/data/');
+  const LOADS = {};       // code -> Promise of the current load
+  const FILE_OK = {};     // 'code/file' -> true once that file called TLAP_ADD
+  const LOAD_REPORT = {}; // code -> { loaded: [...], failed: [...] }
+  const DBS = {};         // code -> built lessons
 
+  // Note which file each pack came from, so groups keep menu order and broken files are detected.
+  const registryAdd = window.TLAP_ADD;
+  window.TLAP_ADD = function (lang, pack) {
+    const cs = document.currentScript;
+    const p = typeof lang === 'string' ? pack : lang;
+    if (cs && cs.dataset && cs.dataset.tlapFile) {
+      FILE_OK[cs.dataset.tlapLang + '/' + cs.dataset.tlapFile] = true;
+      if (p && p.group && typeof p.group === 'object') p.group._order = +cs.dataset.tlapOrder;
+    }
+    return registryAdd.apply(this, arguments);
+  };
+
+  const filesOf = (code) => (CFG.files && CFG.files[code]) || MANIFEST[code] || [];
+  const baseOf = (code) => (CFG.base && CFG.base[code]) || DATA_BASE + code + '/';
+
+  /** Load every file of a language that hasn't loaded yet. Missing or broken files are skipped. */
+  function ensureLoaded(code) {
+    if (LOADS[code]) return LOADS[code];
+    const files = filesOf(code);
+    const todo = files.filter((f) => !FILE_OK[code + '/' + f]);
+    const report = LOAD_REPORT[code] = { loaded: files.filter((f) => FILE_OK[code + '/' + f]), failed: [] };
+    LOADS[code] = new Promise((resolve) => {
+      let left = todo.length;
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        delete DBS[code];
+        resolve(report);
+      };
+      const timer = setTimeout(() => {
+        todo.forEach((f) => { if (!report.loaded.includes(f) && !report.failed.includes(f)) report.failed.push(f); });
+        finish();
+      }, CFG.timeout || 20000);
+      if (!left) { finish(); return; }
+      todo.forEach((f) => {
+        const s = document.createElement('script');
+        s.async = false; // execute in order, even though they download in parallel
+        s.src = baseOf(code) + f + '.js';
+        s.dataset.tlapLang = code;
+        s.dataset.tlapFile = f;
+        s.dataset.tlapOrder = String(files.indexOf(f));
+        const done = () => {
+          if (settled) return;
+          (FILE_OK[code + '/' + f] ? report.loaded : report.failed).push(f);
+          if (--left <= 0) finish();
+        };
+        s.onload = done;
+        s.onerror = () => { s.remove(); done(); };
+        document.head.appendChild(s);
+      });
+    });
+    return LOADS[code];
+  }
+  /** Built lessons of a language (after loading). */
+  function dbFor(code) {
+    if (!DBS[code]) DBS[code] = buildDB(code);
+    return DBS[code];
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Saved state (localStorage)
+   *  S = { v, settings: {uiLang, lang, speech}, xp, streak,                 <- global
+   *        langs: { <code>: {level, track, topics, words, speedBest} } }    <- per language
+   * ------------------------------------------------------------------ */
+  const freshLangState = () => ({ level: null, track: null, topics: {}, words: {}, speedBest: 0 });
+  const freshState = () => ({ v: 2, settings: null, xp: 0, streak: { count: 0, last: null }, langs: {} });
+  const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+  /** v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise. */
+  function migrateTopics(topics) {
+    topics = obj(topics);
+    Object.keys(topics).forEach((k) => {
+      const rec = obj(topics[k]);
+      if (!rec.stages) rec.stages = rec.stars ? { mix: rec.stars } : {};
+      topics[k] = rec;
+    });
+    return topics;
+  }
+  function normLangState(ls) {
+    ls = Object.assign(freshLangState(), obj(ls));
+    ls.topics = migrateTopics(ls.topics);
+    ls.words = obj(ls.words);
+    ls.speedBest = +ls.speedBest || 0;
+    if (!levelOk(ls.level)) ls.level = null;
+    if (ls.track !== 'speak' && ls.track !== 'full') ls.track = null;
+    return ls;
+  }
+  function normalizeState(st) {
+    st = Object.assign(freshState(), obj(st));
+    st.v = 2;
+    st.xp = +st.xp || 0;
+    st.streak = Object.assign({ count: 0, last: null }, obj(st.streak));
+    st.langs = obj(st.langs);
+    Object.keys(st.langs).forEach((k) => { if (LANGS[k]) st.langs[k] = normLangState(st.langs[k]); else delete st.langs[k]; });
+    if (st.settings) {
+      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false }, obj(st.settings));
+      if (!STR[st.settings.uiLang]) st.settings.uiLang = 'en';
+      if (!LANGS[st.settings.lang]) st.settings.lang = null;
+      st.settings.speech = !!st.settings.speech;
+    }
+    return st;
+  }
+  /** The old single-language (Farsi) save: {settings:{uiLang, level, track, speech}, topics, words, xp, streak, speedBest}. */
+  function migrateOld(old) {
+    old = obj(old);
+    const st = freshState();
+    st.xp = +old.xp || 0;
+    st.streak = Object.assign({ count: 0, last: null }, obj(old.streak));
+    const fa = freshLangState();
+    fa.topics = migrateTopics(old.topics);
+    fa.words = obj(old.words);
+    fa.speedBest = +old.speedBest || 0;
+    if (old.settings) {
+      const s = obj(old.settings);
+      fa.level = s.level; fa.track = s.track;
+      st.settings = { uiLang: s.uiLang, lang: 'fa', speech: !!s.speech };
+    }
+    st.langs.fa = fa;
+    return normalizeState(st);
+  }
   function loadState() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) {
-        const st = Object.assign(freshState(), JSON.parse(raw));
-        // v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise.
-        Object.values(st.topics).forEach((rec) => {
-          if (!rec.stages) rec.stages = rec.stars ? { mix: rec.stars } : {};
-        });
+      if (raw) return normalizeState(JSON.parse(raw));
+      const old = localStorage.getItem(OLD_KEY);
+      if (old) {
+        const st = migrateOld(JSON.parse(old));
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(st)); } catch (e) { /* ignore */ }
         return st;
       }
     } catch (e) { /* storage unavailable or corrupt: start fresh */ }
@@ -100,6 +387,11 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* ignore */ }
   }
   let S = loadState();
+
+  /** Progress and setup of one language (created on first use). */
+  const langState = (code) => S.langs[code] || (S.langs[code] = freshLangState());
+  const LS = () => langState(cur);
+  const langReady = (code) => !!(S.langs[code] && levelOk(S.langs[code].level) && (!LANGS[code].script || S.langs[code].track));
 
   const dayKey = (d) => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
   function currentStreak() {
@@ -116,126 +408,129 @@
   }
   function strengthen(item, correct) {
     if (!item) return;
-    const s = S.words[item.id] || 0;
-    S.words[item.id] = correct ? Math.min(5, s + 1) : Math.max(0, s - 2);
+    const w = LS().words;
+    const s = w[item.id] || 0;
+    w[item.id] = correct ? Math.min(5, s + 1) : Math.max(0, s - 2);
   }
 
   /* ------------------------------------------------------------------ *
    * Helpers
    * ------------------------------------------------------------------ */
-  let pendingLang = 'en';
-  const lang = () => (S.settings ? S.settings.uiLang : pendingLang);
-  const t = (k) => (STR[lang()] && STR[lang()][k] !== undefined ? STR[lang()][k] : STR.en[k] !== undefined ? STR.en[k] : k);
-  const isReader = () => !!(S.settings && S.settings.track === 'full');
-  const speechOn = () => !!(SR && S.settings && S.settings.speech);
+  let pendingUi = 'en';
+  const ui = () => (S.settings && STR[S.settings.uiLang] ? S.settings.uiLang : pendingUi);
+  const MISSING = new Set();
+  const langName = (code) => (LANGS[code] ? LANGS[code].name[ui()] || LANGS[code].name.en : '');
+  const latinName = (code) => (LANGS[code] ? LANGS[code].latin[ui()] || LANGS[code].latin.en : '');
+  /**
+   * A UI string. A language-specific version "<key>_<lang>" wins when it exists (e.g. qType_es).
+   * {lang} and {latin} are filled in with the language's name and its Latin-letters label.
+   */
+  function t(k, code) {
+    code = code || cur;
+    const d = STR[ui()] || STR.en;
+    let v;
+    if (code) {
+      const kk = k + '_' + code;
+      if (d[kk] !== undefined) v = d[kk];
+      else if (STR.en[kk] !== undefined) { MISSING.add(ui() + ':' + kk); v = STR.en[kk]; }
+    }
+    if (v === undefined) v = d[k];
+    if (v === undefined) { MISSING.add(ui() + ':' + k); v = STR.en[k]; }
+    if (v === undefined) return k;
+    if (!code) return v;
+    const fill = (s) => (typeof s === 'string' ? s.replace(/\{(lang|latin)\}/g, (m, x) => (x === 'lang' ? langName(code) : latinName(code))) : s);
+    return Array.isArray(v) ? v.map(fill) : fill(v);
+  }
+  /** "Speak, read & write": the target script comes first. Spanish is always shown as itself. */
+  const readerMode = () => !!L && (!L.script || LS().track === 'full');
+  const scriptTrack = () => !!L && L.script && LS().track === 'full';
+  const speechOn = () => !!(SR && S.settings && S.settings.speech && L && L.speech);
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const faS = (s, cls = '') => `<span class="fa ${cls}" lang="fa" dir="rtl">${esc(s)}</span>`;
+  /** Text in a given language being learned: its font, language tag and direction. */
+  const tgFor = (code, s, cls = '') => `<span class="tg ${cls}" lang="${code}" dir="${LANGS[code].dir}">${esc(s)}</span>`;
+  /** Text in the current target language. */
+  const tgS = (s, cls = '') => tgFor(cur || 'fa', s, cls);
   const trS = (s, cls = '') => `<span class="tr ${cls}" dir="ltr">${esc(s)}</span>`;
   /** Fill {name} placeholders in a UI string. */
   const fmt = (s, vars) => String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
   /** A {en, he} text in the UI language. */
-  const tx = (o) => (o ? o[lang()] || o.en || '' : '');
-  const HAS_FA = /[؀-ۿ]/;
-  // Farsi letters (and ZWNJ), but not the digits ۰-۹ / ٠-٩: digits read left to right.
-  const FA_L = '[\\u0600-\\u065F\\u066A-\\u06EF\\u06FA-\\u06FF\\u200C]';
-  const MIXED_RE = new RegExp(`(${FA_L}+(?:[\\s\\u06F0-\\u06F9\\u0660-\\u0669]+${FA_L}+)*)|([\\u06F0-\\u06F9\\u0660-\\u0669]+)`, 'g');
+  const tx = (o) => (o ? o[ui()] || o.en || '' : '');
+  // Arabic-script letters (and ZWNJ), but not the digits ۰-۹ / ٠-٩: digits read left to right.
+  const AR_L = '[\\u0600-\\u065F\\u066A-\\u06EF\\u06FA-\\u06FF\\u200C]';
+  const JA_L = '[\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF\\u3005\\u3001\\u3002\\u300C-\\u300F\\uFF01\\uFF1F]';
+  const MIXED_RE = new RegExp(`(${AR_L}+(?:[\\s\\u06F0-\\u06F9\\u0660-\\u0669]+${AR_L}+)*)|([\\u06F0-\\u06F9\\u0660-\\u0669]+)|(${JA_L}+)`, 'g');
   /**
-   * Text that mixes English/Hebrew with Farsi: isolate each Farsi run (right to left) so the order stays
-   * right. Digit runs on their own (e.g. "۰ ۱ ۲") get the Farsi font but follow the surrounding direction.
+   * Text that mixes English/Hebrew with the target script: isolate each Arabic-script run (right to left)
+   * or Japanese run (left to right) so the order stays right. Digit runs on their own (e.g. "۰ ۱ ۲") get the
+   * target font but follow the surrounding direction.
    */
-  const mixed = (s) => esc(s).replace(MIXED_RE, (m, word) => (word
-    ? `<span class="fa" lang="fa" dir="rtl">${m}</span>`
-    : `<span class="fa num" lang="fa">${m}</span>`));
-  /** An icon that may be an emoji or a Farsi letter. */
-  const iconHTML = (icon) => (HAS_FA.test(icon || '') ? faS(icon, 'icon-fa') : esc(icon || '📘'));
-  const backArrow = () => (lang() === 'he' ? '→' : '←');
+  const mixed = (s) => {
+    const ar = cur === 'ar' ? 'ar' : 'fa';
+    return esc(s).replace(MIXED_RE, (m, word, digits) => (word
+      ? `<span class="tg" lang="${ar}" dir="rtl">${m}</span>`
+      : digits ? `<span class="tg num" lang="${ar}">${m}</span>`
+        : `<span class="tg" lang="ja" dir="ltr">${m}</span>`));
+  };
+  /** An icon that may be an emoji or a letter of the target language. */
+  const isGlyph = (s) => /\p{L}/u.test(s || '');
+  const iconHTML = (icon) => (isGlyph(icon) ? tgS(icon, 'icon-tg') : esc(icon || '📘'));
+  const backArrow = () => (ui() === 'he' ? '→' : '←');
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-  const PUNCT = /[.,!?؟،:;]/g;
-  const tokens = (s) => s.split(/\s+/).map((w) => w.replace(PUNCT, '')).filter(Boolean);
+  const tokens = (s) => String(s).split(/\s+/).map((w) => w.replace(PUNCT, '')).filter(Boolean);
 
   function meaning(it) {
-    if (it.isLetter) return it.name + ' (' + it.sound + ')';
-    return it[lang()];
+    if (it.isLetter) return it.sound && it.sound !== it.name ? it.name + ' (' + it.sound + ')' : it.name;
+    return it[ui()];
   }
-  /** The word as the main thing on screen: Farsi first for readers, Latin first for speakers. */
+  /** Japanese and Chinese characters are about twice as wide as Latin letters. */
+  const visualLen = (s) => Array.from(String(s)).reduce((n, c) => n + (JA_RE.test(c) ? 1.8 : 1), 0);
   /** Long words and sentences get a smaller font so they fit cards and question boxes. */
-  const lenCls = (s) => { const n = String(s).length; return n > 30 ? 'xlong' : n > 16 ? 'long' : ''; };
+  const lenCls = (s) => { const n = visualLen(s); return n > 30 ? 'xlong' : n > 16 ? 'long' : ''; };
+  /** The kana reading of a Japanese word that has kanji (shown under it when reading). */
+  const readingOf = (it) => (cur === 'ja' && it.kana && KANJI_RE.test(it.tg) ? it.kana : '');
+  /** The word as the main thing on screen: the target first for readers (and Spanish), Latin first for speakers. */
   function wordBlock(it, size) {
-    const a = isReader() ? faS(it.fa, 'primary') : trS(it.tr, 'primary');
-    const b = isReader() ? trS(it.tr, 'secondary') : faS(it.fa, 'secondary');
-    return `<div class="word ${size || 'lg'} ${lenCls(isReader() ? it.fa : it.tr)}">${a}${b}</div>`;
+    const tgFirst = readerMode();
+    const kana = tgFirst ? readingOf(it) : '';
+    const a = tgFirst ? tgS(it.tg, 'primary') : trS(it.tr, 'primary');
+    const b = tgFirst ? trS(it.tr, 'secondary') : tgS(it.tg, 'secondary');
+    return `<div class="word ${size || 'lg'} ${lenCls(tgFirst ? it.tg : it.tr)}">${a}${kana ? tgS(kana, 'reading') : ''}${b}</div>`;
   }
-  /** Farsi script alone, as the thing to read. */
-  const faBlock = (s) => `<div class="word xl ${lenCls(s)}">${faS(s, 'primary')}</div>`;
+  /** Target script alone, as the thing to read. */
+  const tgBlock = (s) => `<div class="word xl ${lenCls(s)}">${tgS(s, 'primary')}</div>`;
   /** A meaning shown big in a question. */
   const meaningBig = (s, inner) => `<div class="meaning big ${String(s).length > 34 ? 'long' : ''}">${inner === undefined ? esc(s) : inner}</div>`;
   /** Compact word for answer buttons. */
   function wordShort(it) {
-    return isReader()
-      ? `${faS(it.fa, 'opt-main')}<span class="opt-sub">${trS(it.tr)}</span>`
-      : `${trS(it.tr, 'opt-main')}<span class="opt-sub">${faS(it.fa)}</span>`;
+    return readerMode()
+      ? `${tgS(it.tg, 'opt-main')}<span class="opt-sub">${trS(it.tr)}</span>`
+      : `${trS(it.tr, 'opt-main')}<span class="opt-sub">${tgS(it.tg)}</span>`;
   }
+  const answerWord = (it) => (readerMode() ? `${tgS(it.tg)} (${trS(it.tr)})` : `${trS(it.tr)} (${tgS(it.tg)})`);
   function extraHTML(it) {
     const x = it.extra;
     if (!x) return '';
-    if (x.digit) return `<div class="extra"><span class="label">${t('persianDigit')}:</span> ${faS(x.digit, 'digit')}</div>`;
+    if (x.digit && L.digits) return `<div class="extra"><span class="label">${esc(t('digitLabel'))}:</span> ${tgS(x.digit, 'digit')}</div>`;
     if (x.form) {
       // In spoken-Farsi lessons the form is the written version; elsewhere it is the present "I" form.
       const tp = TOPIC_BY_ID[it.topic];
-      const spoken = /spoken|colloq/i.test(it.topic + ' ' + ((tp && tp.title && tp.title.en) || ''));
+      const spoken = cur === 'fa' && /spoken|colloq/i.test(it.topic + ' ' + ((tp && tp.title && tp.title.en) || ''));
       const label = spoken ? t('written') : t('presentI');
-      const w = isReader() ? `${faS(x.form[0])} · ${trS(x.form[1])}` : `${trS(x.form[1])} · ${faS(x.form[0])}`;
-      return `<div class="extra"><span class="label">${label}:</span> ${w}</div>`;
+      const w = readerMode() ? `${tgS(x.form[0])} · ${trS(x.form[1])}` : `${trS(x.form[1])} · ${tgS(x.form[0])}`;
+      return `<div class="extra"><span class="label">${esc(label)}:</span> ${w}</div>`;
     }
-    if (x.lit) return `<div class="extra"><span class="label">${t('literally')}:</span> “${esc(x.lit[lang() === 'he' ? 1 : 0])}”</div>`;
+    if (x.lit && Array.isArray(x.lit)) return `<div class="extra"><span class="label">${esc(t('literally'))}:</span> “${esc(x.lit[ui() === 'he' ? 1 : 0])}”</div>`;
     return '';
   }
 
-  /** Lenient comparison of typed Latin letters. */
-  function normTr(s) {
-    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/x/g, 'kh').replace(/q/g, 'gh').replace(/w/g, 'v')
-      .replace(/aa/g, 'a').replace(/ee/g, 'i').replace(/oo|ou/g, 'u')
-      .replace(/[^a-z]/g, '');
-  }
-  function lev(a, b) {
-    const m = a.length, n = b.length;
-    if (!m) return n; if (!n) return m;
-    let prev = Array.from({ length: n + 1 }, (_, j) => j);
-    for (let i = 1; i <= m; i++) {
-      const cur = [i];
-      for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = cur;
-    }
-    return prev[n];
-  }
-  function compareTr(input, target) {
-    const a = normTr(input), b = normTr(target);
-    if (!a) return 'no';
-    if (a === b) return 'exact';
-    const d = lev(a, b);
-    if ((b.length >= 4 && d <= 1) || (b.length >= 10 && d <= 2)) return 'almost';
-    return 'no';
-  }
-  function normFa(s) {
-    return fixFa(s).replace(/[ً-ٰٟ‌‍]/g, '').replace(/[آأإ]/g, 'ا').replace(/ة/g, 'ه')
-      .replace(PUNCT, '').replace(/\s+/g, '');
-  }
-  function speechMatches(heard, target) {
-    const a = normFa(heard), b = normFa(target);
-    if (!a) return false;
-    if (a === b || a.includes(b)) return true;
-    return lev(a, b) <= Math.max(1, Math.floor(b.length * 0.25));
-  }
-
   const low = (s) => (s === undefined || s === null ? '' : String(s).trim().toLowerCase());
-  /** True if x could also be a right answer for item: same Farsi, Latin, English or Hebrew. */
+  /** True if x could also be a right answer for item: same target, Latin, English or Hebrew. */
   function sameAnswer(item, x) {
-    return ['fa', 'tr', 'en', 'he'].some((k) => {
+    return ['tg', 'tr', 'en', 'he'].some((k) => {
       const a = low(item[k]);
       return a !== '' && a === low(x[k]);
     });
@@ -262,43 +557,110 @@
     if (out.length < n) take(item.isLetter ? ALL_LETTERS : ALL_WORDS);
     return out;
   }
-  /** Pishi the Persian cat, our mascot. mood: happy | cheer | sad */
-  function pishi(mood = 'happy', cls = '') {
+
+  /* ------------------------------------------------------------------ *
+   * Themes (css/themes/<lang>.css + js/themes/<lang>.js, see docs/theme-format.md)
+   * ------------------------------------------------------------------ */
+  const theme = (code = cur) => {
+    const th = code && window.TLAP_THEMES && window.TLAP_THEMES[code];
+    return th && typeof th === 'object' ? th : null;
+  };
+  /** Built-in fallback mascot: Koko the parrot. mood: happy | cheer | sad */
+  function fallbackMascot(mood) {
     const eyes = mood === 'cheer'
-      ? '<path d="M41 52q6-8 12 0M67 52q6-8 12 0" stroke="#2b2d42" stroke-width="4" fill="none" stroke-linecap="round"/>'
-      : '<circle cx="47" cy="51" r="5.5" fill="#2b2d42"/><circle cx="73" cy="51" r="5.5" fill="#2b2d42"/>'
-        + '<circle cx="49" cy="49" r="1.8" fill="#fff"/><circle cx="75" cy="49" r="1.8" fill="#fff"/>';
-    const brows = mood === 'sad' ? '<path d="M40 41l11 4M80 41l-11 4" stroke="#b5651d" stroke-width="3" stroke-linecap="round"/>' : '';
-    const mouth = mood === 'sad'
-      ? '<path d="M53 72q7-5 14 0" stroke="#2b2d42" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
-      : mood === 'cheer'
-        ? '<path d="M52 66q8 12 16 0z" fill="#e5546f" stroke="#2b2d42" stroke-width="2" stroke-linejoin="round"/>'
-        : '<path d="M60 65q-4 6-9 3M60 65q4 6 9 3" stroke="#2b2d42" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
-    return `<svg class="pishi mood-${mood} ${cls}" viewBox="0 0 120 120" aria-hidden="true">
-      <path class="pishi-tail" d="M86 98q30-4 22-34" stroke="#f4a259" stroke-width="11" fill="none" stroke-linecap="round"/>
-      <ellipse cx="60" cy="99" rx="31" ry="19" fill="#f4a259"/>
-      <ellipse cx="60" cy="103" rx="17" ry="11" fill="#fff3e3"/>
-      <path d="M27 42L33 10 54 30Z" fill="#f4a259"/><path d="M93 42L87 10 66 30Z" fill="#f4a259"/>
-      <path d="M33 34l3-15 10 11Z" fill="#ff9eb5"/><path d="M87 34l-3-15-10 11Z" fill="#ff9eb5"/>
-      <circle cx="60" cy="53" r="33" fill="#f4a259"/>
-      <path d="M60 21v10M49 23l3 8M71 23l-3 8" stroke="#d9822b" stroke-width="3.5" stroke-linecap="round"/>
-      <ellipse cx="60" cy="66" rx="16" ry="12" fill="#fff3e3"/>
-      ${eyes}${brows}
-      <circle cx="38" cy="63" r="5" fill="#ff9eb5" opacity=".7"/><circle cx="82" cy="63" r="5" fill="#ff9eb5" opacity=".7"/>
-      <path d="M56 60h8l-4 5z" fill="#ff6b8b"/>
-      ${mouth}
-      <path d="M44 66l-16-3M44 70l-15 3M76 66l16-3M76 70l15 3" stroke="#b5651d" stroke-width="1.6" stroke-linecap="round"/>
-    </svg>`;
+      ? '<path d="M45 42q5-7 10 0M65 42q5-7 10 0" stroke="#2b2d42" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+      : '<circle cx="50" cy="42" r="5" fill="#2b2d42"/><circle cx="70" cy="42" r="5" fill="#2b2d42"/>'
+        + '<circle cx="51.6" cy="40.4" r="1.6" fill="#fff"/><circle cx="71.6" cy="40.4" r="1.6" fill="#fff"/>';
+    const brows = mood === 'sad' ? '<path d="M43 31l10 4M77 31l-10 4" stroke="#2b2d42" stroke-width="3" stroke-linecap="round"/>' : '';
+    const beak = mood === 'cheer'
+      ? '<path d="M52 50q8-6 16 0q-2 12-8 14q-6-2-8-14z" fill="#ff9f1c" stroke="#db7f00" stroke-width="2"/><path d="M55 55q5 4 10 0" fill="#e5546f"/>'
+      : mood === 'sad'
+        ? '<path d="M53 52q7-4 14 0q-2 10-7 12q-5-2-7-12z" fill="#ff9f1c" stroke="#db7f00" stroke-width="2"/>'
+        : '<path d="M52 50q8-5 16 0q-1 10-8 13q-7-3-8-13z" fill="#ff9f1c" stroke="#db7f00" stroke-width="2"/>';
+    const wings = mood === 'cheer'
+      ? '<path class="m-wag" d="M32 70q-20-14-18-34q14 10 22 26z" fill="#46a302"/><path d="M88 70q20-14 18-34q-14 10-22 26z" fill="#46a302"/>'
+      : '<path class="m-wag" d="M33 66q-10 18 2 32q8-14-2-32z" fill="#46a302"/><path d="M87 66q10 18-2 32q-8-14 2-32z" fill="#46a302"/>';
+    return `<svg viewBox="0 0 120 120" class="fallback-mascot">
+      <g class="m-bob">
+        <path d="M52 100q-4 16 8 18q12-2 8-18z" fill="#38b6ff"/>
+        <ellipse cx="60" cy="74" rx="28" ry="30" fill="#58cc02"/>
+        <ellipse cx="60" cy="82" rx="17" ry="19" fill="#d7ffb8"/>
+        ${wings}
+        <circle cx="60" cy="44" r="25" fill="#58cc02"/>
+        <path d="M54 21q-2-14 8-17q-1 9 4 15zM62 20q4-12 15-10q-5 6-6 13z" fill="#ffc93c"/>
+        <circle cx="42" cy="52" r="5" fill="#ff9eb5" opacity=".7"/><circle cx="78" cy="52" r="5" fill="#ff9eb5" opacity=".7"/>
+        ${eyes}${brows}${beak}
+        <path d="M50 104h7M63 104h7" stroke="#ff9f1c" stroke-width="4" stroke-linecap="round"/>
+      </g></svg>`;
   }
-  function pishiSays(text, mood = 'happy') {
-    return `<div class="pishi-row">${pishi(mood)}<div class="bubble">${esc(text)}</div></div>`;
+  function mascotSVG(mood, code = cur) {
+    const th = theme(code);
+    if (th && th.mascot && typeof th.mascot.svg === 'function') {
+      try {
+        const s = th.mascot.svg(mood);
+        if (typeof s === 'string' && /<svg[\s>]/i.test(s)) return s;
+      } catch (e) { /* fall back */ }
+    }
+    return fallbackMascot(mood);
+  }
+  /** The mascot, sized by CSS: <div class="mascot mood-<mood> <cls>"><svg/></div>. */
+  const mascot = (mood = 'happy', cls = '', code = cur) => `<div class="mascot mood-${mood} ${cls}" aria-hidden="true">${mascotSVG(mood, code)}</div>`;
+  const mascotName = (code = cur) => {
+    const th = theme(code);
+    return (th && th.mascot && tx(th.mascot.name)) || t('m_name');
+  };
+  /** What the mascot says (theme lines, in the UI language; built-in lines as a fallback). */
+  function themeLine(key, code = cur) {
+    const th = theme(code);
+    const v = th && th.lines && th.lines[key];
+    let x = v && (v[ui()] || v.en);
+    if (Array.isArray(x)) x = x.filter((s) => typeof s === 'string' && s).length ? pick(x.filter((s) => typeof s === 'string' && s)) : null;
+    if (typeof x === 'string' && x) return x;
+    const fb = t('m_' + key, code);
+    return Array.isArray(fb) ? pick(fb) : fb;
+  }
+  const mascotSays = (text, mood = 'happy') => `<div class="mascot-row">${mascot(mood)}<div class="bubble">${esc(text)}</div></div>`;
+  /** A theme decoration (banner | corner | results | ambient) wrapped in <div class="theme-deco <spot>">. */
+  function deco(spot, code = cur) {
+    const th = theme(code);
+    const svg = th && th.decorations && th.decorations[spot];
+    return typeof svg === 'string' && svg.trim() ? `<div class="theme-deco ${spot}" aria-hidden="true">${svg}</div>` : '';
+  }
+  const themeName = (code) => { const th = theme(code); return (th && tx(th.name)) || langName(code); };
+  const themeNative = (code) => { const th = theme(code); return (th && typeof th.native === 'string' && th.native) || LANGS[code].native; };
+  const themeFlag = (code) => { const th = theme(code); return (th && typeof th.flag === 'string' && th.flag) || LANGS[code].flag; };
+  const DEFAULT_CONFETTI = ['#58cc02', '#ffc93c', '#ff6b6b', '#38b6ff', '#9b5de5', '#f15bb5', '#ff9f1c'];
+  const confettiColors = (code = cur) => {
+    const th = theme(code);
+    const c = th && Array.isArray(th.confetti) ? th.confetti.filter((x) => typeof x === 'string' && x) : [];
+    return c.length ? c : DEFAULT_CONFETTI;
+  };
+
+  /** Put data-lang on <html> and fill the fixed decoration layer (corner motif + ambient layer). */
+  function applyTheme(code) {
+    const root = document.documentElement;
+    if (code) root.setAttribute('data-lang', code); else root.removeAttribute('data-lang');
+    root.classList.toggle('theme-fallback', !!code && !theme(code));
+    let layer = document.getElementById('theme-layer');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'theme-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      document.body.insertBefore(layer, document.body.firstChild);
+    }
+    layer.innerHTML = code ? deco('corner', code) + deco('ambient', code) : '';
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      const sun = getComputedStyle(root).getPropertyValue('--sun').trim();
+      if (meta && sun) meta.setAttribute('content', sun);
+    } catch (e) { /* ignore */ }
   }
 
   function letterForm(it, which) {
-    if (which === 'initial') return it.fa + ZWJ;
-    if (which === 'medial') return ZWJ + it.fa + ZWJ;
-    if (which === 'final') return ZWJ + it.fa;
-    return it.fa;
+    if (which === 'initial') return it.tg + ZWJ;
+    if (which === 'medial') return ZWJ + it.tg + ZWJ;
+    if (which === 'final') return ZWJ + it.tg;
+    return it.tg;
   }
 
   /* ------------------------------------------------------------------ *
@@ -306,16 +668,23 @@
    * ------------------------------------------------------------------ */
   const app = document.getElementById('app');
 
-  function applyLang() {
-    document.documentElement.lang = lang();
-    document.documentElement.dir = lang() === 'he' ? 'rtl' : 'ltr';
+  function applyUiLang() {
+    document.documentElement.lang = ui();
+    document.documentElement.dir = ui() === 'he' ? 'rtl' : 'ltr';
   }
   function topBar() {
+    const code = cur;
     return `<header class="topbar">
-      <button class="brand" data-go="menu" aria-label="Talk like a Persian">
-        <span class="brand-mark" aria-hidden="true">${faS('ف')}</span>
-        <span class="brand-text">Talk like a Persian</span>
-      </button>
+      <div class="topbar-start">
+        <button class="brand" data-go="menu" aria-label="${esc(BRAND)}">
+          <span class="brand-mark" aria-hidden="true">${code ? tgS(L.mark) : '💬'}</span>
+          <span class="brand-text">${esc(BRAND)}</span>
+        </button>
+        ${code ? `<button class="lang-chip" data-go="langs" aria-label="${esc(t('changeLang') + ': ' + langName(code))}" title="${esc(t('changeLang'))}">
+          <span class="lang-chip-flag" aria-hidden="true">${esc(themeFlag(code))}</span>
+          <span class="lang-chip-name font-${code}" lang="${code}" dir="${L.dir}">${esc(themeNative(code))}</span>
+          <span class="caret" aria-hidden="true">▾</span></button>` : ''}
+      </div>
       <div class="stats">
         <span class="stat" title="${esc(t('streak'))}">🔥 ${currentStreak()}</span>
         <span class="stat" title="XP">⭐ ${S.xp}</span>
@@ -333,7 +702,7 @@
   }
   function render(html, withBar = true, keepSpeed = false) {
     if (!keepSpeed) stopSpeed();
-    applyLang();
+    applyUiLang();
     app.innerHTML = (withBar ? topBar() : '') + html;
     $$('[data-go]', app).forEach((b) => b.addEventListener('click', () => go(b.dataset.go)));
     window.scrollTo(0, 0);
@@ -342,9 +711,10 @@
     if (where === 'menu') renderMenu();
     else if (where === 'settings') renderSettings();
     else if (where === 'dictionary') renderDictionary();
+    else if (where === 'langs') renderLangPicker();
   }
   function confetti() {
-    const colors = ['#58cc02', '#ffc93c', '#ff6b6b', '#38b6ff', '#9b5de5', '#f15bb5', '#ff9f1c'];
+    const colors = confettiColors();
     const box = document.createElement('div');
     box.className = 'confetti';
     for (let i = 0; i < 70; i++) {
@@ -368,69 +738,192 @@
   });
 
   /* ------------------------------------------------------------------ *
-   * Onboarding
+   * Switching language (with a loading screen the first time)
    * ------------------------------------------------------------------ */
-  function renderOnboarding() {
-    const choice = { uiLang: pendingLang, level: null, track: null, speech: null };
-    const steps = ['uiLang', 'level', 'track'];
-    if (SR) steps.push('speech');
+  let openToken = 0;
+  function setCur(code) {
+    cur = code;
+    L = LANGS[code] || null;
+    useDB(null);
+    dict.q = ''; dict.filter = 'all'; dict.group = '';
+    applyTheme(code);
+  }
+  /** Make code the language being learned, load it if needed, then show `then` (default: the menu). */
+  function openLang(code, then) {
+    if (!LANGS[code]) return Promise.resolve();
+    const tok = ++openToken;
+    if (S.settings) { S.settings.lang = code; saveState(); }
+    if (cur !== code || !DB) setCur(code);
+    const show = () => { if (tok === openToken) (then || renderMenu)(); };
+    if (DBS[code] && LOADS[code]) { useDB(DBS[code]); show(); return Promise.resolve(); }
+    renderLoading(code);
+    return ensureLoaded(code).then(() => {
+      if (tok !== openToken) return;
+      useDB(dbFor(code));
+      show();
+    });
+  }
+  /** Choose a language to learn: set it up first if it's new. */
+  function pickLang(code) {
+    if (!LANGS[code]) return Promise.resolve();
+    if (code === cur && DB && langReady(code)) { renderMenu(); return Promise.resolve(); }
+    if (!langReady(code)) { renderOnboarding({ lang: code }); return Promise.resolve(); }
+    return openLang(code);
+  }
+  function renderLoading(code) {
+    render(`<main class="center-page loading-page" aria-busy="true">
+      ${mascot('happy', 'mascot-hero', code)}
+      <h1>${esc(t('loading', code))}</h1>
+      <p class="lead">${esc(t('loadingSub', code))}</p>
+      <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </main>`, !!S.settings);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Onboarding
+   *  first run:           app language -> language to learn -> level -> track (not Spanish) -> speaking
+   *  {lang}: a new language picked later: level -> track
+   *  {start: 'lang'}:     settings exist but no language: language -> level -> track
+   * ------------------------------------------------------------------ */
+  function langCard(code, selected) {
+    const th = theme(code);
+    const colors = confettiColors(code);
+    const tag = th && th.tagline ? th.tagline : null;
+    const ls = S.langs[code];
+    const done = ls ? Object.values(ls.topics).reduce((n, r) => n + Object.keys(obj(r.stages)).length, 0) : 0;
+    const status = code === cur && langReady(code) ? t('learningNow')
+      : done ? (done === 1 ? t('progOne') : fmt(t('progN'), { n: done })) : t('langNew');
+    return `<button class="lang-card ${selected ? 'selected' : ''}" data-pick="${code}" aria-pressed="${!!selected}"
+      style="--lc1:${esc(colors[0])};--lc2:${esc(colors[1] || colors[0])}">
+      <span class="lang-mascot">${mascot(selected ? 'cheer' : 'happy', '', code)}</span>
+      <span class="lang-info">
+        <span class="lang-title"><span class="lang-flag" aria-hidden="true">${esc(themeFlag(code))}</span>
+          <strong>${esc(themeName(code))}</strong>
+          <span class="lang-native font-${code}" lang="${code}" dir="${LANGS[code].dir}">${esc(themeNative(code))}</span></span>
+        <small class="lang-variety">${esc(tx(LANGS[code].variety))}</small>
+        ${tag ? `<span class="lang-tagline"><span class="font-${code}" lang="${code}" dir="${LANGS[code].dir}">${esc(tag.target || '')}</span>
+          <span class="muted">${esc(tx(tag))}</span></span>` : ''}
+        <span class="lang-status">${esc(status)} · ${esc(mascotName(code))}</span>
+      </span>
+    </button>`;
+  }
+  function renderOnboarding(mode = {}) {
+    const setupOnly = !!mode.lang;
+    const choice = {
+      uiLang: ui(),
+      lang: setupOnly ? mode.lang : (S.settings && S.settings.lang) || null,
+      level: setupOnly ? (S.langs[mode.lang] && S.langs[mode.lang].level) || null : null,
+      track: setupOnly ? (S.langs[mode.lang] && S.langs[mode.lang].track) || null : null,
+      speech: S.settings ? S.settings.speech : null,
+    };
+    const stepsNow = () => {
+      const st = setupOnly ? [] : mode.start === 'lang' ? ['lang'] : ['uiLang', 'lang'];
+      st.push('level');
+      if (!choice.lang || LANGS[choice.lang].script) st.push('track');
+      if (!setupOnly && !S.settings && SR) st.push('speech');
+      return st;
+    };
     let step = 0;
+    if (choice.lang) applyTheme(choice.lang);
 
     const opts = {
       uiLang: () => [
-        { v: 'en', title: 'English', desc: 'Learn Farsi in English' },
-        { v: 'he', title: 'עברית', desc: 'ללמוד פרסית בעברית' },
+        { v: 'en', title: 'English', desc: 'Learn in English' },
+        { v: 'he', title: 'עברית', desc: 'ללמוד בעברית' },
       ],
-      level: () => LEVELS.map((l) => ({ v: l, title: t(l), desc: t(l + 'Desc') })),
+      level: () => LEVELS.map((l) => ({ v: l, title: t(l, choice.lang), desc: t(l + 'Desc', choice.lang) })),
       track: () => [
-        { v: 'speak', title: '🗣️ ' + t('trackSpeak'), desc: t('trackSpeakDesc') },
-        { v: 'full', title: '✍️ ' + t('trackFull'), desc: t('trackFullDesc') },
+        { v: 'speak', title: '🗣️ ' + t('trackSpeak', choice.lang), desc: t('trackSpeakDesc', choice.lang) },
+        { v: 'full', title: '✍️ ' + t('trackFull', choice.lang), desc: t('trackFullDesc', choice.lang) },
       ],
       speech: () => [
-        { v: true, title: '🎤 ' + t('speechOn'), desc: t('speechDesc') },
+        { v: true, title: '🎤 ' + t('speechOn'), desc: choice.lang ? t('speechDesc', choice.lang) : '' },
         { v: false, title: t('speechOff'), desc: '' },
       ],
     };
-    const titles = { uiLang: 'chooseLang', level: 'chooseLevel', track: 'chooseTrack', speech: 'chooseSpeech' };
+    const titles = { uiLang: 'chooseLang', lang: 'chooseLearn', level: 'chooseLevel', track: 'chooseTrack', speech: 'chooseSpeech' };
 
     function draw() {
+      const steps = stepsNow();
       const key = steps[step];
-      pendingLang = choice.uiLang;
-      const list = opts[key]();
+      pendingUi = choice.uiLang;
+      if (S.settings && !setupOnly) S.settings.uiLang = choice.uiLang;
+      const code = choice.lang;
+      const last = step === steps.length - 1;
+      const tag = code && theme(code) && theme(code).tagline;
+      const hello = LANG_CODES.map((c) => tgFor(c, LANGS[c].hello, `font-${c}`)).join('<span class="sep"> · </span>');
+      const bubble = key === 'uiLang' ? `${esc(t('m_intro'))}<br>${esc(t('welcome'))} ${esc(t('welcomeSub'))}`
+        : key === 'level' && code ? esc(themeLine('intro', code)) : '';
+      const choices = key === 'lang'
+        ? `<div class="lang-cards">${LANG_CODES.map((c) => langCard(c, c === choice.lang)).join('')}</div>`
+        : `<div class="choices">${opts[key]().map((o, i) => `<button class="choice ${choice[key] === o.v ? 'selected' : ''}" data-i="${i}">
+            <strong>${esc(o.title)}</strong>${o.desc ? `<span>${esc(o.desc)}</span>` : ''}</button>`).join('')}</div>`;
       render(`<main class="onboard">
         <div class="hero">
-          ${pishi(step === steps.length - 1 ? 'cheer' : 'happy', 'hero-cat')}
-          <div class="hero-fa">${faS('مثل یک ایرانی حرف بزن')}</div>
-          <h1>Talk like a Persian</h1>
-          <p class="muted">${esc(t('tagline'))}</p>
+          ${mascot(last ? 'cheer' : 'happy', 'mascot-hero', code)}
+          <div class="hero-tg">${code && tag && tag.target ? tgFor(code, tag.target) : hello}</div>
+          <h1>${esc(BRAND)}</h1>
+          <p class="muted">${esc(code && tag ? tx(tag) || t('tagline') : t('tagline'))}</p>
         </div>
-        ${step === 0 ? `<div class="bubble wide">${esc(t('pishiIntro'))}<br>${esc(t('welcome'))} ${esc(t('welcomeSub'))}</div>` : ''}
+        ${bubble ? `<div class="bubble wide">${bubble}</div>` : ''}
         <div class="dots">${steps.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>
-        <h2>${esc(t(titles[key]))}</h2>
-        <div class="choices">
-          ${list.map((o, i) => `<button class="choice ${choice[key] === o.v ? 'selected' : ''}" data-i="${i}">
-            <strong>${esc(o.title)}</strong>${o.desc ? `<span>${esc(o.desc)}</span>` : ''}</button>`).join('')}
-        </div>
+        <h2>${esc(t(titles[key], code))}</h2>
+        ${key === 'lang' ? `<p class="muted center sub">${esc(t('chooseLearnSub'))}</p>` : ''}
+        ${choices}
         <div class="row">
-          ${step > 0 ? `<button class="btn ghost" id="ob-back">${esc(t('back'))}</button>` : '<span></span>'}
+          ${step > 0 || setupOnly ? `<button class="btn ghost" id="ob-back">${esc(t('back'))}</button>` : '<span></span>'}
           <button class="btn primary" id="ob-next" data-enter ${choice[key] === null ? 'disabled' : ''}>
-            ${esc(step === steps.length - 1 ? t('start') : t('next'))}</button>
+            ${esc(last ? t('start') : t('next'))}</button>
         </div>
       </main>`, false);
       $$('.choice', app).forEach((b) => b.addEventListener('click', () => {
-        choice[key] = list[+b.dataset.i].v;
+        choice[key] = opts[key]()[+b.dataset.i].v;
+        draw();
+      }));
+      $$('[data-pick]', app).forEach((b) => b.addEventListener('click', () => {
+        choice.lang = b.dataset.pick;
+        const prev = S.langs[choice.lang];
+        choice.level = prev && prev.level ? prev.level : null;
+        choice.track = prev && prev.track ? prev.track : null;
+        applyTheme(choice.lang); // preview the language's theme right away
         draw();
       }));
       const back = $('#ob-back', app);
-      if (back) back.addEventListener('click', () => { step--; draw(); });
+      if (back) back.addEventListener('click', () => {
+        if (step > 0) { step--; draw(); return; }
+        // Leaving the set-up of a new language: back to the language picker, in the current theme.
+        applyTheme(cur);
+        if (cur && DB) renderLangPicker(); else boot();
+      });
       $('#ob-next', app).addEventListener('click', () => {
-        if (step < steps.length - 1) { step++; draw(); return; }
-        S.settings = { uiLang: choice.uiLang, level: choice.level, track: choice.track, speech: !!choice.speech };
+        if (key === 'lang' && choice.lang) ensureLoaded(choice.lang); // start fetching its lessons while the learner answers the rest
+        if (step < stepsNow().length - 1) { step++; draw(); return; }
+        if (!S.settings) S.settings = { uiLang: choice.uiLang, lang: choice.lang, speech: !!choice.speech };
+        S.settings.uiLang = choice.uiLang;
+        S.settings.lang = choice.lang;
+        const ls = langState(choice.lang);
+        ls.level = choice.level;
+        ls.track = LANGS[choice.lang].script ? choice.track : 'full';
         saveState();
-        renderMenu();
+        openLang(choice.lang);
       });
     }
     draw();
+  }
+
+  /** The language picker (from the language chip in the top bar, or Settings). */
+  function renderLangPicker() {
+    if (!S.settings) return renderOnboarding();
+    applyTheme(cur);
+    render(`<main class="lang-page">
+      <div class="lesson-head">
+        ${cur && DB ? `<button class="icon-btn back-btn" data-go="menu" aria-label="${esc(t('menu'))}">${backArrow()}</button>` : ''}
+        <h1><span class="title-icon">🌍</span><span class="title-text">${esc(t('chooseLearn'))}</span></h1>
+      </div>
+      <p class="muted">${esc(t('chooseLearnSub'))}</p>
+      <div class="lang-cards">${LANG_CODES.map((c) => langCard(c, c === cur)).join('')}</div>
+    </main>`, !!cur);
+    $$('[data-pick]', app).forEach((b) => b.addEventListener('click', () => pickLang(b.dataset.pick)));
   }
 
   /* ------------------------------------------------------------------ *
@@ -439,13 +932,13 @@
   function stars(n) {
     return `<span class="stars" aria-label="${n}/3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
   }
-  /** Lessons of a group this learner can see (no alphabet in the speaking-only track). */
-  const visibleLessons = (g) => (isReader() ? g.lessons : g.id === 'g-alphabet' ? [] : g.lessons.filter((tp) => tp.kind !== 'alphabet'));
+  /** Lessons of a group this learner can see (no script lessons in the speaking-only track). */
+  const visibleLessons = (g) => (readerMode() ? g.lessons : g.lessons.filter((tp) => tp.kind !== 'alphabet'));
   const visibleGroups = () => GROUPS.filter((g) => visibleLessons(g).length);
   /** Exercises that count toward finishing a lesson. Speaking is an optional bonus, so it never counts. */
   const countedStages = (tp) => stagesFor(tp).filter((s) => s !== 'speaking');
   function stageProgress(tp) {
-    const rec = S.topics[tp.id] || {};
+    const rec = LS().topics[tp.id] || {};
     const list = countedStages(tp);
     const done = list.filter((s) => rec.stages && rec.stages[s]).length;
     return { done, total: list.length };
@@ -488,22 +981,41 @@
       ${done ? trophy : ''}
     </button>`;
   }
+  function renderNoContent() {
+    render(`<main class="center-page">${mascot('sad', 'mascot-hero')}
+      <p class="lead">${esc(t('noContent'))}</p>
+      <div class="stack"><button class="btn primary" id="retry" data-enter>${esc(t('retry'))}</button>
+      <button class="btn ghost" data-go="langs">${esc(t('changeLang'))}</button></div></main>`);
+    $('#retry', app).addEventListener('click', () => {
+      const code = cur;
+      delete LOADS[code];
+      delete DBS[code];
+      useDB(null);
+      openLang(code);
+    });
+  }
   function renderMenu() {
     if (!S.settings) return renderOnboarding();
-    const mine = levelOk(S.settings.level) ? S.settings.level : 'beginner';
+    if (!cur) return boot();
+    if (!DB) return openLang(cur);
+    if (!langReady(cur)) return renderOnboarding({ lang: cur });
+    if (!GROUPS.length) return renderNoContent();
+    const mine = levelOk(LS().level) ? LS().level : 'beginner';
     // The learner's own level goes first, then the others in order.
     const sections = [mine, ...LEVELS.filter((l) => l !== mine)]
       .map((l) => ({ level: l, groups: visibleGroups().filter((g) => g.level === l) }))
       .filter((s) => s.groups.length);
+    const best = LS().speedBest;
 
     render(`<main class="menu">
-      ${pishiSays(pick(t('pishiGreet')))}
+      ${deco('banner')}
+      ${mascotSays(themeLine('greet'))}
       <h1 class="page-title">${esc(t('menuTitle'))}</h1>
       <div class="modes">
         <button class="mode review" id="m-review"><span class="mode-icon">🔁</span>
           <span><strong>${esc(t('review'))}</strong><small>${esc(t('reviewDesc'))}</small></span></button>
         <button class="mode speed" id="m-speed"><span class="mode-icon">⚡</span>
-          <span><strong>${esc(t('speed'))}</strong><small>${esc(t('speedDesc'))}${S.speedBest ? ` · ${esc(t('best'))}: ${S.speedBest}` : ''}</small></span></button>
+          <span><strong>${esc(t('speed'))}</strong><small>${esc(t('speedDesc'))}${best ? ` · ${esc(t('best'))}: ${best}` : ''}</small></span></button>
         <button class="mode dict" id="m-dict" data-go="dictionary"><span class="mode-icon">📖</span>
           <span><strong>${esc(t('dictionary'))}</strong><small>${esc(t('dictionaryDesc'))}</small></span></button>
       </div>
@@ -530,7 +1042,7 @@
         <button class="icon-btn back-btn" data-go="menu" aria-label="${esc(t('menu'))}">${backArrow()}</button>
         <h1><span class="title-icon">${iconHTML(g.icon)}</span><span class="title-text">${mixed(tx(g.title))}</span></h1>
       </div>
-      ${pishiSays(t('pishiGroup'))}
+      ${mascotSays(themeLine('group'))}
       <div class="topic-progress"><div class="progress grow"><i style="width:${pctOf(p)}%"></i></div>
         <span dir="ltr">${p.done}/${p.total}</span></div>
       <h2 class="section-title">${esc(t('chooseLesson'))} <small>${esc(t('chooseLessonSub'))}</small></h2>
@@ -552,33 +1064,49 @@
    * Settings
    * ------------------------------------------------------------------ */
   function renderSettings() {
+    if (!S.settings || !cur) return boot();
     const st = S.settings;
+    const ls = LS();
+    const val = (name) => (name === 'level' || name === 'track' ? ls[name] : st[name]);
     const seg = (name, options) => `<div class="seg" data-name="${name}">${options.map(([v, label]) =>
-      `<button class="${String(st[name]) === String(v) ? 'selected' : ''}" data-v="${v}">${esc(label)}</button>`).join('')}</div>`;
+      `<button class="${String(val(name)) === String(v) ? 'selected' : ''}" data-v="${v}">${esc(label)}</button>`).join('')}</div>`;
     render(`<main class="settings">
       <h1 class="page-title">⚙️ ${esc(t('settings'))}</h1>
+      <label>${esc(t('learnLang'))}</label>
+      <div class="seg lang-seg">${LANG_CODES.map((c) => `<button class="${c === cur ? 'selected' : ''}" data-pick="${c}">
+        <span aria-hidden="true">${esc(themeFlag(c))}</span> ${esc(langName(c))}</button>`).join('')}</div>
       <label>${esc(t('language'))}</label>${seg('uiLang', [['en', 'English'], ['he', 'עברית']])}
-      <label>${esc(t('level'))}</label>${seg('level', LEVELS.map((l) => [l, t(l)]))}
-      <label>${esc(t('track'))}</label>${seg('track', [['speak', t('trackSpeak')], ['full', t('trackFull')]])}
+      <label>${esc(t('level'))} <small class="muted">· ${esc(langName(cur))}</small></label>${seg('level', LEVELS.map((l) => [l, t(l)]))}
+      ${L.script ? `<label>${esc(t('track'))} <small class="muted">· ${esc(langName(cur))}</small></label>${seg('track', [['speak', t('trackSpeak')], ['full', t('trackFull')]])}` : ''}
       <label>${esc(t('speechSetting'))}</label>
       ${SR ? seg('speech', [[true, t('on')], [false, t('off')]]) : `<p class="muted">${esc(t('speechUnsupported'))}</p>`}
-      <div class="row"><button class="btn danger" id="reset">${esc(t('resetProgress'))}</button>
-      <button class="btn primary" data-go="menu" data-enter>${esc(t('done'))}</button></div>
+      <div class="row wrap"><button class="btn danger" id="reset-lang">${esc(t('resetLang'))}</button>
+      <button class="btn ghost" id="reset">${esc(t('resetProgress'))}</button></div>
+      <div class="row"><span></span><button class="btn primary" data-go="menu" data-enter>${esc(t('done'))}</button></div>
     </main>`);
-    $$('.seg', app).forEach((g) => $$('button', g).forEach((b) => b.addEventListener('click', () => {
+    $$('.seg[data-name]', app).forEach((g) => $$('button', g).forEach((b) => b.addEventListener('click', () => {
       let v = b.dataset.v;
-      if (g.dataset.name === 'speech') v = v === 'true';
-      st[g.dataset.name] = v;
+      const name = g.dataset.name;
+      if (name === 'speech') v = v === 'true';
+      if (name === 'level' || name === 'track') ls[name] = v; else st[name] = v;
       saveState();
       renderSettings();
     })));
-    $('#reset', app).addEventListener('click', () => {
-      if (!confirm(t('confirmReset'))) return;
-      const settings = S.settings;
-      S = freshState();
-      S.settings = settings;
+    $$('[data-pick]', app).forEach((b) => b.addEventListener('click', () => pickLang(b.dataset.pick)));
+    $('#reset-lang', app).addEventListener('click', () => {
+      if (!confirm(t('confirmResetLang'))) return;
+      Object.assign(ls, { topics: {}, words: {}, speedBest: 0 });
       saveState();
       renderMenu();
+    });
+    $('#reset', app).addEventListener('click', () => {
+      if (!confirm(t('confirmReset'))) return;
+      const ui0 = st.uiLang;
+      S = freshState();
+      pendingUi = ui0;
+      saveState();
+      setCur(null);
+      renderOnboarding();
     });
   }
 
@@ -589,16 +1117,40 @@
     learn: '📖', choice: '🔘', truefalse: '✅', match: '🧩', typing: '⌨️', order: '🔀', reading: '👀',
     spelling: '🔤', speaking: '🎤', letters: '🔠', shapes: '🌀', words: '📝', mix: '🏆',
   };
-  const typingOk = (it) => normTr(it.tr).length <= 30;
-  const orderOk = (it) => tokens(it.tr).length >= 3;
+  /** What the typing exercise asks for: the Spanish word itself, otherwise the Latin letters. */
+  const typedAnswer = (it) => (cur === 'es' ? it.tg : it.tr);
+  const typingOk = (it) => normLatin(typedAnswer(it)).length <= 30;
+  const orderOk = (it) => tokens(cur === 'es' ? it.tg : it.tr).length >= 3;
+  /** Tiles for the word-order exercise. Japanese has no spaces, so read & write uses extra.parts. */
+  function orderWords(it) {
+    if (cur === 'ja') {
+      const parts = it.extra && Array.isArray(it.extra.parts) ? it.extra.parts.filter((p) => typeof p === 'string' && p) : [];
+      if (readerMode() && parts.length >= 2) return { words: parts, script: true };
+      return { words: tokens(it.tr), script: false };
+    }
+    return readerMode() ? { words: tokens(it.tg), script: true } : { words: tokens(it.tr), script: false };
+  }
+  /** The characters to build in the spelling exercise: the word's letters, or a Japanese word's kana. */
+  function spellWord(it) {
+    if (it.isLetter || !L || !L.script) return null;
+    if (cur === 'ja') return it.kana && !/\s/.test(it.kana) ? it.kana.replace(PUNCT, '') : null;
+    if (/[\s‌]/.test(it.tg)) return null;
+    return it.tg.replace(HARAKAT, '').replace(PUNCT, '');
+  }
+  function canSpell(it) {
+    const w = spellWord(it);
+    if (!w) return false;
+    const n = Array.from(w).length;
+    return n >= 2 && n <= 7;
+  }
 
   function stagesFor(topic) {
-    if (topic.kind === 'alphabet') return ['learn', 'letters', 'shapes', 'words', 'match', 'mix'];
+    if (topic.kind === 'alphabet') return L.shapes ? ['learn', 'letters', 'shapes', 'words', 'match', 'mix'] : ['learn', 'letters', 'words', 'match', 'mix'];
     const items = topic.items;
     const st = ['learn', 'choice', 'truefalse', 'match'];
     if (items.filter(typingOk).length >= 3) st.push('typing');
     if (items.filter(orderOk).length >= 3) st.push('order');
-    if (isReader()) {
+    if (scriptTrack()) {
       st.push('reading');
       if (items.filter(canSpell).length >= 3) st.push('spelling');
     }
@@ -608,7 +1160,7 @@
   }
 
   function renderTopic(topic) {
-    const rec = S.topics[topic.id] || {};
+    const rec = LS().topics[topic.id] || {};
     const g = groupOf(topic);
     const p = stageProgress(topic);
     render(`<main class="topic-page">
@@ -617,7 +1169,7 @@
         <h1><span class="title-icon">${iconHTML(topic.icon)}</span><span class="title-text">${mixed(tx(topic.title))}</span></h1>
       </div>
       ${topic.intro ? `<div class="intro">💡 ${mixed(tx(topic.intro))}</div>` : ''}
-      ${pishiSays(t('pishiTopic'))}
+      ${mascotSays(themeLine('topic'))}
       <div class="topic-progress"><div class="progress grow"><i style="width:${pctOf(p)}%"></i></div>
         <span dir="ltr">${p.done}/${p.total}</span></div>
       <h2 class="section-title">${esc(t('chooseExercise'))} <small>${esc(t('chooseExerciseSub'))}</small></h2>
@@ -648,13 +1200,14 @@
   function cardFaces(it) {
     if (it.isLetter) {
       const forms = it.joins ? ['isolated', 'initial', 'medial', 'final'] : ['isolated', 'final'];
+      const sound = it.sound && it.sound !== it.name ? ` <span class="muted">· ${esc(t('sound'))}: ${trS(it.sound)}</span>` : '';
       return {
-        front: `<div class="letter-big">${faS(it.fa)}</div><div class="muted">${esc(t('tapToFlip'))}</div>`,
-        back: `<div class="letter-name">${trS(it.name)} <span class="muted">· ${esc(t('sound'))}: ${trS(it.sound)}</span></div>
-          <div class="forms-title">${esc(t('letterForms'))}</div>
-          <div class="forms">${forms.map((f) => `<div class="form">${faS(letterForm(it, f))}<small>${esc(t(f))}</small></div>`).join('')}</div>
-          ${it.joins ? '' : `<p class="note">${esc(t('nonJoining'))}</p>`}
-          <div class="example"><span class="label">${esc(t('example'))}:</span> ${faS(it.ex.fa, 'ex-fa')} ${trS(it.ex.tr)} = ${esc(it.ex[lang()])}</div>`,
+        front: `<div class="letter-big">${tgS(it.tg)}</div><div class="muted">${esc(t('tapToFlip'))}</div>`,
+        back: `<div class="letter-name">${trS(it.name)}${sound}</div>
+          ${L.shapes ? `<div class="forms-title">${esc(t('letterForms'))}</div>
+          <div class="forms">${forms.map((f) => `<div class="form">${tgS(letterForm(it, f))}<small>${esc(t(f))}</small></div>`).join('')}</div>
+          ${it.joins ? '' : `<p class="note">${esc(t('nonJoining'))}</p>`}` : `<div class="letter-big small">${tgS(it.tg)}</div>`}
+          <div class="example"><span class="label">${esc(t('example'))}:</span> ${tgS(it.ex.tg, 'ex-tg')} ${it.ex.tr && it.ex.tr !== it.ex.tg ? trS(it.ex.tr) : ''} = ${esc(it.ex[ui()])}</div>`,
       };
     }
     return {
@@ -706,17 +1259,12 @@
    * ------------------------------------------------------------------ */
   let session = null;
 
-  function canSpell(it) {
-    if (it.isLetter || /[\s‌]/.test(it.fa)) return false;
-    const n = Array.from(it.fa.replace(PUNCT, '')).length;
-    return n >= 2 && n <= 7;
-  }
   function typesFor(it) {
-    if (it.isLetter) return ['letterName', 'soundLetter', 'formLetter', 'exampleRead'];
+    if (it.isLetter) return L.shapes ? ['letterName', 'soundLetter', 'formLetter', 'exampleRead'] : ['letterName', 'soundLetter', 'exampleRead'];
     const ts = ['mcMeaning', 'mcReverse', 'trueFalse'];
-    if (normTr(it.tr).length <= 22) ts.push('typeTr');
-    if (tokens(it.tr).length >= 3) ts.push('order', 'order');
-    if (isReader()) {
+    if (normLatin(typedAnswer(it)).length <= 22) ts.push('typeTr');
+    if (orderOk(it)) ts.push('order', 'order');
+    if (scriptTrack()) {
       ts.push('readScript');
       if (canSpell(it)) ts.push('spell');
     }
@@ -783,7 +1331,8 @@
     });
   }
   function topicRecord(topic) {
-    const rec = S.topics[topic.id] || (S.topics[topic.id] = { best: 0, stages: {} });
+    const topics = LS().topics;
+    const rec = topics[topic.id] || (topics[topic.id] = { best: 0, stages: {} });
     if (!rec.stages) rec.stages = {};
     return rec;
   }
@@ -792,13 +1341,14 @@
     renderQuestion();
   }
   function startReview() {
-    const ids = Object.keys(S.words).filter((id) => ITEM_BY_ID[id] && (isReader() || !ITEM_BY_ID[id].isLetter));
+    const words = LS().words;
+    const ids = Object.keys(words).filter((id) => ITEM_BY_ID[id] && (readerMode() || !ITEM_BY_ID[id].isLetter));
     if (ids.length < 4) {
-      render(`<main class="center-page"><div class="big-emoji">🔁</div><p>${esc(t('reviewEmpty'))}</p>
-        <button class="btn primary" data-go="menu" data-enter>${esc(t('menu'))}</button></main>`);
+      render(`<main class="center-page">${mascot('happy', 'mascot-hero')}<p class="lead">${esc(t('reviewEmpty'))}</p>
+        <div class="stack"><button class="btn primary" data-go="menu" data-enter>${esc(t('menu'))}</button></div></main>`);
       return;
     }
-    const weakest = shuffle(ids).sort((a, b) => (S.words[a] || 0) - (S.words[b] || 0)).slice(0, 12).map((id) => ITEM_BY_ID[id]);
+    const weakest = shuffle(ids).sort((a, b) => (words[a] || 0) - (words[b] || 0)).slice(0, 12).map((id) => ITEM_BY_ID[id]);
     session = { mode: 'review', queue: buildQueue(weakest), idx: 0, first: 0, firstRight: 0, xp: 0 };
     renderQuestion();
   }
@@ -829,9 +1379,9 @@
     }
     const fb = $('#feedback', app);
     const cls = result === null ? 'neutral' : result ? 'ok' : 'bad';
-    const title = result === null ? t('skipped') : result ? (note === 'almost' ? t('almost') : pick(t('praise'))) : t('wrong');
+    const title = result === null ? t('skipped') : result ? (note === 'almost' ? t('almost') : themeLine('right')) : themeLine('wrong');
     fb.className = 'feedback ' + cls;
-    fb.innerHTML = `${pishi(result === false ? 'sad' : result ? 'cheer' : 'happy', 'fb-cat')}<div class="fb-text"><strong>${result ? '✓ ' : result === false ? '✗ ' : ''}${esc(title)}</strong>
+    fb.innerHTML = `${mascot(result === false ? 'sad' : result ? 'cheer' : 'happy', 'mascot-fb')}<div class="fb-text"><strong>${result ? '✓ ' : result === false ? '✗ ' : ''}${esc(title)}</strong>
       ${correctHTML && (result === false || note === 'almost') ? `<div>${note === 'almost' ? '' : esc(t('correctAnswer')) + ' '}${correctHTML}</div>` : ''}</div>
       <button class="btn ${result === false ? 'danger' : 'primary'}" id="continue" data-enter>${esc(t('continue'))}</button>`;
     fb.hidden = false;
@@ -875,7 +1425,16 @@
       },
     };
   }
-  const answerWord = (it) => (isReader() ? `${faS(it.fa)} (${trS(it.tr)})` : `${trS(it.tr)} (${faS(it.fa)})`);
+  /** Characters that can be offered as wrong tiles in the spelling exercise. */
+  function spellDecoys(letters) {
+    let pool;
+    if (cur === 'ja') pool = Array.from(/[゠-ヿ]/.test(letters.join('')) ? KATA : HIRA);
+    else {
+      pool = ALL_LETTERS.map((l) => l.tg).filter((l) => Array.from(l).length === 1);
+      if (pool.length < 6) pool = pool.concat(Array.from(cur === 'fa' ? 'ابپتسشکگلمنوهی' : 'ابتسشكلمنوهي'));
+    }
+    return shuffle(Array.from(new Set(pool)).filter((l) => !letters.includes(l))).slice(0, 2);
+  }
 
   const QUESTIONS = {
     mcMeaning(q) {
@@ -886,14 +1445,14 @@
     },
     mcReverse(q) {
       const it = q.item;
-      const others = distractors(it, 3, (x) => x.tr);
+      const others = distractors(it, 3, (x) => (readerMode() ? x.tg : x.tr));
       return choiceQuestion(q, t('qReverse'), meaningBig(meaning(it)),
         [it, ...others].map((x) => ({ html: wordShort(x), correct: x === it, item: x })), answerWord(it));
     },
     readScript(q) {
       const it = q.item;
       const others = distractors(it, 3, (x) => x.tr);
-      return choiceQuestion(q, t('qRead'), faBlock(it.fa),
+      return choiceQuestion(q, t('qRead'), tgBlock(it.tg),
         [it, ...others].map((x) => ({ html: trS(x.tr), correct: x === it, item: x })), `${trS(it.tr)} = ${esc(meaning(it))}`);
     },
     trueFalse(q) {
@@ -919,13 +1478,15 @@
     },
     typeTr(q) {
       const it = q.item;
-      const stem = isReader()
-        ? `<div class="word lg">${faS(it.fa, 'primary')}</div><div class="meaning">${esc(meaning(it))}</div>`
+      const es = cur === 'es';
+      const want = typedAnswer(it);
+      const stem = scriptTrack()
+        ? `<div class="word lg">${tgS(it.tg, 'primary')}</div><div class="meaning">${esc(meaning(it))}</div>`
         : meaningBig(meaning(it));
       return {
         prompt: t('qType'),
         html: `<div class="stem">${stem}</div>
-          <input class="type-in" id="type-in" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(t('typePlaceholder'))}">
+          <input class="type-in ${es ? 'tg' : ''}" id="type-in" dir="ltr" ${es ? 'lang="es"' : ''} autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(t('typePlaceholder'))}">
           <p class="muted small">${esc(t('typeTip'))}</p>
           <div class="row"><button class="btn ghost" id="hint">💡 ${esc(t('hint'))}</button>
           <button class="btn primary" id="check" data-enter>${esc(t('check'))}</button></div>`,
@@ -935,30 +1496,31 @@
           let hints = 0;
           $('#hint', root).addEventListener('click', () => {
             hints++;
-            const n = Math.ceil((it.tr.length * hints) / 3);
-            input.value = it.tr.slice(0, n);
+            const chars = Array.from(want);
+            input.value = chars.slice(0, Math.ceil((chars.length * hints) / 3)).join('');
             input.focus();
           });
           $('#check', root).addEventListener('click', () => {
-            const r = compareTr(input.value, it.tr);
+            const r = checkTyped(input.value, it);
             input.classList.add(r === 'no' ? 'wrong' : 'right');
-            answer(q, r !== 'no', trS(it.tr), r === 'almost' ? 'almost' : null);
+            answer(q, r !== 'no', es ? tgS(it.tg) : trS(it.tr), r === 'almost' ? 'almost' : null);
           });
         },
       };
     },
     order(q) {
       const it = q.item;
-      const target = isReader() ? tokens(it.fa) : tokens(it.tr);
+      const { words: target, script } = orderWords(it);
+      const dir = script ? L.dir : 'ltr';
       let bank = shuffle(target.map((w, i) => ({ w, i })));
-      if (bank.every((b, k) => b.i === k)) bank = bank.reverse();
+      if (bank.length > 1 && bank.every((b, k) => b.i === k)) bank = bank.reverse();
       const placed = [];
-      const tile = (b, where) => `<button class="tile" data-where="${where}" data-i="${b.i}">${isReader() ? faS(b.w) : trS(b.w)}</button>`;
+      const tile = (b, where) => `<button class="tile" data-where="${where}" data-i="${b.i}">${script ? tgS(b.w) : trS(b.w)}</button>`;
       return {
         prompt: t('qOrder'),
         html: `<div class="stem">${meaningBig(meaning(it))}</div>
-          <div class="answer-line" id="line" dir="${isReader() ? 'rtl' : 'ltr'}"></div>
-          <div class="bank" id="bank" dir="${isReader() ? 'rtl' : 'ltr'}"></div>
+          <div class="answer-line ${cur === 'ja' && script ? 'joined' : ''}" id="line" dir="${dir}"></div>
+          <div class="bank" id="bank" dir="${dir}"></div>
           <div class="row"><span></span><button class="btn primary" id="check" data-enter disabled>${esc(t('check'))}</button></div>`,
         mount(root) {
           const draw = () => {
@@ -975,31 +1537,31 @@
           };
           draw();
           $('#check', root).addEventListener('click', () => {
-            const ok = placed.map((b) => b.w).join(' ') === target.join(' ');
+            const ok = placed.map((b) => b.w).join('\u0001') === target.join('\u0001');
             $('#line', root).classList.add(ok ? 'right' : 'wrong');
-            answer(q, ok, isReader() ? faS(it.fa) : trS(it.tr));
+            answer(q, ok, script ? tgS(it.tg) : trS(it.tr));
           });
         },
       };
     },
     spell(q) {
       const it = q.item;
-      const letters = Array.from(it.fa.replace(PUNCT, ''));
-      const decoys = shuffle(ALL_LETTERS.map((l) => l.fa).filter((l) => !letters.includes(l))).slice(0, 2);
-      const bank = shuffle([...letters, ...decoys]).map((ch, i) => ({ ch, i }));
+      const letters = Array.from(spellWord(it) || it.tg);
+      const bank = shuffle([...letters, ...spellDecoys(letters)]).map((ch, i) => ({ ch, i }));
       const built = [];
+      const reading = cur === 'ja' && it.kana !== it.tg ? `<div class="muted">${tgS(it.tg)}</div>` : '';
       return {
         prompt: t('qSpell'),
-        html: `<div class="stem">${meaningBig(meaning(it))}<div class="muted">${trS(it.tr)}</div></div>
-          <div class="spell-out" id="out">${faS('')}</div>
-          <div class="bank letters" id="bank" dir="rtl"></div>
-          <div class="row"><button class="btn ghost" id="undo">⌫</button>
+        html: `<div class="stem">${meaningBig(meaning(it))}<div class="muted">${trS(it.tr)}</div>${reading}</div>
+          <div class="spell-out" id="out">${tgS('')}</div>
+          <div class="bank letters" id="bank" dir="${L.dir}"></div>
+          <div class="row"><button class="btn ghost" id="undo" aria-label="${esc(t('clear'))}">⌫</button>
           <button class="btn primary" id="check" data-enter disabled>${esc(t('check'))}</button></div>`,
         mount(root) {
           const draw = () => {
-            $('#out', root).innerHTML = faS(built.map((b) => b.ch).join('') || ' ');
+            $('#out', root).innerHTML = tgS(built.map((b) => b.ch).join('') || ' ');
             $('#bank', root).innerHTML = bank.map((b) =>
-              `<button class="tile letter ${built.includes(b) ? 'used' : ''}" data-i="${b.i}" ${built.includes(b) ? 'disabled' : ''}>${faS(b.ch)}</button>`).join('');
+              `<button class="tile letter ${built.includes(b) ? 'used' : ''}" data-i="${b.i}" ${built.includes(b) ? 'disabled' : ''}>${tgS(b.ch)}</button>`).join('');
             $('#check', root).disabled = built.length !== letters.length;
             $$('.tile', root).forEach((el) => el.addEventListener('click', () => {
               if (built.length >= letters.length) return;
@@ -1012,7 +1574,7 @@
           $('#check', root).addEventListener('click', () => {
             const ok = built.map((b) => b.ch).join('') === letters.join('');
             $('#out', root).classList.add(ok ? 'right' : 'wrong');
-            answer(q, ok, faS(it.fa));
+            answer(q, ok, cur === 'ja' && it.kana !== it.tg ? `${tgS(it.kana)} (${tgS(it.tg)})` : tgS(it.tg));
           });
         },
       };
@@ -1021,7 +1583,7 @@
       const items = q.items;
       const left = shuffle(items);
       const right = shuffle(items);
-      const leftHTML = (it) => (it.isLetter ? faS(it.fa, 'match-letter') : isReader() ? faS(it.fa) : trS(it.tr));
+      const leftHTML = (it) => (it.isLetter ? tgS(it.tg, 'match-letter') : readerMode() ? tgS(it.tg) : trS(it.tr));
       const rightHTML = (it) => (it.isLetter ? trS(it.name) : esc(meaning(it)));
       return {
         prompt: t('qMatch'),
@@ -1062,11 +1624,11 @@
         mount(root) {
           const status = $('#mic-status', root);
           let rec = null;
-          $('#skip', root).addEventListener('click', () => { try { rec && rec.abort(); } catch (e) { /* ignore */ } answer(q, null); });
+          $('#skip', root).addEventListener('click', () => { try { if (rec) rec.abort(); } catch (e) { /* ignore */ } answer(q, null); });
           $('#mic', root).addEventListener('click', () => {
             try {
               rec = new SR();
-              rec.lang = 'fa-IR';
+              rec.lang = L.speech;
               rec.maxAlternatives = 5;
               rec.interimResults = false;
             } catch (e) { status.textContent = t('micError'); return; }
@@ -1074,8 +1636,8 @@
             status.textContent = t('listening');
             rec.onresult = (ev) => {
               const alts = Array.from(ev.results[0]).map((a) => a.transcript);
-              if (alts.some((a) => speechMatches(a, it.fa))) answer(q, true, null);
-              else status.innerHTML = `${esc(t('heard'))} ${faS(alts[0] || '…')}<br>${esc(t('notMatched'))}`;
+              if (alts.some((a) => speechMatches(a, it.tg, it.kana))) answer(q, true, null);
+              else status.innerHTML = `${esc(t('heard'))} ${tgS(alts[0] || '…')}<br>${esc(t('notMatched'))}`;
             };
             rec.onerror = () => { status.textContent = t('micError'); };
             rec.onend = () => { const m = $('#mic', root); if (m) m.classList.remove('live'); };
@@ -1087,36 +1649,46 @@
     letterName(q) {
       const it = q.item;
       const others = distractors(it, 3, (x) => x.name);
-      return choiceQuestion(q, t('qLetterName'), `<div class="letter-big">${faS(it.fa)}</div>`,
-        [it, ...others].map((x) => ({ html: `${trS(x.name)} <span class="opt-sub">${trS(x.sound)}</span>`, correct: x === it, item: x })),
-        `${trS(it.name)} (${trS(it.sound)})`);
+      const label = (x) => `${trS(x.name)}${x.sound && x.sound !== x.name ? ` <span class="opt-sub">${trS(x.sound)}</span>` : ''}`;
+      return choiceQuestion(q, t('qLetterName'), `<div class="letter-big">${tgS(it.tg)}</div>`,
+        [it, ...others].map((x) => ({ html: label(x), correct: x === it, item: x })), label(it));
     },
     soundLetter(q) {
       const it = q.item;
-      const others = distractors(it, 3, (x) => x.fa);
-      return choiceQuestion(q, t('qSoundLetter'), `<div class="meaning big">${trS(it.name)}</div><div class="muted">${esc(t('sound'))}: ${trS(it.sound)}</div>`,
-        [it, ...others].map((x) => ({ html: faS(x.fa, 'opt-letter'), correct: x === it, item: x })), faS(it.fa), 'letters-4');
+      const others = distractors(it, 3, (x) => x.tg);
+      const sound = it.sound && it.sound !== it.name ? `<div class="muted">${esc(t('sound'))}: ${trS(it.sound)}</div>` : '';
+      return choiceQuestion(q, t('qSoundLetter'), `<div class="meaning big">${trS(it.name)}</div>${sound}`,
+        [it, ...others].map((x) => ({ html: tgS(x.tg, 'opt-letter'), correct: x === it, item: x })), tgS(it.tg), 'letters-4');
     },
     formLetter(q) {
       const it = q.item;
       const which = it.joins ? pick(['initial', 'medial', 'final']) : 'final';
-      const others = distractors(it, 3, (x) => x.fa);
-      return choiceQuestion(q, t('qForm'), `<div class="letter-big form-shown">${faS(letterForm(it, which))}</div><div class="muted">(${esc(t(which))})</div>`,
-        [it, ...others].map((x) => ({ html: faS(x.fa, 'opt-letter'), correct: x === it, item: x })), `${faS(it.fa)} ${trS(it.name)}`, 'letters-4');
+      const others = distractors(it, 3, (x) => x.tg);
+      return choiceQuestion(q, t('qForm'), `<div class="letter-big form-shown">${tgS(letterForm(it, which))}</div><div class="muted">(${esc(t(which))})</div>`,
+        [it, ...others].map((x) => ({ html: tgS(x.tg, 'opt-letter'), correct: x === it, item: x })), `${tgS(it.tg)} ${trS(it.name)}`, 'letters-4');
     },
     exampleRead(q) {
       const it = q.item;
+      if (!L.script) {
+        // Spanish: the example is already in Latin letters, so ask what it means.
+        const others = distractors(it, 3, (x) => x.ex[ui()]);
+        return choiceQuestion(q, t('qExample'), `${tgBlock(it.ex.tg)}<div class="muted">${trS(it.ex.tr)}</div>`,
+          [it, ...others].map((x) => ({ html: esc(x.ex[ui()]), correct: x === it, item: x })), `${tgS(it.ex.tg)} = ${esc(it.ex[ui()])}`);
+      }
       const others = distractors(it, 3, (x) => x.ex.tr);
-      return choiceQuestion(q, t('qExample'), faBlock(it.ex.fa),
-        [it, ...others].map((x) => ({ html: trS(x.ex.tr), correct: x === it, item: x })), `${trS(it.ex.tr)} = ${esc(it.ex[lang()])}`);
+      return choiceQuestion(q, t('qExample'), tgBlock(it.ex.tg),
+        [it, ...others].map((x) => ({ html: trS(x.ex.tr), correct: x === it, item: x })), `${trS(it.ex.tr)} = ${esc(it.ex[ui()])}`);
     },
   };
+
+  /** The mascot on a results screen, with the theme's results decoration behind it. */
+  const resultsHero = (mood) => `<div class="results-hero">${deco('results')}${mascot(mood, 'mascot-result')}</div>`;
 
   function finishSession() {
     const done = session;
     // Speaking is optional: if every speaking exercise was skipped, there is nothing to score.
     if (done.first === 0 && done.stage === 'speaking') {
-      render(`<main class="results">${pishi('happy', 'result-cat')}
+      render(`<main class="results">${resultsHero('happy')}
         <p class="lead">${esc(t('speakAllSkipped'))}</p>
         <div class="stack"><button class="btn primary" id="to-topic" data-enter>${esc(t('backToTopic'))}</button></div></main>`);
       $('#to-topic', app).addEventListener('click', () => renderTopic(done.topic));
@@ -1149,7 +1721,7 @@
     const msg = pct === 100 ? t('perfect') : pct >= 70 ? t('great') : t('keepGoing');
     const title = done.mode === 'review' ? t('reviewDone') : `${STAGE_ICONS[done.stage]} ${t('st_' + done.stage)}`;
     render(`<main class="results">
-      ${pishi(pct >= 70 ? 'cheer' : 'happy', 'result-cat')}
+      ${resultsHero(pct >= 70 ? 'cheer' : 'happy')}
       <h1>${esc(title)}</h1>
       <p class="lead">${esc(msg)}</p>
       <div class="result-stars">${stars(starCount)}</div>
@@ -1179,30 +1751,36 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Dictionary: every word, searchable in Farsi, Latin, English and Hebrew
+   * Dictionary: every word, searchable in the target script, Latin letters (and kana), English and Hebrew
    * ------------------------------------------------------------------ */
   const DICT_MAX = 200;
   const dict = { q: '', filter: 'all', group: '', timer: null };
-  let DICT_INDEX = null;
-  const normText = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-֑ͯ-ׇ]/g, '').replace(/\s+/g, ' ').trim();
   function dictIndex() {
-    if (!DICT_INDEX) {
-      DICT_INDEX = ALL_WORDS.map((it) => ({
-        it, lesson: TOPIC_BY_ID[it.topic], fa: normFa(it.fa), tr: normTr(it.tr), en: normText(it.en), he: normText(it.he),
+    if (!DB) return [];
+    if (!DB.dict) {
+      DB.dict = ALL_WORDS.map((it) => ({
+        it, lesson: TOPIC_BY_ID[it.topic],
+        tg: normTarget(it.tg), kana: it.kana ? normTarget(it.kana) : '',
+        tr: cur === 'es' ? normTarget(it.tr) : normLatin(it.tr), en: normText(it.en), he: normText(it.he),
       }));
     }
-    return DICT_INDEX;
+    return DB.dict;
   }
   function wordStatus(it) {
-    const s = S.words[it.id];
+    const s = LS().words[it.id];
     if (s === undefined) return 'new';
     return s >= 3 ? 'learned' : 'learning';
   }
   /** Search the dictionary. Returns {rows (ranked), counts per status, learned, total}. */
   function dictSearch(q, filter, groupId) {
     const raw = String(q || '').trim();
-    const qFa = HAS_FA.test(raw) ? normFa(raw) : '';
-    const qTr = /[a-z]/i.test(raw) ? normTr(raw) : '';
+    let qTg = '';
+    let qTr = '';
+    if (cur === 'es') { if (/\p{L}/u.test(raw)) qTg = normTarget(raw); }
+    else {
+      if (cur === 'ja' ? JA_RE.test(raw) : ARABIC_RE.test(raw)) qTg = normTarget(raw);
+      if (/[a-z]/i.test(raw)) qTr = normLatin(raw);
+    }
     const qTx = normText(raw);
     const counts = { all: 0, learned: 0, learning: 0, new: 0 };
     const rows = [];
@@ -1214,7 +1792,7 @@
       if (groupId && e.lesson.group !== groupId) return;
       let rank = 3;
       if (raw) {
-        const keys = [[qFa, e.fa], [qTr, e.tr], [qTx, e.en], [qTx, e.he]].filter(([a]) => a);
+        const keys = [[qTg, e.tg], [qTg, e.kana], [qTg, e.tr], [qTr, e.tr], [qTx, e.en], [qTx, e.he]].filter(([a, b]) => a && b);
         if (!keys.some(([a, b]) => b.includes(a))) return;
         rank = keys.some(([a, b]) => a === b) ? 0 : keys.some(([a, b]) => b.startsWith(a)) ? 1 : 2;
       }
@@ -1227,9 +1805,10 @@
   }
   function dictRow({ e, st }) {
     const it = e.it;
-    const word = isReader()
-      ? `${faS(it.fa, 'dict-main')} ${trS(it.tr, 'dict-sub')}`
-      : `${trS(it.tr, 'dict-main')} ${faS(it.fa, 'dict-sub')}`;
+    const kana = readerMode() ? readingOf(it) : '';
+    const word = readerMode()
+      ? `${tgS(it.tg, 'dict-main')} ${kana ? tgS(kana, 'dict-sub') + ' ' : ''}${trS(it.tr, 'dict-sub')}`
+      : `${trS(it.tr, 'dict-main')} ${tgS(it.tg, 'dict-sub')}`;
     return `<button class="dict-row" data-lesson="${esc(e.lesson.id)}" data-id="${esc(it.id)}">
       <span class="dot st-${st}" title="${esc(t('f_' + st))}" aria-label="${esc(t('f_' + st))}"></span>
       <span class="dict-body"><span class="dict-word">${word}</span>
@@ -1250,9 +1829,10 @@
     const shown = res.rows.slice(0, DICT_MAX);
     list.innerHTML = shown.length
       ? shown.map(dictRow).join('') + (res.rows.length > DICT_MAX ? `<p class="dict-more muted">${esc(fmt(t('dictMore'), { n: DICT_MAX, total: res.rows.length }))}</p>` : '')
-      : `<div class="dict-empty">${pishiSays(t('dictNone'), 'sad')}</div>`;
+      : `<div class="dict-empty">${mascotSays(themeLine('empty'), 'sad')}</div>`;
   }
   function renderDictionary() {
+    if (!DB) return renderMenu();
     const groups = visibleGroups().filter((g) => g.lessons.some((tp) => tp.kind !== 'alphabet'));
     if (dict.group && !groups.some((g) => g.id === dict.group)) dict.group = '';
     render(`<main class="dictionary">
@@ -1270,7 +1850,7 @@
         <div class="chips" id="dict-filters" role="group"></div>
         <select id="dict-group" aria-label="${esc(t('dictGroup'))}">
           <option value="">${esc(t('allGroups'))}</option>
-          ${groups.map((g) => `<option value="${esc(g.id)}" ${dict.group === g.id ? 'selected' : ''}>${esc(g.icon && !HAS_FA.test(g.icon) ? g.icon + ' ' : '')}${esc(tx(g.title))}</option>`).join('')}
+          ${groups.map((g) => `<option value="${esc(g.id)}" ${dict.group === g.id ? 'selected' : ''}>${esc(g.icon && !isGlyph(g.icon) ? g.icon + ' ' : '')}${esc(tx(g.title))}</option>`).join('')}
         </select>
       </div>
       <div class="dict-list" id="dict-list"></div>
@@ -1298,40 +1878,44 @@
   /* ------------------------------------------------------------------ *
    * Speed round
    * ------------------------------------------------------------------ */
+  /** What a speed-round question shows first. */
+  const mainText = (it) => (readerMode() ? it.tg : it.tr);
   /** Words for the speed round: every non-alphabet lesson up to the learner's level. */
   function speedPool() {
-    const maxLevel = LEVELS.indexOf(S.settings.level);
+    const maxLevel = LEVELS.indexOf(LS().level);
     return TOPICS.filter((tp) => tp.kind !== 'alphabet' && LEVELS.indexOf(tp.level) <= maxLevel)
-      .flatMap((tp) => tp.items).filter((it) => normTr(it.tr).length <= 18);
+      .flatMap((tp) => tp.items).filter((it) => visualLen(mainText(it)) <= 18);
   }
   function startSpeed() {
     stopSpeed();
     let pool = speedPool();
-    if (pool.length < 4) pool = ALL_WORDS.filter((it) => normTr(it.tr).length <= 18);
+    if (pool.length < 4) pool = ALL_WORDS.filter((it) => visualLen(mainText(it)) <= 18);
+    if (pool.length < 4) pool = ALL_WORDS.slice();
     if (pool.length < 4) return renderMenu();
     let score = 0; let timeLeft = 60;
     // Module-level handle: render() of any other screen calls stopSpeed(), so leaving through the
     // top bar can never leave the timer running.
     const run = { timer: null, ended: false };
     speed = run;
+    const ls = LS();
 
     function end() {
       if (run.ended) return;
       run.ended = true;
       clearInterval(run.timer);
       if (speed === run) speed = null;
-      const record = score > S.speedBest;
-      if (record) S.speedBest = score;
+      const record = score > ls.speedBest;
+      if (record) ls.speedBest = score;
       S.xp += score * 2;
       if (score > 0) bumpStreak();
       saveState();
       render(`<main class="results">
-        <div class="big-emoji">⚡</div>
-        <h1>${esc(t('timesUp'))}</h1>
+        ${resultsHero(record && score > 0 ? 'cheer' : 'happy')}
+        <h1>⚡ ${esc(t('timesUp'))}</h1>
         ${record && score > 0 ? `<p class="lead">${esc(t('newBest'))}</p>` : ''}
         <div class="result-grid">
           <div><strong>${score}</strong><small>${esc(t('speedScore'))}</small></div>
-          <div><strong>${S.speedBest}</strong><small>${esc(t('best'))}</small></div>
+          <div><strong>${ls.speedBest}</strong><small>${esc(t('best'))}</small></div>
           <div><strong>+${score * 2}</strong><small>${esc(t('xpEarned'))}</small></div>
         </div>
         <div class="stack"><button class="btn primary" id="again" data-enter>${esc(t('play'))}</button>
@@ -1385,16 +1969,48 @@
   /* ------------------------------------------------------------------ *
    * Start
    * ------------------------------------------------------------------ */
-  if (S.settings && !STR[S.settings.uiLang]) S.settings.uiLang = 'en';
-  if (S.settings) renderMenu(); else renderOnboarding();
+  /** Show the right first screen for the saved state. Returns a promise that settles when it's on screen. */
+  function boot() {
+    if (!S.settings) { setCur(null); renderOnboarding(); return Promise.resolve(); }
+    const code = S.settings.lang;
+    if (!LANGS[code]) { setCur(null); renderOnboarding({ start: 'lang' }); return Promise.resolve(); }
+    if (!langReady(code)) { setCur(code); renderOnboarding({ lang: code }); ensureLoaded(code); return Promise.resolve(); }
+    return openLang(code);
+  }
+  const booted = boot();
 
-  // Small hook used by the automated test page (tests/smoke.html).
+  // Small hook used by the automated test page (tests/smoke.html) and screenshot pages.
   window.__TLAP_TEST__ = {
-    TOPICS, GROUPS, QUESTIONS, buildQueue, compareTr, speechMatches, distractors, sameAnswer,
-    setSettings(s) { S = freshState(); S.settings = s; },
+    get TOPICS() { return TOPICS; },
+    get GROUPS() { return GROUPS; },
+    get ALL_WORDS() { return ALL_WORDS; },
+    QUESTIONS, LANGS, MANIFEST, STORE_KEY, OLD_KEY,
+    ready: () => booted,
+    cur: () => cur,
+    buildQueue, compareTr, checkTyped, speechMatches, normTarget, normLatin, distractors, sameAnswer,
+    migrateOld, loadState, normalizeState,
+    reload() { S = loadState(); return boot(); },
+    /** Fresh state with one language set up; loads it if needed. */
+    setSettings(s) {
+      S = freshState();
+      S.settings = { uiLang: s.uiLang || 'en', lang: s.lang || cur || 'fa', speech: !!s.speech };
+      const ls = langState(S.settings.lang);
+      ls.level = s.level || 'beginner';
+      ls.track = LANGS[S.settings.lang].script ? s.track || 'full' : 'full';
+      return openLang(S.settings.lang);
+    },
+    /** Change settings without resetting progress. */
+    patchSettings(s) {
+      Object.keys(s).forEach((k) => { if (k === 'level' || k === 'track') LS()[k] = s[k]; else S.settings[k] = s[k]; });
+    },
     state: () => S,
+    openLang, pickLang, ensureLoaded, loadReport: (code) => LOAD_REPORT[code], loaded: (code) => !!LOADS[code],
+    theme: (code) => theme(code || cur), applyTheme, themeLine, mascotSVG,
+    missingStrings: () => Array.from(MISSING),
+    readerMode, scriptTrack, canSpell, spellWord, orderWords, typedAnswer, typesFor,
     startStage, stagesFor, countedStages, stageProgress, stageQueue, visibleGroups, visibleLessons,
-    renderTopic, renderGroup, renderLearn, renderMenu, renderSettings, renderDictionary, startReview, startSpeed,
+    renderTopic, renderGroup, renderLearn, renderMenu, renderSettings, renderDictionary, renderLangPicker, renderOnboarding,
+    startReview, startSpeed,
     dictSearch, dictUpdate: updateDictionary, mixed, nextLessonAfter,
     speedRunning: () => !!speed,
     session: () => session,
