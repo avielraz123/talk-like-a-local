@@ -149,7 +149,7 @@ window.TLAP_STRINGS = {
     m_wrong: ["Not quite", "Almost, keep going!", "Not this time"],
     m_empty: "No words found. Try a different search!",
     // Dialogues & stories
-    storyMenu: "Dialogues & stories", storyMenuDesc: "Short chats and stories from everyday life",
+    storyMenu: "Dialogues & stories", storyMenuDesc: "Short chats and stories from everyday life", storyLessonsDone: "{done}/{total} lessons done",
     storyStChat: "Chat", storyStChatD: "Take part in the conversation",
     storyStRead: "Read the story", storyStReadD: "Read it, then answer questions",
     storyKindDialogue: "Dialogue", storyKindStory: "Story",
@@ -306,7 +306,7 @@ window.TLAP_STRINGS = {
     m_wrong: ["לא בדיוק", "כמעט, ממשיכים!", "לא הפעם"],
     m_empty: "לא נמצאו מילים. נסו חיפוש אחר!",
     // שיחות וסיפורים
-    storyMenu: "שיחות וסיפורים", storyMenuDesc: "שיחות קצרות וסיפורים מחיי היומיום",
+    storyMenu: "שיחות וסיפורים", storyMenuDesc: "שיחות קצרות וסיפורים מחיי היומיום", storyLessonsDone: "{done}/{total} שיעורים הושלמו",
     storyStChat: "שיחה", storyStChatD: "משתתפים בשיחה",
     storyStRead: "קריאת הסיפור", storyStReadD: "קוראים ואז עונים על שאלות",
     storyKindDialogue: "שיחה", storyKindStory: "סיפור",

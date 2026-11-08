@@ -637,7 +637,7 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 /* group page: one block per level, the learner's level marked */
 .story-level {
   background: var(--surface); border: 3px solid var(--line); border-radius: 24px; padding: 6px 14px 16px;
-  margin-bottom: 16px; box-shadow: 0 5px 0 var(--line);
+  margin-bottom: 16px; box-shadow: 0 5px 0 var(--line); scroll-margin-top: 12px;
 }
 .story-level.mine { border-color: var(--sun); box-shadow: 0 5px 0 var(--sun-d), 0 0 0 4px color-mix(in srgb, var(--sun) 22%, transparent); }
 .story-level-title { display: flex; align-items: center; gap: 10px; font-size: 20px; margin: 8px 2px 12px; }
@@ -718,6 +718,9 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 .story-replies .opt { flex-direction: column; gap: 2px; text-align: center; }
 .story-replies .opt-main { font-size: 20px; }
 .story-replies .opt-sub { font-size: 15px; }
+.story-replies .opt-sub.reading { font-size: 14px; }
+/* no double-tap zoom on the players (with the JS tap guard, a quick double tap never answers) */
+.story-player button { touch-action: manipulation; }
 
 /* story reading */
 .story-read { display: grid; gap: 12px; }

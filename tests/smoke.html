@@ -292,6 +292,7 @@
      * Returns {turns, firstWrong, questions} as counted on screen.
      */
     function playStory(where, topic, c, opts = {}) {
+      const code = T.cur();
       sessions++; storyPlays++;
       const wrongTurns = opts.wrongTurns || new Set();
       const wrongQs = opts.wrongQs || new Set();
@@ -311,6 +312,19 @@
             if (opts3.length !== Math.min(3, 1 + line.wrong.length)) err(`${where}: ${opts3.length} reply options`);
             const right = opts3.filter((b) => b.querySelector('.opt-main').textContent === storyMain(line.say));
             if (right.length !== 1) { err(`${where}: ${right.length} right replies on turn ${res.turns}`); return res; }
+            // A real tap (detail 1) right after the replies appear is the second tap of a double tap: ignored.
+            storyChecks++;
+            right[0].dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+            if ($$('.chat-row').length !== shown || !$('.story-replies')) { err(`${where}: a quick second tap picked a reply`); return res; }
+            // Japanese replies with kanji show their kana reading, like the bubbles (reading mode only).
+            [line.say, ...line.wrong].forEach((say) => {
+              const b = opts3.find((x) => x.querySelector('.opt-main').textContent === storyMain(say));
+              const kana = T.readerMode() && code === 'ja' && say.kana && /[\u4e00-\u9fff]/.test(say.tg) ? say.kana : '';
+              const r = b && b.querySelector('.reading');
+              if (b && kana && (!r || r.textContent !== kana)) err(`${where}: reply ${say.tg} without its kana reading`);
+              if (b && !kana && r) err(`${where}: reply ${say.tg} has a reading it should not have`);
+              storyChecks++;
+            });
             if (wrongTurns.has(res.turns)) {
               const bad = opts3.find((b) => b !== right[0]);
               const said = line.wrong.find((w) => storyMain(w) === bad.querySelector('.opt-main').textContent);
@@ -367,6 +381,9 @@
           const bad = optsQ.find((b) => b !== right);
           if (!right) { err(`${where}: question ${k}: right option "${want}" missing`); return; }
           if (!$('.story-again') || $$('.story-again .story-line').length !== topic.lines.length) err(`${where}: "read the story again" missing lines`);
+          right.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+          if (right.disabled || $('#story-fb')) err(`${where}: a quick second tap answered question ${k}`);
+          storyChecks++;
           (wrongQs.has(k) ? bad : right).click();
           const fb = $('#story-fb');
           if (!fb || !fb.classList.contains(wrongQs.has(k) ? 'bad' : 'ok')) err(`${where}: question ${k} feedback`);
@@ -396,6 +413,17 @@
         const gato = lessons.find((l) => l.id === 'st_gato');
         if (code === 'es' && (!cafe || cafe.lines.length !== 6 || !gato || gato.lines.length !== 6 || gato.questions.length !== 3)) err(`${where}: malformed lines/questions not skipped`);
       }
+      // The menu button counts finished lessons out of all lessons.
+      const doneN = lessons.filter((l) => T.stageProgress(l).done === T.stageProgress(l).total).length;
+      const cnt = $('#m-stories .story-menu-count');
+      if (!cnt || cnt.textContent !== STR[ui].storyLessonsDone.replace('{done}', doneN).replace('{total}', lessons.length)) err(`${where}: menu count "${cnt && cnt.textContent}"`);
+      storyChecks++;
+      // A story stage needs something to score: no questions / no reply turns -> no story stage.
+      const noQ = { kind: 'story', lines: [{ say: {} }], questions: [], items: [] };
+      const noTurn = { kind: 'dialogue', lines: [{ who: 'a', say: {} }, { who: 'me', say: {}, wrong: [] }], items: [] };
+      if (T.storyPlayable(noQ) || T.storyPlayable(noTurn)) err(`${where}: a story without questions / a dialogue without turns is playable`);
+      lessons.forEach((l) => { if (T.stagesFor(l).includes('story') !== T.storyPlayable(l)) err(`${where}: ${l.id} story stage vs playable`); });
+      storyChecks++;
       // Menu button -> group page with one block per level, the learner's level marked.
       $('#m-stories').click();
       if (!$('.group-page') || $('.lesson-head .title-text').textContent !== g.title[ui]) { err(`${where}: stories button did not open the group page`); return; }
@@ -409,6 +437,10 @@
       }));
       const mine = $('.story-level.mine');
       if (levels.includes(c.level) && (!mine || mine.dataset.level !== c.level || !mine.querySelector('.badge'))) err(`${where}: the learner's level is not marked`);
+      // The learner's level is scrolled into view when it is not the first block (and the page can scroll).
+      if (mine && mine !== blocks[0] && document.documentElement.scrollHeight > innerHeight + 40 && window.scrollY < 1) err(`${where}: the page did not scroll to the learner's level`);
+      if (mine && mine === blocks[0] && window.scrollY > 0) err(`${where}: scrolled although the learner's level is first`);
+      storyChecks++;
 
       const dlg = lessons.find((l) => l.kind === 'dialogue' && l.lines.some((x) => x.who === 'me' && x.wrong.length));
       const sto = lessons.find((l) => l.kind === 'story' && l.questions.length >= 2);
@@ -461,8 +493,10 @@
           const ok = ui === 'he' ? a.right > bb.right + 10 : a.left < bb.left - 10;
           if (!ok) err(`${where}: chat sides not mirrored for ${ui} (them ${a.left}-${a.right}, me ${bb.left}-${bb.right})`);
         } else err(`${where}: missing bubbles for the side check`);
+        T.storyTapHold(0); // end the guard of the last reply, so the check below sees Done's own guard
         if ($('#story-next')) $('#story-next').click();
         if (!$('.results')) { err(`${where}: chat did not end on the results`); return; }
+        if (!(T.storyTapHold() > Date.now())) err(`${where}: Done did not hold back a second tap`);
         const turns = dlg.lines.filter((x) => x.who === 'me' && x.wrong.length).length;
         if (res.turns !== turns) err(`${where}: played ${res.turns} turns of ${turns}`);
         const pct = Math.round(((turns - 1) / turns) * 100);
@@ -477,6 +511,10 @@
         if (!$('#next-stage') || $('#next-stage').dataset.next !== 'learn') err(`${where}: after the chat, next exercise should be learn cards`);
         const saved = JSON.parse(localStorage.getItem(T.STORE_KEY));
         if (!saved.langs[code].topics[dlg.id] || saved.langs[code].topics[dlg.id].stages.story !== starsWant) err(`${where}: chat stars not saved`);
+        // The second tap of a double tap on "Done" does not land on "Practice again".
+        $('#again').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+        if (!$('.results')) err(`${where}: a quick second tap on Done left the results screen`);
+        storyChecks++;
         // "Practice again" restarts the chat; quitting goes back to the lesson.
         $('#again').click();
         if (!$('.dialogue-player') || $$('.chat-row').length < 1) err(`${where}: practice again did not restart the chat`);

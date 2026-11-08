@@ -201,6 +201,11 @@
   const STORY_GROUP = 'g-stories';
   const STORY_KINDS = ['dialogue', 'story'];
   const isStory = (tp) => !!tp && STORY_KINDS.includes(tp.kind);
+  /** The story stage needs lines, and something to score: a reply turn (dialogue) or a question (story). */
+  const storyPlayable = (tp) => isStory(tp) && Array.isArray(tp.lines) && tp.lines.length > 0
+    && (tp.kind === 'dialogue'
+      ? tp.lines.some((ln) => ln.who === 'me' && ln.wrong && ln.wrong.length)
+      : Array.isArray(tp.questions) && tp.questions.length > 0);
   /** One line of a dialogue/story: [target, latin, english, hebrew, extra?], read like an item. Null if broken. */
   function storySay(raw, code) {
     if (!Array.isArray(raw)) return null;
@@ -1107,6 +1112,7 @@
       ${g.id === STORY_GROUP ? storyLessonList(lessons) : `<div class="topics lessons">${lessons.map(lessonCard).join('')}</div>`}
     </main>`);
     $$('[data-topic]', app).forEach((b) => b.addEventListener('click', () => renderTopic(TOPIC_BY_ID[b.dataset.topic])));
+    if (g.id === STORY_GROUP) scrollToMyLevel();
   }
   /** The sub-topic to suggest after finishing tp: the next unfinished one in its group, else simply the next one. */
   function nextLessonAfter(tp) {
@@ -1209,7 +1215,7 @@
   function stagesFor(topic) {
     if (topic.kind === 'alphabet') return L.shapes ? ['learn', 'letters', 'shapes', 'words', 'match', 'mix'] : ['learn', 'letters', 'words', 'match', 'mix'];
     const items = topic.items;
-    const st = (isStory(topic) && topic.lines && topic.lines.length ? ['story'] : []).concat(['learn', 'choice', 'truefalse', 'match']);
+    const st = (storyPlayable(topic) ? ['story'] : []).concat(['learn', 'choice', 'truefalse', 'match']);
     if (items.filter(typingOk).length >= 3) st.push('typing');
     if (items.filter(orderOk).length >= 3) st.push('order');
     if (scriptTrack()) {
@@ -1945,9 +1951,10 @@
   function storyModeButton() {
     const g = GROUP_BY_ID[STORY_GROUP];
     if (!g || !visibleLessons(g).length) return '';
-    const p = groupProgress(g);
+    const lessons = visibleLessons(g);
+    const done = lessons.filter(lessonDone).length;
     return `<button class="mode stories" id="m-stories"><span class="mode-icon">💬</span>
-      <span><strong>${esc(t('storyMenu'))}</strong><small>${esc(t('storyMenuDesc'))} · <span dir="ltr">${p.done}/${p.total}</span></small></span></button>`;
+      <span><strong>${esc(t('storyMenu'))}</strong><small>${esc(t('storyMenuDesc'))} · <span class="story-menu-count">${esc(fmt(t('storyLessonsDone'), { done, total: lessons.length }))}</span></small></span></button>`;
   }
   /** A dialogue/story card on the group page: like lessonCard, with the kind instead of the level. */
   function storyLessonCard(tp, i) {
@@ -1976,6 +1983,12 @@
     }).join('');
   }
 
+  /** On the stories page, bring the learner's own level into view when it is not the first block. */
+  function scrollToMyLevel() {
+    const mine = $('.story-level.mine', app);
+    if (!mine || mine === $('.story-level', app)) return;
+    try { mine.scrollIntoView({ block: 'start' }); } catch (e) { /* ignore */ }
+  }
   /** A line's text as the app shows words: target big + reading small (Latin big + target small in the speaking track). */
   function storySayHTML(say) {
     const tgFirst = readerMode();
@@ -2053,14 +2066,35 @@
     const main = $('main', app);
     if (html && main) main.insertAdjacentHTML('beforeend', html);
   }
+  /** Ignore taps for a moment after new buttons appear where the finger just was, so a quick double tap
+   * on Next/Done/Continue can't pick a reply or an answer by accident. Only real pointer clicks
+   * (detail > 0) are held back; keyboard and scripted clicks pass. */
+  let storyTapHold = 0; // taps are ignored until this time (ms)
+  let storyTapHooked = false;
+  function storyTapGuard(ms = 350) {
+    storyTapHold = Date.now() + ms;
+    if (storyTapHooked) return;
+    storyTapHooked = true;
+    app.addEventListener('click', (e) => {
+      if (e.detail > 0 && Date.now() < storyTapHold) { e.stopPropagation(); e.preventDefault(); }
+    }, true);
+  }
+  /** Finish a story stage: the results screen, guarded against the second tap of a double tap. */
+  const storyFinish = () => { finishSession(); storyTapGuard(); };
   const focusBtn = (sel) => { const b = $(sel, app); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } };
 
   function startStory(topic) {
-    if (!isStory(topic) || !topic.lines || !topic.lines.length) return renderTopic(topic);
+    if (!storyPlayable(topic)) return renderTopic(topic);
     session = { mode: 'topic', topic, stage: 'story', queue: [], idx: 0, first: 0, firstRight: 0, xp: 0 };
     if (topic.kind === 'dialogue') renderDialogue(topic); else renderStoryRead(topic);
   }
 
+  /** A reply button: like wordShort, plus the kana reading under a Japanese line with kanji (as in the bubbles). */
+  function replyHTML(say) {
+    if (!readerMode()) return wordShort(say);
+    const kana = readingOf(say);
+    return `${tgS(say.tg, 'opt-main')}${kana ? tgS(kana, 'opt-sub reading') : ''}<span class="opt-sub">${trS(say.tr)}</span>`;
+  }
   /** Dialogue: a chat that grows one line at a time; on the learner's turns, pick the right reply of three. */
   function renderDialogue(topic) {
     const lines = topic.lines;
@@ -2079,7 +2113,7 @@
       : `<button class="btn ${cls}" id="story-next" data-enter>${esc(t('next'))}</button>`);
     function bindNext() {
       const b = $('#story-next', app);
-      if (b) b.addEventListener('click', () => (i >= lines.length ? finishSession() : step()));
+      if (b) b.addEventListener('click', () => (i >= lines.length ? storyFinish() : step()));
     }
     /** After a line: the learner's turn comes straight away, otherwise a Next (or Done) button. */
     function after() {
@@ -2093,7 +2127,7 @@
     }
     function step() {
       const ln = lines[i];
-      if (!ln) { finishSession(); return; }
+      if (!ln) { storyFinish(); return; }
       showStoryFb('');
       if (isTurn(ln)) { turn(ln); return; }
       addBubble(ln); // includes a "me" line without replies: it is simply said
@@ -2103,8 +2137,9 @@
       const opts = shuffle([{ say: ln.say, correct: true }, ...ln.wrong.slice(0, 2).map((w) => ({ say: w, correct: false }))]);
       let tried = false;
       controls.innerHTML = `<p class="story-turn">🗨️ ${esc(t('storyYourTurn'))}</p>
-        <div class="options story-replies">${opts.map((o, k) => `<button class="opt" data-i="${k}">${wordShort(o.say)}</button>`).join('')}</div>`;
+        <div class="options story-replies">${opts.map((o, k) => `<button class="opt" data-i="${k}">${replyHTML(o.say)}</button>`).join('')}</div>`;
       showStoryFb('');
+      storyTapGuard();
       $$('.story-replies .opt', app).forEach((b) => b.addEventListener('click', () => {
         const o = opts[+b.dataset.i];
         if (!tried) { tried = true; session.first++; if (o.correct) { session.firstRight++; session.xp += 10; } }
@@ -2153,7 +2188,7 @@
       $('#story-next', app).addEventListener('click', () => {
         if (!last) step();
         else if (qs.length) renderStoryQuestion(topic, 0);
-        else finishSession();
+        else storyFinish();
       });
       focusBtn('#story-next');
       scrollToEnd();
@@ -2179,6 +2214,7 @@
       <details class="story-again"><summary>📜 ${esc(t('storyReadAgain'))}</summary>
         <div class="story-read">${lines.map((ln) => storyLine(ln.say)).join('')}</div></details>
     </main>`);
+    storyTapGuard(); // the answers appear where "Continue" / "To the questions" was
     $('#quit', app).addEventListener('click', () => { if (confirm(t('confirmQuit'))) renderTopic(topic); });
     $('.story-again', app).addEventListener('click', (e) => { const b = e.target.closest('.story-line'); if (b) toggleLine(b); });
     $$('.story-answers .opt', app).forEach((b) => b.addEventListener('click', () => {
@@ -2191,7 +2227,7 @@
       showStoryFb(storyFeedback(o.correct, themeLine(o.correct ? 'right' : 'wrong'),
         o.correct ? '' : `${esc(t('correctAnswer'))} ${mixed(tx(right.o))}`,
         `<button class="btn ${o.correct ? 'primary' : 'danger'}" id="continue" data-enter>${esc(t('continue'))}</button>`));
-      $('#continue', app).addEventListener('click', () => (last ? finishSession() : renderStoryQuestion(topic, k + 1)));
+      $('#continue', app).addEventListener('click', () => (last ? storyFinish() : renderStoryQuestion(topic, k + 1)));
       focusBtn('#continue');
     }));
   }
@@ -2332,7 +2368,9 @@
     startStage, stagesFor, countedStages, stageProgress, stageQueue, visibleGroups, visibleLessons,
     renderTopic, renderGroup, renderLearn, renderMenu, renderSettings, renderDictionary, renderLangPicker, renderOnboarding,
     startReview, startSpeed,
-    startStory, isStory, STORY_GROUP, storyLessonList,
+    startStory, isStory, STORY_GROUP, storyLessonList, storyPlayable,
+    /** Read, or set (e.g. 0 to end it), the time until which story taps are held back. */
+    storyTapHold: (v) => (v === undefined ? storyTapHold : (storyTapHold = v)),
     dictSearch, dictUpdate: updateDictionary, mixed, nextLessonAfter,
     speedRunning: () => !!speed,
     session: () => session,
