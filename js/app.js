@@ -1116,19 +1116,26 @@
       .filter((s) => s.groups.length);
     const best = LS().speedBest;
     // Badges earned by progress made before they existed (or elsewhere): one combined message.
+    // The goal can also be reached here (e.g. after lowering it in Settings), so log it before the badges look.
+    if (goalSync()) goalJustReached = true;
     const newBadges = checkBadges();
-    if (goalSync() || newBadges.length) saveState();
+    // The goal card itself shows the reached goal, so on the menu it gets the celebration instead of a banner.
+    const goalCele = goalJustReached;
+    goalJustReached = false;
+    if (goalCele || newBadges.length) saveState();
     const due = srsDue().length;
+    // A learner who has never reviewed (nothing scheduled yet) sees what Review is, not "All caught up".
+    const srsAny = Object.keys(LS().srs || {}).some((id) => srsVisible(ITEM_BY_ID[id]));
 
     render(`<main class="menu">
       ${deco('banner')}
       ${mascotSays(themeLine('greet'))}
       <h1 class="page-title">${esc(t('menuTitle'))}</h1>
       ${celebrationHTML(newBadges, true)}
-      ${goalCard()}
+      ${goalCard(goalCele)}
       <div class="modes">
         <button class="mode review" id="m-review"><span class="mode-icon">🔁${due ? `<em class="srs-count" aria-hidden="true">${due > 99 ? '99+' : due}</em>` : ''}</span>
-          <span><strong>${esc(t('review'))}</strong><small class="srs-due">${esc(due ? countText(due, 'srsDue') : t('srsCaughtUp'))}</small></span></button>
+          <span><strong>${esc(t('review'))}</strong><small class="srs-due">${esc(due ? countText(due, 'srsDue') : srsAny ? t('srsCaughtUp') : t('reviewDesc'))}</small></span></button>
         <button class="mode speed" id="m-speed"><span class="mode-icon">⚡</span>
           <span><strong>${esc(t('speed'))}</strong><small>${esc(t('speedDesc'))}${best ? ` · ${esc(t('best'))}: ${best}` : ''}</small></span></button>
         <button class="mode dict" id="m-dict" data-go="dictionary"><span class="mode-icon">📖</span>
@@ -1144,6 +1151,7 @@
     $('#m-review', app).addEventListener('click', startReview);
     $('#m-speed', app).addEventListener('click', startSpeed);
     bindCelebration();
+    if (goalCele) confetti();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1277,7 +1285,8 @@
     return st;
   }
 
-  function renderTopic(topic) {
+  /** cele: celebration banners to show (after finishing the flashcards). */
+  function renderTopic(topic, cele = '') {
     const rec = LS().topics[topic.id] || {};
     const g = groupOf(topic);
     const p = stageProgress(topic);
@@ -1286,6 +1295,7 @@
         <button class="icon-btn back-btn" id="to-group" aria-label="${esc(g ? tx(g.title) : t('menu'))}">${backArrow()}</button>
         <h1><span class="title-icon">${iconHTML(topic.icon)}</span><span class="title-text">${mixed(tx(topic.title))}</span></h1>
       </div>
+      ${cele}
       ${topic.intro ? `<div class="intro">💡 ${mixed(tx(topic.intro))}</div>` : ''}
       ${mascotSays(themeLine('topic'))}
       <div class="topic-progress"><div class="progress grow"><i style="width:${pctOf(p)}%"></i></div>
@@ -1310,6 +1320,7 @@
       if (b.dataset.stage === 'learn') renderLearn(topic);
       else startStage(topic, b.dataset.stage);
     }));
+    bindCelebration();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1364,8 +1375,9 @@
         if (!rec.stages.learn) addXP(10);
         rec.stages.learn = 3;
         bumpStreak();
+        const fresh = checkBadges();
         saveState();
-        renderTopic(topic);
+        renderTopic(topic, celebrationHTML(fresh, fresh.length >= 3));
         confetti();
       });
     }
@@ -1516,8 +1528,10 @@
     if (result !== null) {
       items.forEach((it) => strengthen(it, result));
       // Spaced repetition: speaking is an optional bonus and never counts; a right retry of a missed
-      // question doesn't move the word on (it stays due today).
-      if (q.type !== 'speak' && !(q.retry && result)) items.forEach((it) => srsAnswer(it, result));
+      // question doesn't move the word on (it stays due today). A failed match game only sets back the
+      // words that were in a wrong pair; the pairs matched right first time count as right.
+      const srsOk = (it) => result || (q.type === 'match' && q.missed ? !q.missed.has(it.id) : false);
+      if (q.type !== 'speak' && !(q.retry && result)) items.forEach((it) => srsAnswer(it, srsOk(it)));
       if (!q.retry) { session.first++; if (result) session.firstRight++; }
       if (result) session.xp += q.type === 'match' ? 15 : 10;
       if (!result && !q.retry && q.type !== 'match') session.queue.push({ type: q.type, item: q.item, retry: true });
@@ -1738,6 +1752,7 @@
         </div>`,
         mount(root) {
           let sel = null; let mistakes = 0; let matched = 0;
+          q.missed = new Set(); // ids that were part of a wrong pair (for spaced repetition)
           $$('.m-btn', root).forEach((b) => b.addEventListener('click', () => {
             if (b.classList.contains('matched')) return;
             if (!sel || sel.dataset.side === b.dataset.side) {
@@ -1752,6 +1767,7 @@
               if (++matched === items.length) answer(q, mistakes <= 1, null);
             } else {
               mistakes++;
+              q.missed.add(a.dataset.id); q.missed.add(b.dataset.id);
               [a, b].forEach((x) => { x.classList.add('wrong'); setTimeout(() => x.classList.remove('wrong'), 500); });
             }
           }));
@@ -1863,10 +1879,12 @@
       if (!nextStage) nextLesson = nextLessonAfter(done.topic);
     }
     const newBadges = checkBadges({ finished: true, pct });
-    const cele = celebrationHTML(newBadges);
+    const cele = celebrationHTML(newBadges, newBadges.length >= 3);
     saveState();
     const msg = pct === 100 ? t('perfect') : pct >= 70 ? t('great') : t('keepGoing');
     const title = done.mode === 'review' ? t('reviewDone') : `${STAGE_ICONS[done.stage]} ${t('st_' + done.stage)}`;
+    // After a due-today review: words still due (missed ones stay due today, and more than 15 may be waiting).
+    const srsLeft = done.mode === 'review' && !done.hard ? srsDue().length : 0;
     render(`<main class="results">
       ${resultsHero(pct >= 70 ? 'cheer' : 'happy')}
       <h1>${esc(title)}</h1>
@@ -1877,6 +1895,7 @@
         <div><strong>+${xp}</strong><small>${esc(t('xpEarned'))}</small></div>
         <div><strong>🔥 ${currentStreak()}</strong><small>${esc(t('streak'))}</small></div>
       </div>
+      ${srsLeft ? `<p class="muted srs-left">🔁 ${esc(countText(srsLeft, 'srsLeft'))}</p>` : ''}
       ${cele}
       <div class="stack">
         ${nextStage ? `<button class="btn primary" id="next-stage" data-next="${nextStage}" data-enter>${esc(t('nextStage'))}: ${STAGE_ICONS[nextStage]} ${esc(t('st_' + nextStage))}</button>` : ''}
@@ -2058,7 +2077,7 @@
       addXP(score * 2);
       if (score > 0) bumpStreak();
       const newBadges = checkBadges({ finished: score > 0, speed: score });
-      const cele = celebrationHTML(newBadges);
+      const cele = celebrationHTML(newBadges, newBadges.length >= 3);
       saveState();
       render(`<main class="results">
         ${resultsHero(record && score > 0 ? 'cheer' : 'happy')}
@@ -2124,13 +2143,13 @@
    * Daily goal card, badges, and the celebration banners
    * ------------------------------------------------------------------ */
   /** The compact daily-goal card on the menu (with the way to the badges page). */
-  function goalCard() {
+  function goalCard(just) {
     const target = goalTarget();
     const xp = goalToday().xp;
     const done = xp >= target;
     const pct = Math.min(100, Math.round((xp / target) * 100));
     const got = BADGES.filter((b) => S.badges[b.id]).length;
-    return `<section class="goal-card ${done ? 'done' : ''}" aria-label="${esc(t('goalTitle'))}">
+    return `<section class="goal-card ${done ? 'done' : ''} ${done && just ? 'just' : ''}" aria-label="${esc(t('goalTitle'))}">
       <div class="goal-ring" role="img" aria-label="${esc(fmt(t('goalRingLabel'), { x: xp, y: target }))}">
         <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="goal-ring-bg" cx="22" cy="22" r="18"/>
           <circle class="goal-ring-fg" cx="22" cy="22" r="18" pathLength="100" stroke-dasharray="${pct} 100"/></svg>
@@ -2178,9 +2197,9 @@
     const langs = Object.keys(S.langs).map((k) => S.langs[k]);
     const recsOf = (ls) => Object.keys(obj(ls.topics)).map((k) => obj(ls.topics[k]));
     const recs = langs.flatMap(recsOf);
-    const anyStage = (r) => Object.keys(obj(r.stages)).some((k) => (+r.stages[k] || 0) > 0);
+    const anyStage = (r, skip) => Object.keys(obj(r.stages)).some((k) => k !== skip && (+r.stages[k] || 0) > 0);
     return {
-      exercises: !!ev.finished || recs.some(anyStage),
+      exercises: !!ev.finished || recs.some((r) => anyStage(r, 'learn')), // flashcards alone aren't an exercise
       streak: currentStreak(),
       goalDays: S.goalLog.length,
       learned: langs.reduce((n, ls) => n + Object.keys(obj(ls.srs)).filter((id) => ls.srs[id][0] >= 2).length, 0),
@@ -2188,7 +2207,7 @@
       speed: Math.max(+ev.speed || 0, ...langs.map((ls) => +ls.speedBest || 0)),
       group: groupFinished(),
       story: recs.some((r) => +obj(r.stages).story > 0),
-      langsUsed: langs.filter((ls) => Object.keys(obj(ls.words)).length > 0 || recsOf(ls).some(anyStage)).length,
+      langsUsed: langs.filter((ls) => Object.keys(obj(ls.words)).length > 0 || recsOf(ls).some((r) => anyStage(r))).length,
       xp: S.xp,
     };
   }

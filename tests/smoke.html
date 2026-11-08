@@ -939,6 +939,24 @@
       const stay = pool.slice(0, 15).filter((w) => same(ls.srs[w.id], [0, today])).length;
       if (moved + stay !== Math.min(15, pool.length)) err(`progress: after review ${moved} moved + ${stay} due today`);
       if (pool.slice(15).some((w, i) => ls.srs[w.id][1] !== today - 5 + i)) err('progress: items outside the review changed');
+      const left = T.srsDue().length;
+      if (!left || !$('.results .srs-left') || !$('.srs-left').textContent.includes(String(left))) err('progress: review results without the words still due ' + left);
+
+      // A failed match game only sets back the words that were in a wrong pair.
+      const mtp = T.TOPICS.find((x) => x.kind !== 'alphabet' && T.stagesFor(x).includes('match') && x.items.length >= 3);
+      if (mtp) {
+        T.startStage(mtp, 'match');
+        const mq = T.session().queue[0];
+        const mi = mq.items;
+        ls.srs = {}; mi.forEach((it) => (ls.srs[it.id] = [3, today]));
+        const btn = (it, side) => app.querySelector(`.m-btn[data-side="${side}"][data-id="${CSS.escape(it.id)}"]`);
+        btn(mi[0], 'l').click(); btn(mi[1], 'r').click();
+        btn(mi[1], 'l').click(); btn(mi[0], 'r').click();
+        mi.forEach((it) => { btn(it, 'l').click(); btn(it, 'r').click(); });
+        if (!$('#feedback.bad')) err('progress: match with 2 mistakes not wrong');
+        if (!same(ls.srs[mi[0].id], [0, today]) || !same(ls.srs[mi[1].id], [0, today])) err('progress: mismatched match words not reset ' + JSON.stringify(ls.srs));
+        if (mi.slice(2).some((it) => !same(ls.srs[it.id], [4, today + 35]))) err('progress: match words matched right were set back ' + JSON.stringify(ls.srs));
+      } else err('progress: no lesson with a match stage');
 
       // Speaking (an optional bonus) never touches the schedule.
       // The app uses the browser's own SpeechRecognition when there is one: catch the recognizer it creates.
@@ -977,6 +995,8 @@
       ls.srs = {}; ls.words = {};
       T.startReview();
       if (!$('.srs-none') || $('#srs-hardest') || $('.lead').textContent !== E.reviewEmpty) err('progress: empty review screen');
+      T.renderMenu();
+      if ($('#m-review .srs-due').textContent !== E.reviewDesc) err('progress: a new learner sees ' + $('#m-review .srs-due').textContent);
 
       // Daily goal.
       S.daily = { day: null, xp: 0 }; S.goalLog = []; S.settings.goal = 30;
@@ -1012,6 +1032,25 @@
         if (S.settings.goal !== 100 || !app.querySelector('.goal-seg [data-v="100"]').classList.contains('selected')) err('progress: goal setting not saved ' + S.settings.goal);
         if (JSON.parse(localStorage.getItem(T.STORE_KEY)).settings.goal !== 100) err('progress: goal setting not stored');
       }
+      // Lowering the goal below today's XP: logged, its badge unlocks at once, and the card celebrates (no extra banner).
+      S.daily = { day: T.todayKey(), xp: 35 }; S.goalLog = []; S.badges.goal1 = undefined; S.badges = JSON.parse(JSON.stringify(S.badges)); S.settings.goal = 50;
+      T.renderMenu();
+      if ($('.goal-card.done') || S.goalLog.length) err('progress: 35 / 50 counted as reached');
+      S.settings.goal = 30;
+      T.renderMenu();
+      if (!S.goalLog.includes(T.todayKey()) || !S.badges.goal1) err('progress: lowered goal not logged with its badge ' + JSON.stringify([S.goalLog, S.badges]));
+      if (!$('.goal-card.done.just') || $('.goal-toast')) err('progress: lowered goal not celebrated on the card');
+      clearConfetti();
+      T.renderMenu();
+      if ($('.goal-card.just')) err('progress: goal card celebrated twice');
+      // Reaching the goal with the flashcards: celebrated on the topic page.
+      const ltp = T.TOPICS.find((x) => x.kind !== 'alphabet' && T.stagesFor(x).includes('learn'));
+      S.daily = { day: T.todayKey(), xp: 25 }; S.goalLog = []; ls.topics[ltp.id] = { best: 0, stages: {} };
+      T.renderLearn(ltp);
+      for (let k = 0; k < 200 && $('#next'); k++) $('#next').click();
+      if (!$('.topic-page .celebrate .goal-toast')) err('progress: goal reached with flashcards not celebrated on the topic page');
+      clearConfetti();
+      S.settings.goal = 100;
 
       // Badges.
       S.badges = {}; S.xp = 1200;
@@ -1040,6 +1079,13 @@
       if (!S.badges.xp5000 || !$$('.results .badge-toast').some((b) => b.textContent.includes(E.badge_xp5000))) err('progress: new badge not shown on results');
       $('.cele-close').click();
       if ($('.celebrate')) err('progress: banner close button');
+      // Many badges at once on a results screen: one combined banner.
+      const keepBadges = S.badges; S.badges = {};
+      T.startStage(tp, 'truefalse');
+      playSession('progress many badges');
+      const many = Object.keys(S.badges).length;
+      if (many >= 3 && ($$('.results .badge-toast').length !== 1 || !$('.results .badge-toast').textContent.includes(E.badgeNewN.replace('{n}', many)))) err(`progress: ${$$('.results .badge-toast').length} banners for ${many} badges on results`);
+      S.badges = Object.assign(keepBadges, S.badges);
       const bs = T.badgeStats;
       if (!bs({ pct: 100 }).perfect || bs({ speed: 15 }).speed < 15 || !bs({ finished: true }).exercises) err('progress: event badges');
       ls.topics.__story = { best: 0, stages: { story: 2 } };
@@ -1050,6 +1096,9 @@
       Object.keys(S.langs).forEach((c) => { if (c !== code) delete S.langs[c]; });
       ls.words = { [w1.id]: 1 };
       if (bs().langsUsed !== 1) err('progress: languages used ' + bs().langsUsed);
+      const keepTopics = ls.topics; ls.topics = { [tp.id]: { best: 0, stages: { learn: 3 } } };
+      if (bs().exercises) err('progress: flashcards alone count as the first exercise');
+      ls.topics = keepTopics;
       S.langs[other] = { level: null, track: null, topics: {}, words: { 'x:0': 1 }, speedBest: 0, srs: {} };
       if (bs().langsUsed !== 2) err('progress: second language not counted');
       if (saveOther) S.langs[other] = saveOther; else delete S.langs[other];
