@@ -2308,7 +2308,6 @@
   /** Plain lowercase words of 4+ letters, without accents (rōmaji macrons, ʿ, á ...). */
   const placeWords = (s, min = 4) => String(s || '').normalize('NFD').replace(/[\p{M}\p{Lm}]/gu, '').toLowerCase()
     .split(/[^\p{L}]+/u).filter((w) => w.length >= min);
-  /** True if the answer gives itself away: a loanword or name whose reading is in the meaning ("tatami", "fujisan" = Mount Fuji). */
   /**
    * A word's consonant skeleton, with common spelling differences between rōmaji/transliteration and English
    * evened out: "resutoran" and "restaurant" -> rstrn / rstrnt, "doraiyā" and "dryer" -> dr, "imeyl" and "email" -> mr.
