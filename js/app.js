@@ -648,7 +648,8 @@
       layer.setAttribute('aria-hidden', 'true');
       document.body.insertBefore(layer, document.body.firstChild);
     }
-    layer.innerHTML = code ? deco('corner', code) + deco('ambient', code) : '';
+    // Back to front: sky (sun/moon, clouds), scene (landscape along the bottom), objects, corner, ambient (moving bits).
+    layer.innerHTML = code ? ['sky', 'scene', 'objects', 'corner', 'ambient'].map((spot) => deco(spot, code)).join('') : '';
     try {
       const meta = document.querySelector('meta[name="theme-color"]');
       const sun = getComputedStyle(root).getPropertyValue('--sun').trim();
@@ -704,6 +705,11 @@
     if (!keepSpeed) stopSpeed();
     applyUiLang();
     app.innerHTML = (withBar ? topBar() : '') + html;
+    // Tell the background which screen is showing: it calms down while the learner is answering.
+    const main = app.querySelector('main');
+    const screen = main ? main.classList[0] || '' : '';
+    document.documentElement.setAttribute('data-screen', screen);
+    document.documentElement.classList.toggle('calm', screen === 'practice' || screen === 'learn');
     $$('[data-go]', app).forEach((b) => b.addEventListener('click', () => go(b.dataset.go)));
     window.scrollTo(0, 0);
   }

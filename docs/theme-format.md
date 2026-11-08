@@ -94,10 +94,44 @@ TLAP_THEME("es", {
     corner:  '<svg ...>',   // small motif placed at a bottom corner of every screen, e.g. a cactus / Mt Fuji / pomegranate / olive branch. viewBox ~ "0 0 120 120"
     results: '<svg ...>',   // shown behind/around the mascot on results screens, e.g. a sun burst / lanterns / fireworks. viewBox ~ "0 0 200 120"
     ambient: ''             // optional: markup for a light animated layer (e.g. a few falling petals); '' if none
+    // The "world" behind every screen (see section 3). Each is optional; '' if none.
+    sky:     '<div ...>',   // sun + clouds in light mode, moon + stars in dark mode
+    scene:   '<svg ...>',   // the landscape along the bottom of the screen. viewBox "0 0 1200 200", preserveAspectRatio="xMidYMax slice"
+    objects: '<div ...>',   // small cultural objects scattered near the edges
   },
   confetti: ["#hex", "#hex", "#hex", "#hex", "#hex", "#hex"]   // celebration colors from your palette
 });
 ```
+
+## 3. The world behind the screens
+
+Each language should feel like stepping into a different place. The fixed layer `#theme-layer` sits behind the whole app and holds, back to front:
+
+1. **`sky`**: a full-screen layer (`position: absolute; inset: 0`). Put the sun and soft clouds in it for light mode, and the moon and stars for dark mode. Include both sets and switch them with your own scoped CSS under `@media (prefers-color-scheme: dark)`. Position each piece yourself with absolutely positioned child elements, using percentages and `vw`/`vh` units.
+2. **`scene`**: a strip along the bottom, full width, `clamp(120px, max(22vh, 100vw / 6), 300px)` tall, holding one wide SVG with `viewBox="0 0 1200 200"` and `preserveAspectRatio="xMidYMax slice"`.
+   - On a phone only about the middle third (x ≈ 400–800) is visible, so put the main landmark there.
+   - On a wide desktop screen the top ~10% may be cut off, so keep peaks below y ≈ 25.
+   - Fill the whole width, so wide screens have no empty ends.
+   - Give it 2–3 depth layers (far, middle, near), in soft tints of the palette that blend into the background like a painted backdrop. It must not look like a dark band.
+3. **`objects`**: a full-screen layer with 4–8 small cultural objects (single small SVGs, about 28–64px) placed near the left and right edges and corners. On a phone the content column is full width, so they sit behind and around the cards.
+4. **`corner`**: the existing corner motif. Keep it only if it works in front of your scene; otherwise set it to `''`.
+5. **`ambient`**: gentle movement (petals, leaves, birds, drifting clouds or confetti bits).
+
+Rules for the world:
+
+- **Readability first.** Text sits directly on the background in some places: page titles, the mascot's speech bubble edges, small labels. Anything behind those must be soft and low-contrast. The test: every screen must be as easy to read as before.
+- **Light and dark:** a day world in light mode and a night world in dark mode (moon, stars, lit windows or lanterns), both fitting the palette.
+- **Movement:** slow and gentle (8s or longer per cycle), animating only `transform` and `opacity`, with at most about 15 moving elements in all. Under `@media (prefers-reduced-motion: reduce)`, nothing may move: stop all your animations in sky, objects and scene, not just ambient.
+- **Calm mode.** During exercises and learn cards the app adds `class="calm"` to `<html>` (and `data-screen="practice"` or `"learn"`):
+  - the shared CSS fades `sky` to 45%, `scene` to 40% and `corner` to 35%;
+  - it hides `objects` and `ambient`;
+  - it lowers the pattern.
+
+  You may tune this inside your scope (e.g. `html[data-lang="ja"].calm ...`), but exercise screens must stay calm.
+- **Size:** keep each spot under ~8 KB of markup, and use shared `<symbol>`/`<use>` or repeated small paths, not huge drawings.
+- **Namespacing:** prefix every class with your language code (`.ja-sun`, `.fa-dome`) and scope every rule under `html[data-lang="<lang>"]`.
+- **Shared circles:** you may drop the shared round color circles behind the page if they clash with your world: `html[data-lang="<lang>"] body { background-image: var(--theme-wash, none); }`.
+- **Positioning:** never position anything relative to app elements. The world is independent of the layout.
 
 ## Cultural guidance
 

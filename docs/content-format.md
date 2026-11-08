@@ -131,6 +131,64 @@ A one-line `//` comment above the call is fine.
   - Write it in lowercase except ḥ.
 - Where Modern Standard Arabic differs a lot, you may mention the MSA word in the intro.
 
+## Dialogues and stories (`js/data/<lang>/stories.js`)
+
+Each language has one extra file, `stories.js`, with the group `g-stories` (shown from its own button on the main menu, not inside the level sections). Its lessons are short chats and stories. Each one also lists its key words, so all the normal exercises, the dictionary and review work on them too.
+
+```
+TLAP_ADD("es", {
+  "group": {"id": "g-stories", "level": "beginner", "icon": "💬", "title": {"en": "Dialogues & stories", "he": "שיחות וסיפורים"}},
+  "lessons": [
+    {"id": "st_cafe", "kind": "dialogue", "level": "beginner", "icon": "☕",
+     "title": {"en": "At the café", "he": "בבית הקפה"},
+     "intro": {"en": "You're ordering breakfast at a café in Bogotá.", "he": "אתה מזמין ארוחת בוקר בבית קפה בבוגוטה."},
+     "cast": {"a": {"en": "Waiter", "he": "מלצר", "icon": "☕"}, "me": {"en": "You", "he": "אתה"}},
+     "lines": [
+       {"who": "a",  "say": ["Buenos días, ¿qué le sirvo?", "BUE-nos DÍ-as, ¿QUÉ le SIR-vo?", "Good morning, what can I get you?", "בוקר טוב, מה להגיש לך?"]},
+       {"who": "me", "say": ["Un café con leche, por favor.", "un ca-FÉ con LE-che, por fa-VOR.", "A coffee with milk, please.", "קפה עם חלב, בבקשה."],
+        "wrong": [["Me llamo Ana.", "me LLA-mo A-na.", "My name is Ana.", "קוראים לי אנה."],
+                  ["Hasta mañana.", "AS-ta ma-ÑA-na.", "See you tomorrow.", "להתראות מחר."]]}
+     ],
+     "items": [ ... 6-12 key words and phrases from this text, normal item format ... ]},
+
+    {"id": "st_market", "kind": "story", "level": "intermediate", "icon": "🍅",
+     "title": {"en": "...", "he": "..."}, "intro": {"en": "...", "he": "..."},
+     "lines": [ {"say": [target, latin, english, hebrew, extra?]}, ... ],
+     "questions": [
+       {"q": {"en": "What did Lupe buy?", "he": "מה לופה קנתה?"},
+        "options": [{"en": "Tomatoes", "he": "עגבניות"}, {"en": "Bread", "he": "לחם"}, {"en": "Fish", "he": "דג"}],
+        "answer": 0}
+     ],
+     "items": [ ... ]}
+  ]
+});
+```
+
+Rules:
+
+- **Ids:** lesson ids start with `st_`. Every lesson sets its own `level`. List the lessons in level order: beginner, then intermediate, then advanced.
+- **How many:** about 10 lessons per language:
+  - beginner: 2 dialogues and 2 stories
+  - intermediate: 2 dialogues and 1 story
+  - advanced: 1 dialogue and 2 stories
+- **`intro`** (required) sets the scene in one or two sentences.
+- **Lines:** each `say` is a normal item: `[target, latin, english, hebrew, extra?]`. All the per-language rules apply, for example ja needs `kana` whenever the line contains kanji. The word-order rule and `parts` are **not** required for lines.
+- **Dialogue:**
+  - `cast` has the other speaker `a` (optionally a second speaker `b`) and `me` (the learner). Speaker icons are emoji of objects, food or animals, not people.
+  - 6–12 lines, of which 3–5 are `me` turns.
+  - Every `me` line has exactly 2 `wrong` replies. They should be real, correct sentences that don't fit at that moment in the conversation, so choosing the right one means understanding what was said.
+- **Story:**
+  - 6–10 lines, told simply. Animals, the mascot or everyday characters are all fine.
+  - Then 3–4 `questions`, written in the learner's language (en and he), each with 3 options. `answer` is the index of the correct option.
+  - The questions check understanding of the story, not trivia.
+- **Levels:**
+  - beginner: short sentences using mostly beginner words
+  - intermediate: everyday situations with longer turns
+  - advanced: natural, fast, colloquial speech, including "talk like a local" expressions
+- **Hebrew:** natural modern Hebrew without niqqud. The learner ("you" / "me") is masculine singular by default.
+- **`items`:** 6–12 key words or phrases that actually appear in the text, following the normal lesson rules (no repeated meanings).
+- **Topics:** everyday, culturally rich situations, such as the market, a taxi, visiting a friend's family, a holiday meal, asking for directions, a phone call, or a festival. Avoid politics and religion.
+
 ## Validate
 
 ```

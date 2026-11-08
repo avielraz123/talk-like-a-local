@@ -90,6 +90,16 @@ body::before {
 @media (max-width: 480px) { .theme-deco.corner { width: 88px; height: 88px; opacity: .75; } }
 @media (max-height: 560px) { .theme-deco.corner { display: none; } }
 .theme-deco.ambient { position: absolute; inset: 0; }
+.theme-deco.sky, .theme-deco.objects { position: absolute; inset: 0; }
+/* The landscape strip: a wide SVG (viewBox 0 0 1200 200, preserveAspectRatio xMidYMax slice). */
+.theme-deco.scene { position: absolute; left: 0; right: 0; bottom: 0; height: clamp(120px, max(22vh, 100vw / 6), 300px); }
+#theme-layer > .theme-deco { transition: opacity .5s ease; }
+/* Calm mode (exercises and learn cards): a quieter world so the learner can think. */
+html.calm #theme-layer > .objects, html.calm #theme-layer > .ambient { opacity: 0; visibility: hidden; }
+html.calm #theme-layer > .sky { opacity: .45; }
+html.calm #theme-layer > .scene { opacity: .4; }
+html.calm #theme-layer > .corner { opacity: .35; }
+html.calm body::before { opacity: calc(var(--theme-pattern-opacity, 0) * .55); }
 .theme-deco.banner { margin: 0 -8px 2px; height: auto; }
 .theme-deco.banner svg { height: auto; max-height: 72px; }
 @media (prefers-reduced-motion: reduce) { .theme-deco.ambient { display: none; } }
