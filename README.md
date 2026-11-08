@@ -34,6 +34,7 @@ A free, playful web app for learning languages, for English and Hebrew speakers.
 - **Dictionary:** search every word in its own script, Latin letters, English or Hebrew.
 - **Review mode** brings back the words you get wrong most often.
 - **Speed round:** how many can you answer in 60 seconds?
+- **Dialogues & stories:** short chats where you pick the right reply, and short stories with comprehension questions.
 - **Progress is saved in your browser:** stars, XP points and a daily streak.
 
 ## Running it on your computer

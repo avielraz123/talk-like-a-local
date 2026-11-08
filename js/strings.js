@@ -147,7 +147,21 @@ window.TLAP_STRINGS = {
     m_topic: "Pick any exercise you like!",
     m_right: ["Great!", "Excellent!", "Well done!", "Awesome!", "Perfect!", "Nice!"],
     m_wrong: ["Not quite", "Almost, keep going!", "Not this time"],
-    m_empty: "No words found. Try a different search!"
+    m_empty: "No words found. Try a different search!",
+    // Dialogues & stories
+    storyMenu: "Dialogues & stories", storyMenuDesc: "Short chats and stories from everyday life",
+    storyStChat: "Chat", storyStChatD: "Take part in the conversation",
+    storyStRead: "Read the story", storyStReadD: "Read it, then answer questions",
+    storyKindDialogue: "Dialogue", storyKindStory: "Story",
+    storyTapHint: "Tap a line to see what it means.",
+    storyShowMeaning: "Show the translation",
+    storyShowAll: "Show all translations",
+    storyYourTurn: "Your turn! What do you say?",
+    storyMeans: "{say} means “{meaning}”",
+    storyTryAgain: "That doesn't fit here. Try another answer.",
+    storyToQuestions: "On to the questions",
+    storyQCount: "Question {n} of {total}",
+    storyReadAgain: "Read the story again"
   },
   he: {
     tagline: "ללמוד שפה חדשה כמו שהמקומיים באמת מדברים",
@@ -290,6 +304,20 @@ window.TLAP_STRINGS = {
     m_topic: "בחרו איזה תרגיל שתרצו!",
     m_right: ["יפה!", "מצוין!", "כל הכבוד!", "אלופים!", "מושלם!", "נהדר!"],
     m_wrong: ["לא בדיוק", "כמעט, ממשיכים!", "לא הפעם"],
-    m_empty: "לא נמצאו מילים. נסו חיפוש אחר!"
+    m_empty: "לא נמצאו מילים. נסו חיפוש אחר!",
+    // שיחות וסיפורים
+    storyMenu: "שיחות וסיפורים", storyMenuDesc: "שיחות קצרות וסיפורים מחיי היומיום",
+    storyStChat: "שיחה", storyStChatD: "משתתפים בשיחה",
+    storyStRead: "קריאת הסיפור", storyStReadD: "קוראים ואז עונים על שאלות",
+    storyKindDialogue: "שיחה", storyKindStory: "סיפור",
+    storyTapHint: "הקישו על שורה כדי לראות מה פירושה.",
+    storyShowMeaning: "הצגת התרגום",
+    storyShowAll: "הצגת כל התרגומים",
+    storyYourTurn: "תורכם! מה עונים?",
+    storyMeans: "{say} פירושו: \"{meaning}\"",
+    storyTryAgain: "זה לא מתאים כאן. נסו תשובה אחרת.",
+    storyToQuestions: "לשאלות",
+    storyQCount: "שאלה {n} מתוך {total}",
+    storyReadAgain: "לקרוא שוב את הסיפור"
   }
 };

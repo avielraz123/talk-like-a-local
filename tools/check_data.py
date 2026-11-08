@@ -6,8 +6,9 @@ Run:  python tools/check_data.py                         (everything)
 
 Errors (exit code 1): bad structure, wrong script for the language, duplicate ids, lessons with
 fewer than 6 items, two items in one lesson with the same English or Hebrew meaning, word-count
-mismatches for the word-order exercise, missing/invalid Japanese "kana"/"parts".
-Warnings: the same target word appearing in more than one lesson of a language.
+mismatches for the word-order exercise, missing/invalid Japanese "kana"/"parts", and for dialogues/stories (g-stories, stories.js): st_ ids, level,
+intro, cast, 6-12 / 6-10 lines, 3-5 "me" turns with exactly 2 wrong replies, 3-4 questions with 3 options.
+Warnings: the same target word appearing in more than one lesson of a language; stories not in level order.
 """
 import json
 import pathlib
@@ -18,7 +19,11 @@ import unicodedata
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "js" / "data"
 LEVELS = {"beginner", "intermediate", "advanced"}
-KINDS = {"alphabet", "vocab", "phrases", "grammar"}
+KINDS = {"alphabet", "vocab", "phrases", "grammar", "dialogue", "story"}
+# Dialogues and stories: their own group, file stories.js (see docs/content-format.md).
+STORY_GROUP = "g-stories"
+STORY_KINDS = {"dialogue", "story"}
+LEVEL_ORDER = {"beginner": 0, "intermediate": 1, "advanced": 2}
 PUNCT = re.compile(r"[.,!?؟،:;¿¡。、！？「」…]")
 ARABIC_BLOCK = re.compile("[؀-ۿ]")
 JAPANESE = re.compile("[぀-ヿ一-鿿々]")
@@ -71,7 +76,170 @@ def check_script(lang, s, where, errors, field="target"):
             errors.append(f"{where}: {field} should be Spanish in Latin letters: {s}")
 
 
-def check_pack(lang, pack, where, errors):
+def check_word(lang, item, iw, errors, order_rules=True):
+    """One [target, latin, en, he, extra?] item. Returns (en, he), or None when it is malformed.
+    order_rules=False skips the word-order rules (word counts, ja "parts"), as for dialogue/story lines."""
+    rules = LANGS[lang]
+    if not isinstance(item, list) or len(item) not in (4, 5) or not all(isinstance(x, str) and x.strip() for x in item[:4]):
+        errors.append(f"{iw}: word item must be [target, latin, en, he, extra?]")
+        return None
+    target, latin, en, he = item[:4]
+    check_script(lang, target, iw, errors)
+    if ARABIC_BLOCK.search(latin) or JAPANESE.search(latin):
+        errors.append(f"{iw}: latin field contains non-Latin script: {latin}")
+    if HEBREW_NIQQUD.search(he):
+        errors.append(f"{iw}: Hebrew contains niqqud: {he}")
+    extra = item[4] if len(item) == 5 else {}
+    if not isinstance(extra, dict) or (len(item) == 5 and not extra):
+        errors.append(f"{iw}: extra must be a non-empty object")
+        extra = {}
+    bad = set(extra) - rules["extra"]
+    if bad:
+        errors.append(f"{iw}: extra keys not allowed for {lang}: {sorted(bad)}")
+    if "form" in extra:
+        f = extra["form"]
+        if not (isinstance(f, list) and len(f) == 2 and all(isinstance(x, str) and x for x in f)):
+            errors.append(f"{iw}: form must be [target, latin]")
+        else:
+            check_script(lang, f[0], iw, errors, "form")
+    if "lit" in extra:
+        f = extra["lit"]
+        if not (isinstance(f, list) and len(f) == 2 and all(isinstance(x, str) and x for x in f)):
+            errors.append(f"{iw}: lit must be [english, hebrew]")
+    if "digit" in extra and not isinstance(extra["digit"], str):
+        errors.append(f"{iw}: digit must be a string")
+    if lang == "ja":
+        if KANJI.search(target) and not extra.get("kana"):
+            errors.append(f"{iw}: target has kanji but no \"kana\" reading: {target}")
+        if "kana" in extra and not KANA_ONLY.match(extra["kana"] or ""):
+            errors.append(f"{iw}: kana must be only hiragana/katakana, no spaces: {extra['kana']}")
+        rt = tokens(latin)
+        if order_rules and len(rt) >= 3:
+            parts = extra.get("parts")
+            if not parts:
+                errors.append(f"{iw}: phrase with {len(rt)} rōmaji words needs \"parts\"")
+            elif len(parts) != len(rt):
+                errors.append(f"{iw}: {len(parts)} parts vs {len(rt)} rōmaji words: {parts} / {latin}")
+            elif "".join(parts) != PUNCT.sub("", target).replace(" ", ""):
+                errors.append(f"{iw}: parts don't join to the target: {''.join(parts)} vs {target}")
+        if latin != latin.lower():
+            errors.append(f"{iw}: rōmaji must be lowercase: {latin}")
+    if order_rules and rules["tokens"]:
+        tt, lt = tokens(target), tokens(latin)
+        if len(tt) >= 3 and len(tt) != len(lt):
+            errors.append(f"{iw}: {len(tt)} target words vs {len(lt)} latin words: {target} / {latin}")
+    if lang == "es" and "-" not in latin and not re.search("[A-ZÁÉÍÓÚÑ]", latin):
+        errors.append(f"{iw}: Spanish syllable guide needs hyphens/CAPITAL stress: {latin}")
+    return en, he
+
+
+def is_emoji(s):
+    """An emoji icon: no letters (so not a word or a letter of the target script)."""
+    return isinstance(s, str) and bool(s.strip()) and not any(unicodedata.category(c).startswith("L") for c in s)
+
+
+def check_bi(obj, w, what, errors):
+    """A {"en": ..., "he": ...} text: both present, Hebrew without niqqud."""
+    if not isinstance(obj, dict) or not all(isinstance(obj.get(lg), str) and obj.get(lg).strip() for lg in ("en", "he")):
+        errors.append(f"{w}: {what} needs en and he")
+        return
+    if HEBREW_NIQQUD.search(obj["he"]):
+        errors.append(f"{w}: Hebrew {what} contains niqqud")
+
+
+def check_story(lang, g, lesson, lw, errors, warnings):
+    """A dialogue or story lesson in g-stories: cast, lines, wrong replies, questions, items."""
+    kind = lesson.get("kind")
+    if g.get("id") != STORY_GROUP:
+        errors.append(f"{lw}: dialogue/story lessons belong in the {STORY_GROUP} group (stories.js)")
+    if kind not in STORY_KINDS:
+        errors.append(f"{lw}: lessons in {STORY_GROUP} must be kind dialogue or story")
+        return
+    if not str(lesson.get("id", "")).startswith("st_"):
+        errors.append(f"{lw}: story lesson ids start with st_")
+    if lesson.get("level") not in LEVELS:
+        errors.append(f"{lw}: every dialogue/story sets its own level")
+    if "intro" not in lesson:
+        errors.append(f"{lw}: intro (the scene) is required")
+    if len(lesson.get("items", [])) > 12:
+        errors.append(f"{lw}: 6-12 key words (has {len(lesson.get('items', []))})")
+    lines = lesson.get("lines")
+    if not isinstance(lines, list):
+        errors.append(f"{lw}: lines must be a list")
+        lines = []
+    lo, hi = (6, 12) if kind == "dialogue" else (6, 10)
+    if not lo <= len(lines) <= hi:
+        errors.append(f"{lw}: a {kind} has {lo}-{hi} lines (has {len(lines)})")
+    cast = lesson.get("cast")
+    if kind == "dialogue":
+        if not isinstance(cast, dict) or "a" not in cast or "me" not in cast:
+            errors.append(f"{lw}: cast needs a and me")
+            cast = cast if isinstance(cast, dict) else {}
+        for k, c in cast.items():
+            if k not in ("a", "b", "me"):
+                errors.append(f"{lw}: unknown cast member {k} (a, b, me)")
+                continue
+            check_bi(c, lw, f"cast.{k}", errors)
+            if k != "me" and not is_emoji(c.get("icon") if isinstance(c, dict) else None):
+                errors.append(f"{lw}: cast.{k} needs an emoji icon")
+            if k == "me" and isinstance(c, dict) and "icon" in c and not is_emoji(c["icon"]):
+                errors.append(f"{lw}: cast.me icon must be an emoji")
+    elif cast is not None:
+        errors.append(f"{lw}: a story has no cast")
+    me_turns = 0
+    for i, line in enumerate(lines):
+        w = f"{lw}.lines[{i}]"
+        if not isinstance(line, dict):
+            errors.append(f"{w}: a line is an object with say")
+            continue
+        got = check_word(lang, line.get("say"), w, errors, order_rules=False)
+        if kind == "story":
+            if set(line) - {"say"}:
+                errors.append(f"{w}: story lines only have say (found {sorted(set(line) - {'say'})})")
+            continue
+        who = line.get("who")
+        if who not in ("a", "b", "me") or (isinstance(cast, dict) and who not in cast):
+            errors.append(f"{w}: who must be one of the cast ({who})")
+        if who == "me":
+            me_turns += 1
+            wrong = line.get("wrong")
+            if not isinstance(wrong, list) or len(wrong) != 2:
+                errors.append(f"{w}: a me line needs exactly 2 wrong replies")
+                wrong = wrong if isinstance(wrong, list) else []
+            for j, x in enumerate(wrong):
+                if check_word(lang, x, f"{w}.wrong[{j}]", errors, order_rules=False) and got and isinstance(line.get("say"), list):
+                    if PUNCT.sub("", x[0]).strip() == PUNCT.sub("", line["say"][0]).strip():
+                        errors.append(f"{w}.wrong[{j}]: same as the right reply")
+        elif "wrong" in line:
+            errors.append(f"{w}: only me lines have wrong replies")
+    if kind == "dialogue" and not 3 <= me_turns <= 5:
+        errors.append(f"{lw}: a dialogue has 3-5 me turns (has {me_turns})")
+    qs = lesson.get("questions")
+    if kind == "story":
+        if not isinstance(qs, list) or not 3 <= len(qs) <= 4:
+            errors.append(f"{lw}: a story has 3-4 questions (has {len(qs) if isinstance(qs, list) else 0})")
+            qs = qs if isinstance(qs, list) else []
+        for i, q in enumerate(qs):
+            w = f"{lw}.questions[{i}]"
+            if not isinstance(q, dict):
+                errors.append(f"{w}: a question is an object with q, options, answer")
+                continue
+            check_bi(q.get("q"), w, "q", errors)
+            opts = q.get("options")
+            if not isinstance(opts, list) or len(opts) != 3:
+                errors.append(f"{w}: exactly 3 options")
+                opts = opts if isinstance(opts, list) else []
+            for j, o in enumerate(opts):
+                check_bi(o, w, f"options[{j}]", errors)
+            ans = q.get("answer")
+            if not isinstance(ans, int) or isinstance(ans, bool) or not 0 <= ans < max(len(opts), 1):
+                errors.append(f"{w}: answer must be the index of an option (0-{max(len(opts) - 1, 0)})")
+    elif qs is not None:
+        errors.append(f"{lw}: a dialogue has no questions")
+
+
+def check_pack(lang, pack, where, errors, warnings=None):
+    warnings = [] if warnings is None else warnings
     rules = LANGS[lang]
     g = pack.get("group", {})
     for key in ("id", "level", "icon", "title"):
@@ -118,61 +286,21 @@ def check_pack(lang, pack, where, errors):
                 check_script(lang, item[0], iw, errors, "character")
                 check_script(lang, item[4], iw, errors, "example")
                 continue
-            if len(item) not in (4, 5) or not all(isinstance(x, str) and x.strip() for x in item[:4]):
-                errors.append(f"{iw}: word item must be [target, latin, en, he, extra?]")
+            got = check_word(lang, item, iw, errors)
+            if got is None:
                 continue
-            target, latin, en, he = item[:4]
-            check_script(lang, target, iw, errors)
-            if ARABIC_BLOCK.search(latin) or JAPANESE.search(latin):
-                errors.append(f"{iw}: latin field contains non-Latin script: {latin}")
-            if HEBREW_NIQQUD.search(he):
-                errors.append(f"{iw}: Hebrew contains niqqud: {he}")
-            extra = item[4] if len(item) == 5 else {}
-            if not isinstance(extra, dict) or (len(item) == 5 and not extra):
-                errors.append(f"{iw}: extra must be a non-empty object")
-                extra = {}
-            bad = set(extra) - rules["extra"]
-            if bad:
-                errors.append(f"{iw}: extra keys not allowed for {lang}: {sorted(bad)}")
-            if "form" in extra:
-                f = extra["form"]
-                if not (isinstance(f, list) and len(f) == 2 and all(isinstance(x, str) and x for x in f)):
-                    errors.append(f"{iw}: form must be [target, latin]")
-                else:
-                    check_script(lang, f[0], iw, errors, "form")
-            if "lit" in extra:
-                f = extra["lit"]
-                if not (isinstance(f, list) and len(f) == 2 and all(isinstance(x, str) and x for x in f)):
-                    errors.append(f"{iw}: lit must be [english, hebrew]")
-            if "digit" in extra and not isinstance(extra["digit"], str):
-                errors.append(f"{iw}: digit must be a string")
-            if lang == "ja":
-                if KANJI.search(target) and not extra.get("kana"):
-                    errors.append(f"{iw}: target has kanji but no \"kana\" reading: {target}")
-                if "kana" in extra and not KANA_ONLY.match(extra["kana"] or ""):
-                    errors.append(f"{iw}: kana must be only hiragana/katakana, no spaces: {extra['kana']}")
-                rt = tokens(latin)
-                if len(rt) >= 3:
-                    parts = extra.get("parts")
-                    if not parts:
-                        errors.append(f"{iw}: phrase with {len(rt)} rōmaji words needs \"parts\"")
-                    elif len(parts) != len(rt):
-                        errors.append(f"{iw}: {len(parts)} parts vs {len(rt)} rōmaji words: {parts} / {latin}")
-                    elif "".join(parts) != PUNCT.sub("", target).replace(" ", ""):
-                        errors.append(f"{iw}: parts don't join to the target: {''.join(parts)} vs {target}")
-                if latin != latin.lower():
-                    errors.append(f"{iw}: rōmaji must be lowercase: {latin}")
-            if rules["tokens"]:
-                tt, lt = tokens(target), tokens(latin)
-                if len(tt) >= 3 and len(tt) != len(lt):
-                    errors.append(f"{iw}: {len(tt)} target words vs {len(lt)} latin words: {target} / {latin}")
-            if lang == "es" and "-" not in latin and not re.search("[A-ZÁÉÍÓÚÑ]", latin):
-                errors.append(f"{iw}: Spanish syllable guide needs hyphens/CAPITAL stress: {latin}")
+            en, he = got
             for seen, val, lg in ((seen_en, en, "English"), (seen_he, he, "Hebrew")):
                 k = unicodedata.normalize("NFC", val.strip().lower())
                 if k in seen:
                     errors.append(f"{iw}: same {lg} meaning as item {seen[k]} in this lesson: {val}")
                 seen[k] = i
+        if g.get("id") == STORY_GROUP or lesson.get("kind") in STORY_KINDS:
+            check_story(lang, g, lesson, lw, errors, warnings)
+    if g.get("id") == STORY_GROUP:
+        order = [LEVEL_ORDER.get(lesson.get("level"), 0) for lesson in pack.get("lessons", [])]
+        if order != sorted(order):
+            warnings.append(f"{where}: list the stories in level order (beginner, intermediate, advanced)")
 
 
 def main():
@@ -211,7 +339,7 @@ def main():
     for p in chosen:
         if p in packs:
             lang, pack = packs[p]
-            check_pack(lang, pack, f"{lang}/{p.name}", errors)
+            check_pack(lang, pack, f"{lang}/{p.name}", errors, warnings)
 
     summary = []
     for lang in sorted(chosen_langs):

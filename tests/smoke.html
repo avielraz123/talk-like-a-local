@@ -24,6 +24,8 @@
     (data-lang, mascot, decorations). Plus: onboarding with the language picker, switching languages
     (progress kept separate), migration of an old Farsi save, lazy loading (missing/broken files skipped),
     the fallback theme, answer checking per language, and that every string exists in both languages.
+    Dialogues & stories: the menu button and group page, both players driven to the results (right and wrong
+    answers, stars, XP, saved record), tap-to-translate, show-all, and the chat sides mirrored in Hebrew.
   -->
 </head>
 <body>
@@ -49,10 +51,10 @@
     // Which language runs on its real files (?lang=xx); all others use the fixtures.
     window.__REAL = new URLSearchParams(location.search).get('lang');
     const FIXTURE_FILES = {
-      fa: ['alphabet', 'basics', 'verbs', 'missing', '../es/broken'],
-      es: ['sounds', 'basics', 'verbs', 'missing', 'broken'],
-      ja: ['kana', 'basics', 'verbs'],
-      ar: ['alphabet', 'basics', 'verbs'],
+      fa: ['alphabet', 'basics', 'verbs', 'missing', '../es/broken', 'stories'],
+      es: ['sounds', 'basics', 'verbs', 'missing', 'broken', 'stories'],
+      ja: ['kana', 'basics', 'verbs', 'stories'],
+      ar: ['alphabet', 'basics', 'verbs', 'stories'],
     };
     window.TLAP_CONFIG = { files: {}, base: {} };
     Object.keys(FIXTURE_FILES).forEach((l) => {
@@ -95,7 +97,7 @@
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const waitFor = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn() && Date.now() - t0 < ms) await sleep(10); return fn(); };
     const started = Date.now();
-    let questions = 0, sessions = 0, cards = 0, distractorChecks = 0;
+    let questions = 0, sessions = 0, cards = 0, distractorChecks = 0, storyPlays = 0, storyChecks = 0;
     const stats = [];
     const err = (m) => { if (errors.length < 400) errors.push(m); };
     const step = async (where, fn) => { try { await fn(); } catch (e) { err(`${where}: ${e.message}\n${e.stack}`); } };
@@ -106,7 +108,7 @@
       out.textContent = (errors.length ? 'FAIL (' + errors.length + ' problems)\n' + errors.slice(0, 80).join('\n') : 'PASS')
         + `\nmode=${REAL ? 'real data for ' + REAL : 'fixtures'} ${stats.join(' | ')}`
         + `\nsessions=${sessions} questions=${questions} cards=${cards} distractorChecks=${distractorChecks}`
-        + ` seconds=${Math.round((Date.now() - started) / 1000)}`;
+        + ` stories=${storyPlays}/${storyChecks} seconds=${Math.round((Date.now() - started) / 1000)}`;
       app.innerHTML = '';
     }
 
@@ -140,11 +142,11 @@
       if (!rep) { err('no load report'); return; }
       if (!rep.failed.includes('missing')) err(`${lazy}: missing file not reported as failed`);
       if (!rep.failed.some((f) => /broken/.test(f))) err(`${lazy}: broken file not reported as failed`);
-      if (rep.loaded.length !== 3) err(`${lazy}: ${rep.loaded.length} files loaded, expected 3`);
+      if (rep.loaded.length !== 4) err(`${lazy}: ${rep.loaded.length} files loaded, expected 4`);
       if (!window.__brokenSeen) err('broken fixture never ran (test setup)');
       if (lazy === 'fa') {
         const ids = T.GROUPS.map((g) => g.id).join();
-        if (ids !== 'g-alphabet,g-basics,g-verbs') err('groups not in manifest order: ' + ids);
+        if (ids !== 'g-alphabet,g-basics,g-verbs,g-stories') err('groups not in manifest order: ' + ids);
       }
     });
 
@@ -197,7 +199,7 @@
       });
     }
 
-    function playLesson(code, topic, where, nextExpected) {
+    function playLesson(code, topic, where, nextExpected, c = {}) {
       T.renderTopic(topic);
       const stages = $$('[data-stage]').map((b) => b.dataset.stage);
       const all = T.stagesFor(topic);
@@ -245,6 +247,7 @@
           if ($('#to-topic')) $('#to-topic').click();
           return;
         }
+        if (stage === 'story') playStory(`${where}/story`, topic, c);
         const types = new Set(T.session().queue.map((q) => q.type));
         const want = { choice: ['mcMeaning', 'mcReverse'], truefalse: ['trueFalse'], match: ['match'], typing: ['typeTr'],
           order: ['order'], reading: ['readScript'], spelling: ['spell'], letters: ['letterName', 'soundLetter'],
@@ -255,7 +258,7 @@
           if (covered.size !== topic.items.length) err(`${where}/match: covers ${covered.size}/${topic.items.length} items`);
           if (T.session().queue.some((q) => q.items.length < 3 || q.items.length > 5)) err(`${where}/match: bad group size`);
         }
-        playSession(`${where}/${stage}`);
+        if (stage !== 'story') playSession(`${where}/${stage}`);
         if ($('.results') && T.theme(code) && T.theme(code).decorations && T.theme(code).decorations.results
           && !$('.results-hero .theme-deco.results')) err(`${where}/${stage}: results decoration missing`);
         if (!langState(code).topics[topic.id].stages[stage]) err(`${where}/${stage}: stars not recorded`);
@@ -279,12 +282,241 @@
       if (p.done !== p.total) err(`${where}: ${p.done}/${p.total} counted stages recorded after doing all (speaking skipped)`);
     }
 
+    /* ---------------- dialogues & stories ---------------- */
+    /** The text a line shows first: the target for readers (and Spanish), the Latin letters for speakers. */
+    const storyMain = (say) => (T.readerMode() ? say.tg : say.tr);
+    const visible = (el) => !!el && !el.hidden && !el.closest('[hidden]');
+    /**
+     * Drive the story stage of a dialogue/story lesson to its results screen.
+     * opts.wrongTurns / opts.wrongQs: indexes of the learner's turns / questions to answer wrong first.
+     * Returns {turns, firstWrong, questions} as counted on screen.
+     */
+    function playStory(where, topic, c, opts = {}) {
+      sessions++; storyPlays++;
+      const wrongTurns = opts.wrongTurns || new Set();
+      const wrongQs = opts.wrongQs || new Set();
+      const res = { turns: 0, firstWrong: 0, questions: 0 };
+      const main = $('main');
+      if (!main || main.classList[0] !== 'practice' || !main.classList.contains('story-player')) { err(`${where}: story player main is "${main && main.className}"`); return res; }
+      if (!html.classList.contains('calm')) err(`${where}: the background is not calm in the story player`);
+      let guard = 0;
+      if (topic.kind === 'dialogue') {
+        while (!$('.results') && guard++ < 80) {
+          const shown = $$('.chat-row').length;
+          const line = topic.lines[shown];
+          const opts3 = $$('.story-replies .opt');
+          if (opts3.length) {
+            questions++;
+            if (!line || line.who !== 'me') { err(`${where}: reply options for a line that is not the learner's (${shown})`); return res; }
+            if (opts3.length !== Math.min(3, 1 + line.wrong.length)) err(`${where}: ${opts3.length} reply options`);
+            const right = opts3.filter((b) => b.querySelector('.opt-main').textContent === storyMain(line.say));
+            if (right.length !== 1) { err(`${where}: ${right.length} right replies on turn ${res.turns}`); return res; }
+            if (wrongTurns.has(res.turns)) {
+              const bad = opts3.find((b) => b !== right[0]);
+              const said = line.wrong.find((w) => storyMain(w) === bad.querySelector('.opt-main').textContent);
+              bad.click();
+              res.firstWrong++;
+              const fb = $('#story-fb');
+              if (!fb || !fb.classList.contains('bad')) err(`${where}: no wrong feedback`);
+              else if (said && !fb.textContent.includes(said[c.uiLang || 'en'])) err(`${where}: wrong feedback does not say what the reply means (${said.en})`);
+              if (!fb || !fb.querySelector('.mascot.mood-sad')) err(`${where}: wrong feedback has no sad mascot`);
+              if (!bad.disabled || !bad.classList.contains('wrong')) err(`${where}: the wrong reply is not marked`);
+              if (right[0].disabled) err(`${where}: cannot try again after a wrong reply`);
+              if ($$('.chat-row').length !== shown) err(`${where}: a wrong reply was added to the chat`);
+            }
+            right[0].click();
+            res.turns++;
+            const rows = $$('.chat-row');
+            const last = rows[rows.length - 1];
+            if (rows.length !== shown + 1 || !last.classList.contains('me')) err(`${where}: the right reply did not become the learner's bubble`);
+            else if (last.querySelector('.story-say .primary').textContent !== storyMain(line.say)) err(`${where}: learner bubble text`);
+            if (last && last.querySelector('.chat-avatar')) err(`${where}: learner bubble has an avatar`);
+            const fb = $('#story-fb');
+            if (!fb || !fb.classList.contains('ok') || !fb.querySelector('.mascot.mood-cheer')) err(`${where}: no right feedback with a happy mascot`);
+            if (!$('#story-next')) { err(`${where}: no next button after the right reply`); return res; }
+          }
+          const next = $('#story-next');
+          if (!next) { err(`${where}: dialogue is stuck at line ${shown}`); return res; }
+          if ($$('.chat-row').length === topic.lines.length && !opts.keepOpen) { next.click(); break; }
+          if ($$('.chat-row').length === topic.lines.length) return res;
+          next.click();
+        }
+      } else {
+        while ($('#story-next') && guard++ < 40) {
+          const n = $$('#story-read .story-line').length;
+          const say = topic.lines[n - 1].say;
+          if ($$('#story-read .story-line')[n - 1].querySelector('.story-say .primary').textContent !== storyMain(say)) err(`${where}: story line ${n} text`);
+          $('#story-next').click();
+          if (n === topic.lines.length) break;
+        }
+        topic.questions.forEach((q, k) => {
+          if ($('.results')) return;
+          questions++;
+          res.questions++;
+          const prompt = $('.story-questions .prompt');
+          if (!prompt) { err(`${where}: question ${k} not shown`); return; }
+          if (!$('.stem').textContent.includes(q.q[c.uiLang || 'en'])) err(`${where}: question ${k} text`);
+          const optsQ = $$('.story-answers .opt');
+          if (optsQ.length !== q.options.length) err(`${where}: question ${k} has ${optsQ.length} options`);
+          const want = q.options[q.answer][c.uiLang || 'en'];
+          const right = optsQ.find((b) => b.textContent.trim() === want);
+          const bad = optsQ.find((b) => b !== right);
+          if (!right) { err(`${where}: question ${k}: right option "${want}" missing`); return; }
+          if (!$('.story-again') || $$('.story-again .story-line').length !== topic.lines.length) err(`${where}: "read the story again" missing lines`);
+          (wrongQs.has(k) ? bad : right).click();
+          const fb = $('#story-fb');
+          if (!fb || !fb.classList.contains(wrongQs.has(k) ? 'bad' : 'ok')) err(`${where}: question ${k} feedback`);
+          if (wrongQs.has(k) && (!bad.classList.contains('wrong') || !right.classList.contains('right') || !fb.textContent.includes(want))) err(`${where}: question ${k}: wrong answer not explained`);
+          if (optsQ.some((b) => !b.disabled)) err(`${where}: question ${k}: options still enabled`);
+          $('#continue').click();
+        });
+      }
+      if (!$('.results')) err(`${where}: story never reached the results`);
+      clearConfetti();
+      return res;
+    }
+
+    function checkStories(code, c, where) {
+      const g = T.GROUPS.find((x) => x.id === T.STORY_GROUP);
+      T.renderMenu();
+      if (!g) { if ($('#m-stories')) err(`${where}: stories button without stories`); return; }
+      const S = T.state();
+      const ui = c.uiLang;
+      const lessons = T.visibleLessons(g);
+      // Lessons in level order; every one is a dialogue or story with lines.
+      const lv = lessons.map((l) => ['beginner', 'intermediate', 'advanced'].indexOf(l.level));
+      if (lv.join() !== lv.slice().sort((a, b) => a - b).join()) err(`${where}: stories not sorted by level: ${lessons.map((l) => l.level)}`);
+      if (!REAL) {
+        const cafe = lessons.find((l) => l.id === 'st_cafe');
+        const gato = lessons.find((l) => l.id === 'st_gato');
+        if (code === 'es' && (!cafe || cafe.lines.length !== 6 || !gato || gato.lines.length !== 6 || gato.questions.length !== 3)) err(`${where}: malformed lines/questions not skipped`);
+      }
+      // Menu button -> group page with one block per level, the learner's level marked.
+      $('#m-stories').click();
+      if (!$('.group-page') || $('.lesson-head .title-text').textContent !== g.title[ui]) { err(`${where}: stories button did not open the group page`); return; }
+      const blocks = $$('.story-level');
+      const levels = [...new Set(lessons.map((l) => l.level))];
+      if (blocks.map((b) => b.dataset.level).join() !== levels.join()) err(`${where}: level blocks ${blocks.map((b) => b.dataset.level)} vs ${levels}`);
+      blocks.forEach((b) => b.querySelectorAll('[data-topic]').forEach((card) => {
+        const l = lessons.find((x) => x.id === card.dataset.topic);
+        if (!l || l.level !== b.dataset.level) err(`${where}: ${card.dataset.topic} under ${b.dataset.level}`);
+        if (!card.querySelector('.story-kind')) err(`${where}: ${card.dataset.topic} has no kind label`);
+      }));
+      const mine = $('.story-level.mine');
+      if (levels.includes(c.level) && (!mine || mine.dataset.level !== c.level || !mine.querySelector('.badge'))) err(`${where}: the learner's level is not marked`);
+
+      const dlg = lessons.find((l) => l.kind === 'dialogue' && l.lines.some((x) => x.who === 'me' && x.wrong.length));
+      const sto = lessons.find((l) => l.kind === 'story' && l.questions.length >= 2);
+      if (!REAL && (!dlg || !sto)) { err(`${where}: fixtures need a dialogue and a story`); return; }
+      if (dlg) {
+        delete langState(code).topics[dlg.id];
+        T.renderTopic(dlg);
+        const first = $('[data-stage]');
+        if (!first || first.dataset.stage !== 'story' || !first.classList.contains('story-first')) err(`${where}: dialogue's first stage is not the chat`);
+        else if (!first.textContent.includes(STR[ui].storyStChat)) err(`${where}: chat stage label`);
+        if (!T.countedStages(dlg).includes('story')) err(`${where}: story stage does not count`);
+        const xp0 = S.xp;
+        first.click();
+        if (!$('.dialogue-player')) { err(`${where}: chat did not open`); return; }
+        if (dlg.intro && !$('.story-scene').textContent.includes(dlg.intro[ui])) err(`${where}: scene not shown`);
+        const row = $('.chat-row');
+        if (!row) { err(`${where}: no first bubble`); return; }
+        const l0 = dlg.lines[0];
+        if (l0.who !== 'me') {
+          if (!row.classList.contains('them') || !row.querySelector('.chat-avatar')) err(`${where}: other speaker's bubble has no avatar`);
+          if (dlg.cast[l0.who] && dlg.cast[l0.who][ui] && row.querySelector('.chat-name').textContent !== dlg.cast[l0.who][ui]) err(`${where}: speaker name`);
+          const prim = row.querySelector('.story-say .primary');
+          if (!prim || prim.textContent !== storyMain(l0.say) || prim.classList.contains('tg') !== T.readerMode()) err(`${where}: first bubble text/order`);
+          if (prim && prim.classList.contains('tg') && (prim.getAttribute('lang') !== code || prim.getAttribute('dir') !== T.LANGS[code].dir)) err(`${where}: bubble target span not tagged`);
+          if (code === 'ja' && T.readerMode() && /[一-鿿]/.test(l0.say.tg) && !row.querySelector('.reading')) err(`${where}: no kana reading on a kanji line`);
+          // Tap to reveal the translation, tap again to hide it.
+          const b = row.querySelector('.story-line');
+          const m = b.querySelector('.story-meaning');
+          if (visible(m)) err(`${where}: translation shown before tapping`);
+          b.click();
+          if (!visible(m) || m.textContent !== l0.say[ui] || b.getAttribute('aria-expanded') !== 'true') err(`${where}: tap did not reveal the translation`);
+          b.click();
+          if (visible(m)) err(`${where}: second tap did not hide the translation`);
+        }
+        // Show all translations, also for lines that appear later.
+        $('#story-all').click();
+        if ($$('.story-meaning').some((x) => !visible(x))) err(`${where}: show-all left a translation hidden`);
+        if ($('#story-next')) {
+          $('#story-next').click();
+          if ($$('.story-meaning').some((x) => !visible(x))) err(`${where}: new line hidden while show-all is on`);
+        }
+        $('#story-all').click();
+        if ($$('.story-meaning').some((x) => visible(x))) err(`${where}: show-all off left translations shown`);
+        const res = playStory(`${where}/${dlg.id}`, dlg, c, { wrongTurns: new Set([0]), keepOpen: true });
+        // Mirrored chat: the other speakers on the start side, the learner on the end side.
+        const them = $('.chat-row.them .story-line');
+        const me = $('.chat-row.me .story-line');
+        if (them && me) {
+          const a = them.getBoundingClientRect(); const bb = me.getBoundingClientRect();
+          const ok = ui === 'he' ? a.right > bb.right + 10 : a.left < bb.left - 10;
+          if (!ok) err(`${where}: chat sides not mirrored for ${ui} (them ${a.left}-${a.right}, me ${bb.left}-${bb.right})`);
+        } else err(`${where}: missing bubbles for the side check`);
+        if ($('#story-next')) $('#story-next').click();
+        if (!$('.results')) { err(`${where}: chat did not end on the results`); return; }
+        const turns = dlg.lines.filter((x) => x.who === 'me' && x.wrong.length).length;
+        if (res.turns !== turns) err(`${where}: played ${res.turns} turns of ${turns}`);
+        const pct = Math.round(((turns - 1) / turns) * 100);
+        const starsWant = pct >= 90 ? 3 : pct >= 70 ? 2 : 1;
+        const rec = langState(code).topics[dlg.id];
+        if (!rec || rec.stages.story !== starsWant) err(`${where}: chat stars ${rec && rec.stages.story}, want ${starsWant}`);
+        if (rec && rec.best !== pct) err(`${where}: chat best ${rec && rec.best}, want ${pct}`);
+        if (S.xp - xp0 !== (turns - 1) * 10 + 20) err(`${where}: chat XP ${S.xp - xp0}, want ${(turns - 1) * 10 + 20}`);
+        if (S.streak.last !== window.__TODAY) err(`${where}: chat did not count for the streak`);
+        if ($$('.result-stars .stars i.on').length !== starsWant) err(`${where}: results show ${$$('.result-stars .stars i.on').length} stars`);
+        if (!$('.results h1').textContent.includes(STR[ui].storyStChat)) err(`${where}: results title "${$('.results h1').textContent}"`);
+        if (!$('#next-stage') || $('#next-stage').dataset.next !== 'learn') err(`${where}: after the chat, next exercise should be learn cards`);
+        const saved = JSON.parse(localStorage.getItem(T.STORE_KEY));
+        if (!saved.langs[code].topics[dlg.id] || saved.langs[code].topics[dlg.id].stages.story !== starsWant) err(`${where}: chat stars not saved`);
+        // "Practice again" restarts the chat; quitting goes back to the lesson.
+        $('#again').click();
+        if (!$('.dialogue-player') || $$('.chat-row').length < 1) err(`${where}: practice again did not restart the chat`);
+        $('#quit').click();
+        if (!$('.topic-page')) err(`${where}: quit did not return to the lesson`);
+        if (langState(code).topics[dlg.id].stages.story !== starsWant) err(`${where}: quitting changed the stars`);
+      }
+      if (sto) {
+        delete langState(code).topics[sto.id];
+        T.renderTopic(sto);
+        const first = $('[data-stage]');
+        if (!first || first.dataset.stage !== 'story' || !first.textContent.includes(STR[ui].storyStRead)) err(`${where}: story's first stage is not "read the story"`);
+        first.click();
+        if (!$('.story-reader') || $$('#story-read .story-line').length !== 1) { err(`${where}: story reader did not open with one line`); return; }
+        if (sto.intro && !$('.story-scene').textContent.includes(sto.intro[ui])) err(`${where}: story intro not shown`);
+        const b = $('#story-read .story-line');
+        b.click();
+        if (!visible(b.querySelector('.story-meaning')) || b.querySelector('.story-meaning').textContent !== sto.lines[0].say[ui]) err(`${where}: story line translation`);
+        b.click();
+        const wrongQs = new Set([0]);
+        const res = playStory(`${where}/${sto.id}`, sto, c, { wrongQs });
+        if (res.questions !== sto.questions.length) err(`${where}: answered ${res.questions} of ${sto.questions.length} questions`);
+        const n = sto.questions.length;
+        const pct = Math.round(((n - 1) / n) * 100);
+        const starsWant = pct >= 90 ? 3 : pct >= 70 ? 2 : 1;
+        const rec = langState(code).topics[sto.id];
+        if (!rec || rec.stages.story !== starsWant) err(`${where}: story stars ${rec && rec.stages.story}, want ${starsWant}`);
+        if (!$('.results h1') || !$('.results h1').textContent.includes(STR[ui].storyStRead)) err(`${where}: story results title`);
+        const p = T.stageProgress(sto);
+        if (p.done !== 1) err(`${where}: story stage not counted in progress (${p.done}/${p.total})`);
+      }
+      if (dlg && sto) storyChecks++;
+      T.renderMenu();
+    }
+
+
     function checkNavigation(code, c, where) {
       T.renderMenu();
       const L = T.LANGS[code];
       const groups = T.visibleGroups();
       const cards = $$('[data-group]');
-      if (cards.length !== groups.length) err(`${where}: menu shows ${cards.length} groups, expected ${groups.length}`);
+      const inSections = groups.filter((g) => g.id !== T.STORY_GROUP);
+      if (cards.length !== inSections.length) err(`${where}: menu shows ${cards.length} groups, expected ${inSections.length}`);
+      if (cards.some((b) => b.dataset.group === T.STORY_GROUP)) err(`${where}: g-stories shown in a level section`);
+      if (!!$('#m-stories') !== groups.some((g) => g.id === T.STORY_GROUP)) err(`${where}: stories button shown=${!!$('#m-stories')}`);
       T.GROUPS.filter((g) => g.lessons.every((l) => l.kind === 'alphabet')).forEach((g) => {
         const shown = cards.some((b) => b.dataset.group === g.id);
         const wanted = !L.script || c.track === 'full';
@@ -320,7 +552,7 @@
       } else if (!$('.menu .mascot .fallback-mascot')) err(`${where}: no theme and no fallback mascot`);
       groups.forEach((g) => {
         T.renderMenu();
-        app.querySelector(`[data-group="${CSS.escape(g.id)}"]`).click();
+        (g.id === T.STORY_GROUP ? $('#m-stories') : app.querySelector(`[data-group="${CSS.escape(g.id)}"]`)).click();
         if (!$('.group-page')) { err(`${where}: group page for ${g.id} did not open`); return; }
         const lessons = T.visibleLessons(g);
         const lc = $$('[data-topic]');
@@ -328,7 +560,7 @@
         lc.forEach((b) => {
           const l = lessons.find((x) => x.id === b.dataset.topic);
           const chip = !!b.querySelector('.level-chip');
-          if (l && chip !== (l.level !== g.level)) err(`${where}/${l.id}: level chip ${chip} but lesson ${l.level} / group ${g.level}`);
+          if (l && g.id !== T.STORY_GROUP && chip !== (l.level !== g.level)) err(`${where}/${l.id}: level chip ${chip} but lesson ${l.level} / group ${g.level}`);
           if (L.script && c.track !== 'full' && l && l.kind === 'alphabet') err(`${where}: script lesson shown in speak track`);
         });
         lc[0].click();
@@ -638,11 +870,12 @@
         await step(where + ' load', set);
         if (T.cur() !== code || !T.GROUPS.length) { err(`${where}: language did not load`); continue; }
         await step(where + ' navigation', () => checkNavigation(code, c, where));
+        await step(where + ' stories', () => checkStories(code, c, where));
         await step(where + ' lessons', () => T.visibleGroups().forEach((g) => {
           const lessons = T.visibleLessons(g);
           const play = c.full ? lessons : lessons.slice(0, 1);
           play.forEach((tp, i) => {
-            try { playLesson(code, tp, `${where}/${tp.id}`, lessons[i + 1] || null); }
+            try { playLesson(code, tp, `${where}/${tp.id}`, lessons[i + 1] || null, c); }
             catch (e) { err(`${where}/${tp.id}: ${e.message}\n${e.stack}`); }
           });
         }));

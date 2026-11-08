@@ -19,10 +19,10 @@
   const TOPIC_FILES = ['basics', 'people', 'food', 'colors', 'animals', 'body', 'home', 'clothes', 'time', 'city',
     'nature', 'school', 'shopping', 'feelings', 'hobbies', 'verbs', 'grammar', 'culture', 'talk'];
   const MANIFEST = {
-    fa: ['alphabet'].concat(TOPIC_FILES),
-    es: ['sounds'].concat(TOPIC_FILES),
-    ja: ['kana'].concat(TOPIC_FILES),
-    ar: ['alphabet'].concat(TOPIC_FILES),
+    fa: ['alphabet'].concat(TOPIC_FILES, ['stories']),
+    es: ['sounds'].concat(TOPIC_FILES, ['stories']),
+    ja: ['kana'].concat(TOPIC_FILES, ['stories']),
+    ar: ['alphabet'].concat(TOPIC_FILES, ['stories']),
   };
   /**
    * Per-language behaviour.
@@ -193,7 +193,55 @@
         topic.items.push(item);
       } catch (e) { /* skip a broken item */ }
     });
+    if (isStory(tp)) buildStory(topic, tp, code);
     return topic;
+  }
+
+  /* Dialogues and stories (group g-stories, lesson kinds "dialogue" and "story"; see docs/content-format.md). */
+  const STORY_GROUP = 'g-stories';
+  const STORY_KINDS = ['dialogue', 'story'];
+  const isStory = (tp) => !!tp && STORY_KINDS.includes(tp.kind);
+  /** One line of a dialogue/story: [target, latin, english, hebrew, extra?], read like an item. Null if broken. */
+  function storySay(raw, code) {
+    if (!Array.isArray(raw)) return null;
+    const [tg, tr, en, he, extra] = raw;
+    if (![tg, tr, en, he].every((x) => typeof x === 'string' && x)) return null;
+    const say = { tg: fixTarget(tg, code), tr, en, he, kana: null };
+    if (code === 'ja') {
+      if (extra && typeof extra === 'object' && typeof extra.kana === 'string' && extra.kana) say.kana = extra.kana;
+      else if (isKana(say.tg)) say.kana = say.tg.replace(PUNCT, '').replace(/\s+/g, '');
+    }
+    return say;
+  }
+  const storyTextOk = (o) => !!o && typeof o === 'object' && typeof o.en === 'string' && !!o.en;
+  /** Keep the cast, lines and questions of a dialogue/story lesson. Malformed lines and questions are skipped. */
+  function buildStory(topic, tp, code) {
+    const castRaw = tp.cast && typeof tp.cast === 'object' ? tp.cast : {};
+    topic.cast = {};
+    ['a', 'b', 'me'].forEach((k) => {
+      const c = castRaw[k];
+      if (!c || typeof c !== 'object') return;
+      topic.cast[k] = { en: typeof c.en === 'string' ? c.en : '', he: typeof c.he === 'string' ? c.he : '', icon: typeof c.icon === 'string' ? c.icon : '' };
+    });
+    const dialogue = tp.kind === 'dialogue';
+    topic.lines = (Array.isArray(tp.lines) ? tp.lines : []).map((ln) => {
+      try {
+        if (!ln || typeof ln !== 'object') return null;
+        const say = storySay(ln.say, code);
+        if (!say) return null;
+        if (!dialogue) return { who: null, say, wrong: [] };
+        if (!['a', 'b', 'me'].includes(ln.who)) return null;
+        const wrong = ln.who === 'me' && Array.isArray(ln.wrong)
+          ? ln.wrong.map((w) => storySay(w, code)).filter((w) => w && normTarget(w.tg, code) !== normTarget(say.tg, code)) : [];
+        return { who: ln.who, say, wrong };
+      } catch (e) { return null; }
+    }).filter(Boolean);
+    topic.questions = dialogue ? [] : (Array.isArray(tp.questions) ? tp.questions : []).map((q) => {
+      if (!q || typeof q !== 'object' || !storyTextOk(q.q) || !Array.isArray(q.options)) return null;
+      if (q.options.length < 2 || !q.options.every(storyTextOk)) return null;
+      if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) return null;
+      return { q: q.q, options: q.options.slice(), answer: q.answer };
+    }).filter(Boolean);
   }
 
   /** Build the lessons of one language from window.TLAP_DATA.langs[code]. */
@@ -215,6 +263,7 @@
     rawGroups.forEach((g) => {
       if (!g || !g.id || db.GROUP_BY_ID[g.id] || !g.title) return;
       const lessons = (Array.isArray(g.lessons) ? g.lessons : []).map((id) => pool[id]).filter((tp) => tp && tp.group === g.id);
+      if (g.id === STORY_GROUP) lessons.sort((a, b) => LEVELS.indexOf(a.level) - LEVELS.indexOf(b.level));
       if (!lessons.length) return;
       const group = Object.assign({}, g, { level: levelOk(g.level) ? g.level : 'beginner', lessons });
       group.items = lessons.flatMap((tp) => tp.items);
@@ -1009,7 +1058,7 @@
     const mine = levelOk(LS().level) ? LS().level : 'beginner';
     // The learner's own level goes first, then the others in order.
     const sections = [mine, ...LEVELS.filter((l) => l !== mine)]
-      .map((l) => ({ level: l, groups: visibleGroups().filter((g) => g.level === l) }))
+      .map((l) => ({ level: l, groups: visibleGroups().filter((g) => g.level === l && g.id !== STORY_GROUP) }))
       .filter((s) => s.groups.length);
     const best = LS().speedBest;
 
@@ -1024,6 +1073,7 @@
           <span><strong>${esc(t('speed'))}</strong><small>${esc(t('speedDesc'))}${best ? ` · ${esc(t('best'))}: ${best}` : ''}</small></span></button>
         <button class="mode dict" id="m-dict" data-go="dictionary"><span class="mode-icon">📖</span>
           <span><strong>${esc(t('dictionary'))}</strong><small>${esc(t('dictionaryDesc'))}</small></span></button>
+        ${storyModeButton()}
       </div>
       ${sections.length ? '' : `<p class="muted center">${esc(t('noContent'))}</p>`}
       ${sections.map((s) => `<details class="section" ${s.level === mine ? 'open' : ''} data-level="${s.level}">
@@ -1034,6 +1084,7 @@
     $$('[data-group]', app).forEach((b) => b.addEventListener('click', () => renderGroup(GROUP_BY_ID[b.dataset.group])));
     $('#m-review', app).addEventListener('click', startReview);
     $('#m-speed', app).addEventListener('click', startSpeed);
+    if ($('#m-stories', app)) $('#m-stories', app).addEventListener('click', () => renderGroup(GROUP_BY_ID[STORY_GROUP]));
   }
 
   /* ------------------------------------------------------------------ *
@@ -1052,7 +1103,7 @@
       <div class="topic-progress"><div class="progress grow"><i style="width:${pctOf(p)}%"></i></div>
         <span dir="ltr">${p.done}/${p.total}</span></div>
       <h2 class="section-title">${esc(t('chooseLesson'))} <small>${esc(t('chooseLessonSub'))}</small></h2>
-      <div class="topics lessons">${lessons.map(lessonCard).join('')}</div>
+      ${g.id === STORY_GROUP ? storyLessonList(lessons) : `<div class="topics lessons">${lessons.map(lessonCard).join('')}</div>`}
     </main>`);
     $$('[data-topic]', app).forEach((b) => b.addEventListener('click', () => renderTopic(TOPIC_BY_ID[b.dataset.topic])));
   }
@@ -1121,8 +1172,12 @@
    * ------------------------------------------------------------------ */
   const STAGE_ICONS = {
     learn: '📖', choice: '🔘', truefalse: '✅', match: '🧩', typing: '⌨️', order: '🔀', reading: '👀',
-    spelling: '🔤', speaking: '🎤', letters: '🔠', shapes: '🌀', words: '📝', mix: '🏆',
+    spelling: '🔤', speaking: '🎤', letters: '🔠', shapes: '🌀', words: '📝', mix: '🏆', story: '💬',
   };
+  /** Icon, name and description of an exercise. The "story" stage depends on the lesson kind. */
+  const stageIcon = (s, tp) => (s === 'story' ? (tp && tp.kind === 'dialogue' ? '💬' : '📜') : STAGE_ICONS[s]);
+  const stageName = (s, tp) => (s === 'story' ? t(tp && tp.kind === 'dialogue' ? 'storyStChat' : 'storyStRead') : t('st_' + s));
+  const stageDesc = (s, tp) => (s === 'story' ? t(tp && tp.kind === 'dialogue' ? 'storyStChatD' : 'storyStReadD') : t('st_' + s + '_d'));
   /** What the typing exercise asks for: the Spanish word itself, otherwise the Latin letters. */
   const typedAnswer = (it) => (cur === 'es' ? it.tg : it.tr);
   const typingOk = (it) => normLatin(typedAnswer(it)).length <= 30;
@@ -1153,7 +1208,7 @@
   function stagesFor(topic) {
     if (topic.kind === 'alphabet') return L.shapes ? ['learn', 'letters', 'shapes', 'words', 'match', 'mix'] : ['learn', 'letters', 'words', 'match', 'mix'];
     const items = topic.items;
-    const st = ['learn', 'choice', 'truefalse', 'match'];
+    const st = (isStory(topic) && topic.lines && topic.lines.length ? ['story'] : []).concat(['learn', 'choice', 'truefalse', 'match']);
     if (items.filter(typingOk).length >= 3) st.push('typing');
     if (items.filter(orderOk).length >= 3) st.push('order');
     if (scriptTrack()) {
@@ -1183,11 +1238,11 @@
         ${stagesFor(topic).map((s, i) => {
           const got = (rec.stages && rec.stages[s]) || 0;
           const bonus = s === 'speaking';
-          return `<button class="stage s${i % 6} ${got ? 'done' : ''} ${s === 'mix' ? 'mix' : ''} ${bonus ? 'bonus' : ''}" data-stage="${s}">
+          return `<button class="stage s${i % 6} ${got ? 'done' : ''} ${s === 'mix' ? 'mix' : ''} ${s === 'story' ? 'story-first' : ''} ${bonus ? 'bonus' : ''}" data-stage="${s}">
             ${bonus ? `<em class="bonus-chip">✨ ${esc(t('bonus'))}</em>` : ''}
-            <span class="stage-icon">${STAGE_ICONS[s]}</span>
-            <span class="stage-text"><strong>${esc(t('st_' + s))}</strong>
-            <small>${esc(t('st_' + s + '_d'))}</small></span>
+            <span class="stage-icon">${stageIcon(s, topic)}</span>
+            <span class="stage-text"><strong>${esc(stageName(s, topic))}</strong>
+            <small>${esc(stageDesc(s, topic))}</small></span>
             ${stars(got)}
           </button>`;
         }).join('')}
@@ -1343,6 +1398,7 @@
     return rec;
   }
   function startStage(topic, stage) {
+    if (stage === 'story') return startStory(topic);
     session = { mode: 'topic', topic, stage, queue: stageQueue(topic, stage), idx: 0, first: 0, firstRight: 0, xp: 0 };
     renderQuestion();
   }
@@ -1725,7 +1781,7 @@
     }
     saveState();
     const msg = pct === 100 ? t('perfect') : pct >= 70 ? t('great') : t('keepGoing');
-    const title = done.mode === 'review' ? t('reviewDone') : `${STAGE_ICONS[done.stage]} ${t('st_' + done.stage)}`;
+    const title = done.mode === 'review' ? t('reviewDone') : `${stageIcon(done.stage, done.topic)} ${stageName(done.stage, done.topic)}`;
     render(`<main class="results">
       ${resultsHero(pct >= 70 ? 'cheer' : 'happy')}
       <h1>${esc(title)}</h1>
@@ -1737,7 +1793,7 @@
         <div><strong>🔥 ${currentStreak()}</strong><small>${esc(t('streak'))}</small></div>
       </div>
       <div class="stack">
-        ${nextStage ? `<button class="btn primary" id="next-stage" data-next="${nextStage}" data-enter>${esc(t('nextStage'))}: ${STAGE_ICONS[nextStage]} ${esc(t('st_' + nextStage))}</button>` : ''}
+        ${nextStage ? `<button class="btn primary" id="next-stage" data-next="${nextStage}" data-enter>${esc(t('nextStage'))}: ${stageIcon(nextStage, done.topic)} ${esc(stageName(nextStage, done.topic))}</button>` : ''}
         ${nextLesson ? `<button class="btn primary" id="next-lesson" data-next="${esc(nextLesson.id)}" data-enter>${esc(t('nextLesson'))}: <span class="nowrap">${iconHTML(nextLesson.icon)}</span> ${mixed(tx(nextLesson.title))}</button>` : ''}
         <button class="btn ${nextStage || nextLesson ? 'ghost' : 'primary'}" id="again" ${nextStage || nextLesson ? '' : 'data-enter'}>${esc(t('again'))}</button>
         ${done.mode === 'topic' ? `<button class="btn ghost" id="to-topic">${esc(t('backToTopic'))}</button>` : ''}
@@ -1882,6 +1938,252 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Dialogues & stories: the menu button, the group page, and the two players (stage "story")
+   * ------------------------------------------------------------------ */
+  /** The big "Dialogues & stories" button on the main menu (only when the language has them). */
+  function storyModeButton() {
+    const g = GROUP_BY_ID[STORY_GROUP];
+    if (!g || !visibleLessons(g).length) return '';
+    const p = groupProgress(g);
+    return `<button class="mode stories" id="m-stories"><span class="mode-icon">💬</span>
+      <span><strong>${esc(t('storyMenu'))}</strong><small>${esc(t('storyMenuDesc'))} · <span dir="ltr">${p.done}/${p.total}</span></small></span></button>`;
+  }
+  /** A dialogue/story card on the group page: like lessonCard, with the kind instead of the level. */
+  function storyLessonCard(tp, i) {
+    const p = stageProgress(tp);
+    const done = p.done === p.total;
+    const kind = tp.kind === 'dialogue' ? `💬 ${t('storyKindDialogue')}` : tp.kind === 'story' ? `📜 ${t('storyKindStory')}` : '';
+    return `<button class="topic c${i % 6} ${done ? 'done' : ''}" data-topic="${esc(tp.id)}">
+      <span class="topic-icon">${iconHTML(tp.icon)}</span>
+      <span class="topic-body"><strong>${mixed(tx(tp.title))}</strong>${kind ? `<em class="story-kind">${esc(kind)}</em>` : ''}
+      <small>${esc(countText(tp.items.length, 'word'))} · ${p.done}/${p.total} ${esc(t('stagesDone'))}</small>
+      <span class="mini-bar"><i style="width:${pctOf(p)}%"></i></span></span>
+      ${done ? trophy : ''}
+    </button>`;
+  }
+  /** The g-stories group page: the lessons under a heading per level (in level order); the learner's level is marked. */
+  function storyLessonList(lessons) {
+    const mine = levelOk(LS().level) ? LS().level : 'beginner';
+    let n = 0;
+    return LEVELS.map((l) => {
+      const list = lessons.filter((tp) => tp.level === l);
+      if (!list.length) return '';
+      return `<section class="story-level ${l === mine ? 'mine' : ''}" data-level="${l}">
+        <h3 class="story-level-title"><span>${esc(t(l))}</span>${l === mine ? `<em class="badge">${esc(t('yourLevel'))}</em>` : ''}</h3>
+        <div class="topics lessons">${list.map((tp) => storyLessonCard(tp, n++)).join('')}</div>
+      </section>`;
+    }).join('');
+  }
+
+  /** A line's text as the app shows words: target big + reading small (Latin big + target small in the speaking track). */
+  function storySayHTML(say) {
+    const tgFirst = readerMode();
+    const kana = tgFirst ? readingOf(say) : '';
+    const a = tgFirst ? tgS(say.tg, 'primary') : trS(say.tr, 'primary');
+    const b = tgFirst ? trS(say.tr, 'secondary') : tgS(say.tg, 'secondary');
+    return `${a}${kana ? tgS(kana, 'reading') : ''}${b}`;
+  }
+  /** A tappable line: tap (or Enter/Space) shows its translation in the UI language. */
+  const storyLine = (say, open) => `<button class="story-line ${open ? 'open' : ''}" aria-expanded="${!!open}" title="${esc(t('storyShowMeaning'))}">
+    <span class="story-say">${storySayHTML(say)}</span>
+    <span class="story-meaning" ${open ? '' : 'hidden'}>${esc(meaning(say))}</span>
+    <span class="story-eye" aria-hidden="true">👁</span></button>`;
+  function toggleLine(b, open) {
+    const m = $('.story-meaning', b);
+    if (!m) return;
+    const on = open === undefined ? m.hidden : open;
+    m.hidden = !on;
+    b.classList.toggle('open', on);
+    b.setAttribute('aria-expanded', String(on));
+  }
+  /** One chat bubble. The other speakers sit on the start side with their icon and name, the learner on the end side. */
+  function chatBubble(topic, line, open) {
+    const me = line.who === 'me';
+    const c = topic.cast[line.who] || {};
+    const name = me ? '' : tx(c);
+    return `<div class="chat-row ${me ? 'me' : 'them'} who-${esc(line.who)}">
+      ${me ? '' : `<span class="chat-avatar" aria-hidden="true">${iconHTML(c.icon || '💬')}</span>`}
+      <div class="chat-col">${name ? `<span class="chat-name">${mixed(name)}</span>` : ''}${storyLine(line.say, open)}</div>
+    </div>`;
+  }
+  /** Header, scene and "show all translations" toggle shared by both players. */
+  function storyShell(topic, kindCls, body) {
+    const cast = topic.kind === 'dialogue' ? ['a', 'b'].filter((k) => topic.cast[k] && tx(topic.cast[k])) : [];
+    return `<main class="practice story-player ${kindCls}">
+      <div class="lesson-head">
+        <button class="icon-btn" id="quit" aria-label="${esc(t('exit'))}">✕</button>
+        <div class="progress grow"><i id="story-prog" style="width:0%"></i></div>
+      </div>
+      <h1 class="story-title"><span class="title-icon">${iconHTML(topic.icon)}</span><span class="title-text">${mixed(tx(topic.title))}</span></h1>
+      ${topic.intro ? `<div class="intro story-scene">${topic.kind === 'dialogue' ? '🎬' : '📜'} ${mixed(tx(topic.intro))}</div>` : ''}
+      ${cast.length ? `<div class="story-cast">${cast.map((k) => `<span class="story-cast-chip"><span aria-hidden="true">${iconHTML(topic.cast[k].icon || '💬')}</span> ${mixed(tx(topic.cast[k]))}</span>`).join('')}</div>` : ''}
+      <div class="story-tools"><span class="muted small">${esc(t('storyTapHint'))}</span>
+        <button class="chip-btn" id="story-all" aria-pressed="false">👁 ${esc(t('storyShowAll'))}</button></div>
+      ${body}
+    </main>`;
+  }
+  /** Wire the shell: quit, line taps (delegated), and the show-all toggle. Returns {all(): bool}. */
+  function mountStoryShell(topic) {
+    let all = false;
+    $('#quit', app).addEventListener('click', () => { if (confirm(t('confirmQuit'))) renderTopic(topic); });
+    $('main.story-player', app).addEventListener('click', (e) => {
+      const b = e.target.closest('.story-line');
+      if (b) toggleLine(b);
+    });
+    $('#story-all', app).addEventListener('click', (e) => {
+      all = !all;
+      e.currentTarget.setAttribute('aria-pressed', String(all));
+      e.currentTarget.classList.toggle('selected', all);
+      $$('.story-line', app).forEach((b) => toggleLine(b, all));
+    });
+    return { all: () => all };
+  }
+  /** Feedback strip (same look as the exercises'): ok | bad, a title, more HTML, and an optional button. */
+  function storyFeedback(ok, title, more, btnHTML) {
+    return `<div class="feedback ${ok ? 'ok' : 'bad'}" id="story-fb">${mascot(ok ? 'cheer' : 'sad', 'mascot-fb')}
+      <div class="fb-text"><strong>${ok ? '✓ ' : '✗ '}${esc(title)}</strong>${more ? `<div>${more}</div>` : ''}</div>${btnHTML || ''}</div>`;
+  }
+  const scrollToEnd = () => { try { window.scrollTo({ top: document.documentElement.scrollHeight }); } catch (e) { /* ignore */ } };
+  const focusBtn = (sel) => { const b = $(sel, app); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } };
+
+  function startStory(topic) {
+    if (!isStory(topic) || !topic.lines || !topic.lines.length) return renderTopic(topic);
+    session = { mode: 'topic', topic, stage: 'story', queue: [], idx: 0, first: 0, firstRight: 0, xp: 0 };
+    if (topic.kind === 'dialogue') renderDialogue(topic); else renderStoryRead(topic);
+  }
+
+  /** Dialogue: a chat that grows one line at a time; on the learner's turns, pick the right reply of three. */
+  function renderDialogue(topic) {
+    const lines = topic.lines;
+    const run = session;
+    let i = 0; // the next line to show
+    render(storyShell(topic, 'dialogue-player', `<div class="chat" id="chat" aria-live="polite"></div>
+      <div class="story-controls" id="story-controls"></div>`));
+    const shell = mountStoryShell(topic);
+    const chat = $('#chat', app);
+    const controls = $('#story-controls', app);
+    const isTurn = (ln) => ln && ln.who === 'me' && ln.wrong.length > 0;
+    const progress = () => { $('#story-prog', app).style.width = (i / lines.length) * 100 + '%'; };
+    const addBubble = (ln) => { chat.insertAdjacentHTML('beforeend', chatBubble(topic, ln, shell.all())); i++; progress(); };
+    const nextBtn = (cls = 'primary') => (i >= lines.length
+      ? `<button class="btn ${cls}" id="story-next" data-enter>${esc(t('done'))} 🎉</button>`
+      : `<button class="btn ${cls}" id="story-next" data-enter>${esc(t('next'))}</button>`);
+    function bindNext() {
+      const b = $('#story-next', app);
+      if (b) b.addEventListener('click', () => (i >= lines.length ? finishSession() : step()));
+    }
+    /** After a line: the learner's turn comes straight away, otherwise a Next (or Done) button. */
+    function after() {
+      if (session !== run) return;
+      if (isTurn(lines[i])) { turn(lines[i]); return; }
+      controls.innerHTML = `<div class="row story-row"><span></span>${nextBtn()}</div>`;
+      bindNext();
+      focusBtn('#story-next');
+      scrollToEnd();
+    }
+    function step() {
+      const ln = lines[i];
+      if (!ln) { finishSession(); return; }
+      if (isTurn(ln)) { turn(ln); return; }
+      addBubble(ln); // includes a "me" line without replies: it is simply said
+      after();
+    }
+    function turn(ln) {
+      const opts = shuffle([{ say: ln.say, correct: true }, ...ln.wrong.slice(0, 2).map((w) => ({ say: w, correct: false }))]);
+      let tried = false;
+      controls.innerHTML = `<p class="story-turn">🗨️ ${esc(t('storyYourTurn'))}</p>
+        <div class="options story-replies">${opts.map((o, k) => `<button class="opt" data-i="${k}">${wordShort(o.say)}</button>`).join('')}</div>
+        <div id="story-fb-box"></div>`;
+      $$('.story-replies .opt', app).forEach((b) => b.addEventListener('click', () => {
+        const o = opts[+b.dataset.i];
+        if (!tried) { tried = true; session.first++; if (o.correct) { session.firstRight++; session.xp += 10; } }
+        if (!o.correct) {
+          b.classList.add('wrong');
+          b.disabled = true;
+          const means = fmt(esc(t('storyMeans')), { say: tgS(o.say.tg), meaning: esc(meaning(o.say)) });
+          $('#story-fb-box', app).innerHTML = storyFeedback(false, themeLine('wrong'), `${means}<br>${esc(t('storyTryAgain'))}`);
+          return;
+        }
+        addBubble(ln);
+        controls.innerHTML = storyFeedback(true, themeLine('right'), '', nextBtn());
+        bindNext();
+        focusBtn('#story-next');
+        scrollToEnd();
+      }));
+      progress();
+      scrollToEnd();
+    }
+    step();
+  }
+
+  /** Story: read it line by line, then answer the comprehension questions. */
+  function renderStoryRead(topic) {
+    const lines = topic.lines;
+    const qs = topic.questions;
+    const run = session;
+    const total = lines.length + qs.length;
+    let i = 0;
+    render(storyShell(topic, 'story-reader', `<div class="story-read" id="story-read" aria-live="polite"></div>
+      <div class="story-controls" id="story-controls"></div>`));
+    const shell = mountStoryShell(topic);
+    const box = $('#story-read', app);
+    const controls = $('#story-controls', app);
+    function step() {
+      if (session !== run) return;
+      box.insertAdjacentHTML('beforeend', storyLine(lines[i].say, shell.all()));
+      i++;
+      $('#story-prog', app).style.width = (i / total) * 100 + '%';
+      const last = i >= lines.length;
+      controls.innerHTML = `<div class="row story-row"><span></span><button class="btn primary" id="story-next" data-enter>${
+        esc(!last ? t('next') : qs.length ? t('storyToQuestions') + ' →' : t('done') + ' 🎉')}</button></div>`;
+      $('#story-next', app).addEventListener('click', () => {
+        if (!last) step();
+        else if (qs.length) renderStoryQuestion(topic, 0);
+        else finishSession();
+      });
+      focusBtn('#story-next');
+      scrollToEnd();
+    }
+    step();
+  }
+  function renderStoryQuestion(topic, k) {
+    const lines = topic.lines;
+    const qs = topic.questions;
+    const q = qs[k];
+    const opts = shuffle(q.options.map((o, n) => ({ o, correct: n === q.answer })));
+    const right = opts.find((o) => o.correct);
+    render(`<main class="practice story-player story-questions">
+      <div class="lesson-head">
+        <button class="icon-btn" id="quit" aria-label="${esc(t('exit'))}">✕</button>
+        <div class="progress grow"><i style="width:${((lines.length + k) / (lines.length + qs.length)) * 100}%"></i></div>
+      </div>
+      <h2 class="prompt">${esc(fmt(t('storyQCount'), { n: k + 1, total: qs.length }))}</h2>
+      <div class="q-body">
+        <div class="stem">${meaningBig(tx(q.q), mixed(tx(q.q)))}</div>
+        <div class="options story-answers">${opts.map((o, n) => `<button class="opt" data-i="${n}">${mixed(tx(o.o))}</button>`).join('')}</div>
+      </div>
+      <details class="story-again"><summary>📜 ${esc(t('storyReadAgain'))}</summary>
+        <div class="story-read">${lines.map((ln) => storyLine(ln.say)).join('')}</div></details>
+      <div id="story-fb-box"></div>
+    </main>`);
+    $('#quit', app).addEventListener('click', () => { if (confirm(t('confirmQuit'))) renderTopic(topic); });
+    $('.story-again', app).addEventListener('click', (e) => { const b = e.target.closest('.story-line'); if (b) toggleLine(b); });
+    $$('.story-answers .opt', app).forEach((b) => b.addEventListener('click', () => {
+      const o = opts[+b.dataset.i];
+      session.first++;
+      if (o.correct) { session.firstRight++; session.xp += 10; }
+      $$('.story-answers .opt', app).forEach((x, n) => { x.disabled = true; if (opts[n].correct) x.classList.add('right'); });
+      if (!o.correct) b.classList.add('wrong');
+      const last = k >= qs.length - 1;
+      $('#story-fb-box', app).innerHTML = storyFeedback(o.correct, themeLine(o.correct ? 'right' : 'wrong'),
+        o.correct ? '' : `${esc(t('correctAnswer'))} ${mixed(tx(right.o))}`,
+        `<button class="btn ${o.correct ? 'primary' : 'danger'}" id="continue" data-enter>${esc(t('continue'))}</button>`);
+      $('#continue', app).addEventListener('click', () => (last ? finishSession() : renderStoryQuestion(topic, k + 1)));
+      focusBtn('#continue');
+    }));
+  }
+
+  /* ------------------------------------------------------------------ *
    * Speed round
    * ------------------------------------------------------------------ */
   /** What a speed-round question shows first. */
@@ -2017,6 +2319,7 @@
     startStage, stagesFor, countedStages, stageProgress, stageQueue, visibleGroups, visibleLessons,
     renderTopic, renderGroup, renderLearn, renderMenu, renderSettings, renderDictionary, renderLangPicker, renderOnboarding,
     startReview, startSpeed,
+    startStory, isStory, STORY_GROUP, storyLessonList,
     dictSearch, dictUpdate: updateDictionary, mixed, nextLessonAfter,
     speedRunning: () => !!speed,
     session: () => session,
