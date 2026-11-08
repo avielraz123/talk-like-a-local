@@ -657,6 +657,67 @@
     } catch (e) { /* ignore */ }
   }
 
+  /* ------------------------------------------------------------------ *
+   * Playing with the background world: tap a sky or side object to make it react.
+   * Themes mark pokeable parts with data-poke="<name>" and animate them with the .poked class;
+   * an optional theme.onPoke(name, info) adds surprises. Not while answering (calm mode).
+   * ------------------------------------------------------------------ */
+  const POKE_BLOCK = 'button, a, input, textarea, select, label, summary, [role="button"], [contenteditable], .confetti';
+  const isClear = (cs) => cs.backgroundImage === 'none' && (cs.backgroundColor === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(cs.backgroundColor));
+  /** The pokeable world object under (x, y), if the tap landed on an empty part of the page. */
+  function pokeTargetAt(x, y, target) {
+    const root = document.documentElement;
+    if (!cur || root.classList.contains('calm')) return null;
+    for (let el = target; el && el !== document.body && el !== root; el = el.parentElement) {
+      if (el.id === 'theme-layer') break;
+      if (el.matches && el.matches(POKE_BLOCK)) return null;
+      if (el !== app && el.tagName !== 'MAIN' && !isClear(getComputedStyle(el))) return null; // a card, bubble or panel
+    }
+    const hit = (document.elementsFromPoint ? document.elementsFromPoint(x, y) : [])
+      .find((e) => e.closest && e.closest('#theme-layer [data-poke]'));
+    return hit ? hit.closest('[data-poke]') : null;
+  }
+  const pokes = new WeakMap();
+  function poke(el) {
+    const now = Date.now();
+    const rec = pokes.get(el) || { taps: 0, total: 0, last: 0, timer: 0 };
+    rec.taps = now - rec.last < 2000 ? rec.taps + 1 : 1; // taps in a row (each within 2 s of the last)
+    rec.total += 1;
+    rec.last = now;
+    pokes.set(el, rec);
+    el.setAttribute('data-taps', String(rec.taps));
+    el.classList.remove('poked');
+    void el.getBoundingClientRect(); // restart the CSS animation
+    el.classList.add('poked');
+    clearTimeout(rec.timer);
+    rec.timer = setTimeout(() => el.classList.remove('poked'), 2500);
+    const th = theme();
+    if (th && typeof th.onPoke === 'function') {
+      try {
+        th.onPoke(el.getAttribute('data-poke'), {
+          el, taps: rec.taps, total: rec.total,
+          layer: document.getElementById('theme-layer'),
+          dark: !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches),
+          reduced: !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches),
+        });
+      } catch (e) { /* a theme surprise must never break the app */ }
+    }
+  }
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button) return;
+    const el = pokeTargetAt(e.clientX, e.clientY, e.target);
+    if (el) poke(el);
+  });
+  let pokeHoverQueued = false;
+  document.addEventListener('mousemove', (e) => {
+    if (pokeHoverQueued) return;
+    pokeHoverQueued = true;
+    requestAnimationFrame(() => {
+      pokeHoverQueued = false;
+      document.body.classList.toggle('poke-hover', !!pokeTargetAt(e.clientX, e.clientY, e.target));
+    });
+  });
+
   function letterForm(it, which) {
     if (which === 'initial') return it.tg + ZWJ;
     if (which === 'medial') return ZWJ + it.tg + ZWJ;

@@ -99,6 +99,10 @@ html.calm #theme-layer > .objects, html.calm #theme-layer > .ambient { opacity: 
 html.calm #theme-layer > .sky { opacity: .45; }
 html.calm #theme-layer > .scene { opacity: .4; }
 html.calm #theme-layer > .corner { opacity: .35; }
+/* Pokeable world objects (see pokeTargetAt in app.js): clickable, except in calm mode. */
+#theme-layer [data-poke] { pointer-events: auto; cursor: pointer; }
+html.calm #theme-layer [data-poke] { pointer-events: none; }
+body.poke-hover { cursor: pointer; }
 html.calm body::before { opacity: calc(var(--theme-pattern-opacity, 0) * .55); }
 .theme-deco.banner { margin: 0 -8px 2px; height: auto; }
 .theme-deco.banner svg { height: auto; max-height: 72px; }

@@ -133,6 +133,24 @@ Rules for the world:
 - **Shared circles:** you may drop the shared round color circles behind the page if they clash with your world: `html[data-lang="<lang>"] body { background-image: var(--theme-wash, none); }`.
 - **Positioning:** never position anything relative to app elements. The world is independent of the layout.
 
+## 4. Playing with the world (tap to react)
+
+Learners can tap the **sky** pieces (sun, moon, clouds, stars) and the side **objects**. They react with a fun animation, and some hide a surprise. The user asked for exactly these two things, and **not** for words or collecting.
+
+- **Marking pieces:** give each pokeable element (an element or SVG `<g>` inside `sky` or `objects`) `data-poke="<name>"`, e.g. `data-poke="moon"` or `data-poke="lantern"`. The landscape `scene` and the moving `ambient` bits are not pokeable.
+- **How taps reach them:** the shared code makes `[data-poke]` elements clickable and forwards taps on empty parts of the page (not on buttons, cards or bubbles) to the object underneath. It also shows a pointer cursor over them. Nothing is pokeable in calm mode (exercises).
+- **Reaction:** on every tap the app restarts the class `poked` on the element (removed again after 2.5 s) and sets `data-taps="<n>"` (taps in a row, each within 2 s of the previous).
+  - Write the reaction as a CSS animation on `html[data-lang="<lang>"] .<lang>-thing.poked`, lasting 0.6–1.5 s, e.g. the lantern swings, the goldfish jumps, the sun winks, a cloud puffs, the moon wobbles.
+  - Use `data-taps` for escalating reactions if you like.
+  - Use transform-box/transform-origin so SVG parts move around their own center or top.
+- **Surprises:** optionally add `onPoke: function (name, info) { ... }` to the theme object. `info = {el, taps, total, layer, dark, reduced}`, where `layer` is `#theme-layer`, `dark` is true in dark mode, and `reduced` means the user prefers reduced motion.
+  - Use it for 2–4 hidden surprises per world, e.g. tap the moon 3 times in a row and shooting stars cross the sky, a cloud tapped 5 times rains sakura petals, or a cat appears in a window.
+  - Make a surprise by appending temporary elements to `info.layer` (namespaced classes, `aria-hidden`, `pointer-events: none`) that animate and are **removed** after they finish (setTimeout). Never more than one copy of a surprise at a time.
+  - It must never throw. The app catches errors, but don't rely on that.
+  - It must not touch anything outside `#theme-layer`.
+- **Reduced motion:** when `info.reduced` is true, or under `@media (prefers-reduced-motion: reduce)`, keep reactions to a gentle opacity or color change with no movement, and skip moving surprises.
+- **Size:** pokeable things should be large enough to hit with a finger, at least ~36px, or give them an invisible larger hit area.
+
 ## Cultural guidance
 
 - Celebrate everyday, positive culture: food, nature, crafts, festivals, architecture and art.
