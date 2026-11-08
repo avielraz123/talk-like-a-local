@@ -122,6 +122,11 @@
       if (!fa.topics['v1-topic'] || fa.topics['v1-topic'].stages.mix !== 2) err('v1 star rating not migrated to stages.mix');
       if (!fa.topics.greetings || fa.topics.greetings.stages.choice !== 2) err('topic stages not migrated');
       if (fa.words['greetings:0'] !== 4 || fa.speedBest !== 9) err('words / speedBest not migrated');
+      // Spaced repetition is seeded from the word strengths (4 -> step 1 due in 1-3 days, 1 -> due today).
+      const sToday = T.todayNum();
+      if (!fa.srs || !fa.srs['greetings:0'] || fa.srs['greetings:0'][0] !== 1 || fa.srs['greetings:0'][1] < sToday + 1 || fa.srs['greetings:0'][1] > sToday + 3
+        || JSON.stringify(fa.srs['greetings:1']) !== JSON.stringify([0, sToday])) err('old save: review schedule not seeded ' + JSON.stringify(fa.srs));
+      if (S.settings.goal !== 50 || !Array.isArray(S.goalLog) || !S.daily || !S.badges) err('old save: goal / badge fields missing');
       if (S.xp !== 5 || S.streak.count !== 3) err('xp / streak not kept (global)');
       if (S.topics || S.words) err('old top-level topics/words left in the state');
       const saved = JSON.parse(localStorage.getItem(T.STORE_KEY) || 'null');
@@ -648,6 +653,7 @@
         }));
         await step(where + ' review', () => {
           T.startReview(); sessions++;
+          if ($('#srs-hardest')) $('#srs-hardest').click(); // nothing due today: practice the hardest words
           let guard = 0;
           while (!$('.results') && guard++ < 100) { questions++; if (!autoAnswer('review')) break; }
           if (!$('.results')) err(`${where}: review never finished`);
@@ -847,6 +853,225 @@
       sp.forEach(([code, heard, tg, kana, want]) => { if (T.speechMatches(heard, tg, kana, code) !== want) err(`speechMatches[${code}](${heard}, ${tg}) != ${want}`); });
     }
 
+    /* ---------------- progress: smart review, daily goal, badges ---------------- */
+    async function checkProgress() {
+      const code = langs[0];
+      await T.setSettings({ uiLang: 'en', lang: code, level: 'beginner', track: 'full', speech: true });
+      const S = T.state();
+      const E = STR.en;
+      const today = T.todayNum();
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      // Days are counted in local time.
+      if (T.dayNum(new Date(1970, 0, 1)) !== 0 || T.dayNum(new Date(1970, 0, 2, 0, 30)) !== 1) err('progress: dayNum is not local days since 1970');
+      const now = new Date();
+      if (T.dayNum(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59)) !== today) err('progress: late evening is not today');
+
+      // Migration: an old save gets a review schedule from its word strengths; nothing else changes.
+      const oldWords = { 'a:0': 1, 'a:1': 2, 'a:2': 3, 'a:3': 4, 'a:4': 5, 'a:5': 0 };
+      const old = () => ({ v: 2, settings: { uiLang: 'en', lang: code, speech: false }, xp: 10, streak: { count: 0, last: null },
+        langs: { [code]: { level: 'beginner', track: 'full', topics: {}, words: Object.assign({}, oldWords), speedBest: 0 } } });
+      const m = T.normalizeState(old());
+      const srs = m.langs[code].srs;
+      if (!same(srs['a:0'], [0, today]) || !same(srs['a:1'], [0, today])) err('progress: strength 1-2 not due today ' + JSON.stringify(srs));
+      ['a:2', 'a:3'].forEach((id) => { const e = srs[id]; if (!e || e[0] !== 1 || e[1] < today + 1 || e[1] > today + 3) err(`progress: ${id} seeded ${JSON.stringify(e)}`); });
+      if (!srs['a:4'] || srs['a:4'][0] !== 2 || srs['a:4'][1] < today + 1 || srs['a:4'][1] > today + 7) err('progress: strength 5 seeded ' + JSON.stringify(srs['a:4']));
+      if ('a:5' in srs) err('progress: strength 0 seeded');
+      if (!same(m.langs[code].words, oldWords)) err('progress: migration changed the words');
+      if (!same(T.normalizeState(old()).langs[code].srs, srs)) err('progress: seeding is not deterministic');
+      if (m.settings.goal !== 50 || !same(m.daily, { day: null, xp: 0 }) || !same(m.goalLog, []) || !same(m.badges, {})) err('progress: new defaults ' + JSON.stringify([m.settings, m.daily, m.goalLog, m.badges]));
+      const m2 = T.normalizeState({ v: 2, settings: { uiLang: 'en', lang: code, goal: '100' }, daily: { day: '2026-1-1', xp: '12' },
+        goalLog: ['x', 5, 'x', 'y'], badges: { first: '2026-1-1', bad: 3 },
+        langs: { [code]: { words: { 'a:0': 5 }, srs: { 'a:0': [3, 123], bad: 'x', 'b:1': [9, 5.4] } } } });
+      if (!same(m2.langs[code].srs, { 'a:0': [3, 123], 'b:1': [5, 5] })) err('progress: saved srs not kept/cleaned ' + JSON.stringify(m2.langs[code].srs));
+      if (m2.settings.goal !== 100 || m2.daily.xp !== 12 || !same(m2.goalLog, ['x', 'y']) || !same(m2.badges, { first: '2026-1-1' })) err('progress: saved fields not normalized');
+      if (T.normalizeState({ settings: { uiLang: 'en', goal: 77 } }).settings.goal !== 50) err('progress: bad goal not reset to 50');
+
+      // Spaced repetition steps.
+      const ls = S.langs[code];
+      const words = T.ALL_WORDS;
+      const it = words[0];
+      ls.srs = {}; ls.words = {};
+      T.srsAnswer(it, true);
+      if (!same(ls.srs[it.id], [0, today + 1])) err('progress: new right answer not due tomorrow ' + JSON.stringify(ls.srs[it.id]));
+      T.srsAnswer(it, true);
+      if (!same(ls.srs[it.id], [0, today + 1])) err('progress: right before due changed the schedule');
+      T.shiftDays(1); T.srsAnswer(it, true);
+      if (!same(ls.srs[it.id], [1, today + 1 + 3])) err('progress: due right answer not step 1 / +3 ' + JSON.stringify(ls.srs[it.id]));
+      T.shiftDays(4); T.srsAnswer(it, true);
+      if (!same(ls.srs[it.id], [2, today + 4 + 7])) err('progress: step 2 / +7 ' + JSON.stringify(ls.srs[it.id]));
+      T.srsAnswer(it, false);
+      if (!same(ls.srs[it.id], [0, today + 4])) err('progress: wrong answer not step 0 / today');
+      ls.srs[it.id] = [5, today + 2]; T.shiftDays(2); T.srsAnswer(it, true);
+      if (!same(ls.srs[it.id], [5, today + 2 + 90])) err('progress: last step not kept at 90 days ' + JSON.stringify(ls.srs[it.id]));
+      T.shiftDays(0);
+
+      // Due list: most overdue first, ties by lowest strength; letters only for read & write.
+      const [w1, w2, w3, w4] = words;
+      ls.srs = { [w1.id]: [0, today - 3], [w2.id]: [1, today], [w3.id]: [0, today], [w4.id]: [0, today + 2] };
+      ls.words = { [w2.id]: 4, [w3.id]: 1 };
+      if (T.srsDue().map((x) => x.id).join() !== [w1.id, w3.id, w2.id].join()) err('progress: due order ' + T.srsDue().map((x) => x.id));
+      T.renderMenu();
+      if (!$('#m-review .srs-due').textContent.includes('3') || !$('.srs-count') || $('.srs-count').textContent !== '3') err('progress: menu due count ' + $('#m-review').textContent);
+      const letter = T.TOPICS.filter((tp) => tp.kind === 'alphabet').flatMap((tp) => tp.items)[0];
+      if (letter && T.LANGS[code].script) {
+        ls.srs[letter.id] = [0, today];
+        if (!T.srsDue().includes(letter)) err('progress: due letter missing in read & write');
+        T.patchSettings({ track: 'speak' });
+        if (T.srsDue().includes(letter)) err('progress: letter due in speaking-only track');
+        T.renderMenu();
+        if ($('.srs-count').textContent !== '3') err('progress: speaking-only menu counts letters');
+        T.patchSettings({ track: 'full' });
+      }
+
+      // Review session: up to 15 due items, the most overdue ones.
+      ls.srs = {}; ls.words = {};
+      const pool = words.slice(0, 20);
+      pool.forEach((w, i) => (ls.srs[w.id] = [0, today - 20 + i]));
+      T.startReview();
+      const q = T.session().queue;
+      const ids = new Set(q.flatMap((x) => (x.items || [x.item]).map((y) => y.id)));
+      const want = new Set(pool.slice(0, 15).map((w) => w.id));
+      if (T.session().mode !== 'review' || T.session().hard) err('progress: review session mode');
+      if (ids.size !== Math.min(15, pool.length) || [...ids].some((id) => !want.has(id))) err(`progress: review took ${ids.size} items, not the 15 most overdue`);
+      if (q.some((x) => x.item && x.item.isLetter && !T.readerMode())) err('progress: letters in review');
+      playSession('progress review');
+      const moved = pool.slice(0, 15).filter((w) => ls.srs[w.id][1] > today).length;
+      const stay = pool.slice(0, 15).filter((w) => same(ls.srs[w.id], [0, today])).length;
+      if (moved + stay !== Math.min(15, pool.length)) err(`progress: after review ${moved} moved + ${stay} due today`);
+      if (pool.slice(15).some((w, i) => ls.srs[w.id][1] !== today - 5 + i)) err('progress: items outside the review changed');
+
+      // Speaking (an optional bonus) never touches the schedule.
+      // The app uses the browser's own SpeechRecognition when there is one: catch the recognizer it creates.
+      const SRf = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const P = SRf.prototype;
+      const saved = ['onresult', 'start', 'abort'].map((k) => [k, Object.getOwnPropertyDescriptor(P, k)]);
+      Object.defineProperty(P, 'onresult', { configurable: true, set(fn) { window.__lastRec = this; this._onres = fn; }, get() { return this._onres; } });
+      Object.defineProperty(P, 'start', { configurable: true, writable: true, value() {} });
+      Object.defineProperty(P, 'abort', { configurable: true, writable: true, value() {} });
+      const speakTopic = T.TOPICS.find((tp) => tp.kind !== 'alphabet' && T.stagesFor(tp).includes('speaking'));
+      if (speakTopic) {
+        T.startStage(speakTopic, 'speaking');
+        const sq = T.session().queue[0];
+        const before = JSON.stringify(ls.srs);
+        $('#mic').click();
+        window.__lastRec.onresult({ results: [[{ transcript: sq.item.tg }]] });
+        if (!$('#continue')) err('progress: fake speech answer not accepted');
+        if (JSON.stringify(ls.srs) !== before) err('progress: speaking changed the review schedule');
+      } else err('progress: no lesson with a speaking stage');
+      saved.forEach(([k, d]) => { if (d) Object.defineProperty(P, k, d); else delete P[k]; });
+
+      // Nothing due: a kind message and the old "hardest words" review.
+      ls.srs = {}; ls.words = {};
+      words.slice(0, 6).forEach((w, i) => { ls.srs[w.id] = [1, today + 3]; ls.words[w.id] = i % 3; });
+      T.renderMenu();
+      if ($('#m-review .srs-due').textContent !== E.srsCaughtUp || $('.srs-count')) err('progress: caught-up text ' + $('#m-review .srs-due').textContent);
+      $('#m-review').click();
+      if (!$('.srs-none') || !$('#srs-hardest') || !$('.srs-none h1')) err('progress: nothing-due screen');
+      else {
+        $('#srs-hardest').click();
+        if (!$('.prompt') || !T.session().hard) err('progress: hardest words did not start');
+        playSession('progress hardest');
+        $('#again').click();
+        if (!T.session().hard) err('progress: "practice again" after hardest words is not hardest words');
+      }
+      ls.srs = {}; ls.words = {};
+      T.startReview();
+      if (!$('.srs-none') || $('#srs-hardest') || $('.lead').textContent !== E.reviewEmpty) err('progress: empty review screen');
+
+      // Daily goal.
+      S.daily = { day: null, xp: 0 }; S.goalLog = []; S.settings.goal = 30;
+      T.renderMenu();
+      const card = $('.goal-card');
+      if (!card || card.classList.contains('done') || !$('.goal-num').textContent.startsWith('0 / 30')) err('progress: goal card at 0 ' + (card && card.textContent));
+      if (card && !(card.compareDocumentPosition($('.modes')) & Node.DOCUMENT_POSITION_FOLLOWING)) err('progress: goal card not above the mode buttons');
+      if (card && !$('.goal-ring[role="img"]').getAttribute('aria-label').includes('30')) err('progress: goal ring label');
+      T.addXP(25);
+      if (S.goalLog.length || S.daily.day !== T.todayKey() || S.daily.xp !== 25) err('progress: daily xp ' + JSON.stringify(S.daily));
+      const xp0 = S.xp;
+      const tp = T.TOPICS.find((x) => x.kind !== 'alphabet');
+      T.startStage(tp, 'truefalse');
+      playSession('progress goal');
+      if (!$('.celebrate .goal-toast')) err('progress: no goal message on the results screen');
+      if (!S.goalLog.includes(T.todayKey()) || S.daily.xp !== 25 + (S.xp - xp0)) err('progress: goal not logged ' + JSON.stringify([S.goalLog, S.daily]));
+      T.startStage(tp, 'truefalse');
+      playSession('progress goal 2');
+      if ($('.goal-toast')) err('progress: goal celebrated twice');
+      T.renderMenu();
+      if (!$('.goal-card.done') || !$('.goal-title').textContent.includes(E.goalDone) || $('.goal-toast')) err('progress: menu goal reached state');
+      T.shiftDays(1); T.renderMenu();
+      if (!$('.goal-num').textContent.startsWith('0 /') || $('.goal-card.done')) err('progress: goal not reset on a new day');
+      T.shiftDays(0);
+      S.goalLog = Array.from({ length: 400 }, (_, i) => '1990-1-' + i); S.daily = { day: null, xp: 0 };
+      T.addXP(200);
+      if (S.goalLog.length !== 400 || S.goalLog[399] !== T.todayKey()) err('progress: goal log not capped at 400');
+      T.renderSettings();
+      const g100 = app.querySelector('.goal-seg [data-v="100"]');
+      if (!g100 || $$('.goal-seg button').length !== 3) err('progress: goal setting');
+      else {
+        g100.click();
+        if (S.settings.goal !== 100 || !app.querySelector('.goal-seg [data-v="100"]').classList.contains('selected')) err('progress: goal setting not saved ' + S.settings.goal);
+        if (JSON.parse(localStorage.getItem(T.STORE_KEY)).settings.goal !== 100) err('progress: goal setting not stored');
+      }
+
+      // Badges.
+      S.badges = {}; S.xp = 1200;
+      T.renderMenu();
+      const toasts = $$('.menu .badge-toast');
+      const n = Object.keys(S.badges).length;
+      if (!S.badges.xp1000 || !S.badges.goal1 || S.badges.xp5000) err('progress: retroactive badges ' + JSON.stringify(S.badges));
+      if (toasts.length !== 1 || (n > 1 && !toasts[0].textContent.includes(E.badgeNewN.replace('{n}', n)))) err(`progress: ${toasts.length} badge banners on the menu for ${n} badges`);
+      if (S.badges.xp1000 !== T.todayKey()) err('progress: badge date');
+      T.renderMenu();
+      if ($('.badge-toast')) err('progress: badge banner shown again');
+      if (!$('.goal-badges').textContent.includes(`${n}/16`)) err('progress: badges link count ' + $('.goal-badges').textContent);
+      $('.goal-badges').click();
+      if (!$('.badges-page')) err('progress: badges page did not open');
+      else {
+        if ($$('.badge-card').length !== 16 || T.BADGES.length !== 16) err('progress: not 16 badges');
+        if ($$('.badge-card.unlocked').length !== n || $$('.badge-card.unlocked .badge-date').length !== n) err('progress: unlocked cards');
+        if ($$('.badge-card.locked .badge-lock').length !== 16 - n) err('progress: locked cards');
+        if (!app.querySelector('[data-badge="xp5000"] .badge-lock').textContent.includes('1200/5000')) err('progress: locked badge progress');
+        $('.back-btn').click();
+        if (!$('.menu')) err('progress: badges back button');
+      }
+      S.xp = 4990;
+      T.startStage(tp, 'truefalse');
+      playSession('progress badge');
+      if (!S.badges.xp5000 || !$$('.results .badge-toast').some((b) => b.textContent.includes(E.badge_xp5000))) err('progress: new badge not shown on results');
+      $('.cele-close').click();
+      if ($('.celebrate')) err('progress: banner close button');
+      const bs = T.badgeStats;
+      if (!bs({ pct: 100 }).perfect || bs({ speed: 15 }).speed < 15 || !bs({ finished: true }).exercises) err('progress: event badges');
+      ls.topics.__story = { best: 0, stages: { story: 2 } };
+      if (!bs().story) err('progress: story badge');
+      delete ls.topics.__story;
+      const other = ['fa', 'es', 'ja', 'ar'].find((c) => c !== code);
+      const saveOther = S.langs[other];
+      Object.keys(S.langs).forEach((c) => { if (c !== code) delete S.langs[c]; });
+      ls.words = { [w1.id]: 1 };
+      if (bs().langsUsed !== 1) err('progress: languages used ' + bs().langsUsed);
+      S.langs[other] = { level: null, track: null, topics: {}, words: { 'x:0': 1 }, speedBest: 0, srs: {} };
+      if (bs().langsUsed !== 2) err('progress: second language not counted');
+      if (saveOther) S.langs[other] = saveOther; else delete S.langs[other];
+      ls.srs = {}; words.slice(0, 3).forEach((w, i) => (ls.srs[w.id] = [i + 1, today + 5]));
+      const learned0 = bs().learned;
+      ls.srs[w4.id] = [2, today];
+      if (bs().learned !== learned0 + 1) err('progress: learned words count');
+      const g = T.visibleGroups().find((x) => x.lessons.some((l) => l.kind !== 'alphabet'));
+      ls.topics = {};
+      if (bs().group) err('progress: group badge without progress');
+      T.visibleLessons(g).forEach((l) => { ls.topics[l.id] = { best: 50, stages: {} }; T.countedStages(l).forEach((s) => (ls.topics[l.id].stages[s] = 1)); });
+      if (!bs().group) err('progress: group badge');
+      // Hebrew, right to left.
+      T.patchSettings({ uiLang: 'he' });
+      T.renderBadges();
+      if (html.dir !== 'rtl' || !$('.badges-page').textContent.includes(STR.he.badge_xp5000)) err('progress: Hebrew badges page');
+      T.renderMenu();
+      if (!$('.goal-card').textContent.includes(STR.he.badgeLink)) err('progress: Hebrew goal card');
+      T.patchSettings({ uiLang: 'en' });
+      checkTargetSpans(code, 'progress');
+    }
+
     /* ---------------- run ---------------- */
     const langs = REAL ? [REAL] : ['fa', 'es', 'ja', 'ar'];
     for (const code of langs) await runLanguage(code);
@@ -854,6 +1079,7 @@
     await step('switching', checkSwitching);
     await step('themes', checkThemes);
     await step('answers', checkAnswers);
+    await step('progress', checkProgress);
 
     // Every string key exists in both languages, and no t('...') key used was missing.
     Object.keys(STR.en).forEach((k) => { if (STR.he[k] === undefined) err(`string ${k} missing in Hebrew`); });

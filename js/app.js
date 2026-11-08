@@ -314,8 +314,44 @@
    *  S = { v, settings: {uiLang, lang, speech}, xp, streak,                 <- global
    *        langs: { <code>: {level, track, topics, words, speedBest} } }    <- per language
    * ------------------------------------------------------------------ */
-  const freshLangState = () => ({ level: null, track: null, topics: {}, words: {}, speedBest: 0 });
-  const freshState = () => ({ v: 2, settings: null, xp: 0, streak: { count: 0, last: null }, langs: {} });
+  /* Progress additions (spaced repetition, daily goal, badges):
+   *  S.settings.goal = 30 | 50 | 100 (XP per day)    S.daily = {day: <dayKey>, xp}    S.goalLog = [<dayKey>, ...]
+   *  S.badges = {<badgeId>: <dayKey unlocked>}       langs[code].srs = {<itemId>: [stepIndex, dueDay]}
+   * dueDay = whole days since 1970-01-01 in local time. */
+  const SRS_STEPS = [1, 3, 7, 16, 35, 90];
+  const GOALS = [30, 50, 100];
+  const GOAL_DEFAULT = 50;
+  const GOAL_LOG_MAX = 400;
+  let dayShift = 0; // test hook: pretend it is n days later (SRS, daily goal and badges only)
+  function shiftedNow() { const d = new Date(); if (dayShift) d.setDate(d.getDate() + dayShift); return d; }
+  /** Whole days since 1970-01-01, counted in local time. */
+  function dayNum(d) { return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); }
+  function todayNum() { return dayNum(shiftedNow()); }
+  function hashId(id) { let h = 0; for (const c of String(id)) h = (h * 31 + c.codePointAt(0)) >>> 0; return h; }
+  /** Saves from before spaced repetition: give known words a review schedule (words themselves stay untouched). */
+  function seedSrs(words) {
+    const srs = {};
+    const today = todayNum();
+    Object.keys(words).forEach((id) => {
+      const st = +words[id] || 0;
+      if (st >= 5) srs[id] = [2, today + 1 + (hashId(id) % 7)];
+      else if (st >= 3) srs[id] = [1, today + 1 + (hashId(id) % 3)];
+      else if (st >= 1) srs[id] = [0, today];
+    });
+    return srs;
+  }
+  function cleanSrs(srs) {
+    const out = {};
+    Object.keys(srs).forEach((id) => {
+      const e = srs[id];
+      if (!Array.isArray(e) || !Number.isFinite(+e[0]) || !Number.isFinite(+e[1])) return;
+      out[id] = [Math.max(0, Math.min(SRS_STEPS.length - 1, Math.round(+e[0]))), Math.round(+e[1])];
+    });
+    return out;
+  }
+  const freshLangState = () => ({ level: null, track: null, topics: {}, words: {}, speedBest: 0, srs: {} });
+  const freshState = () => ({ v: 2, settings: null, xp: 0, streak: { count: 0, last: null }, langs: {},
+    daily: { day: null, xp: 0 }, goalLog: [], badges: {} });
   const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
 
   /** v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise. */
@@ -329,9 +365,11 @@
     return topics;
   }
   function normLangState(ls) {
+    const hadSrs = !!obj(ls).srs && typeof obj(ls).srs === 'object' && !Array.isArray(obj(ls).srs);
     ls = Object.assign(freshLangState(), obj(ls));
     ls.topics = migrateTopics(ls.topics);
     ls.words = obj(ls.words);
+    ls.srs = hadSrs ? cleanSrs(ls.srs) : seedSrs(ls.words);
     ls.speedBest = +ls.speedBest || 0;
     if (!levelOk(ls.level)) ls.level = null;
     if (ls.track !== 'speak' && ls.track !== 'full') ls.track = null;
@@ -344,8 +382,15 @@
     st.streak = Object.assign({ count: 0, last: null }, obj(st.streak));
     st.langs = obj(st.langs);
     Object.keys(st.langs).forEach((k) => { if (LANGS[k]) st.langs[k] = normLangState(st.langs[k]); else delete st.langs[k]; });
+    const daily = obj(st.daily);
+    st.daily = { day: typeof daily.day === 'string' ? daily.day : null, xp: Math.max(0, +daily.xp || 0) };
+    st.goalLog = Array.isArray(st.goalLog) ? Array.from(new Set(st.goalLog.filter((d) => typeof d === 'string'))).slice(-GOAL_LOG_MAX) : [];
+    const badges = obj(st.badges);
+    st.badges = {};
+    Object.keys(badges).forEach((id) => { if (typeof badges[id] === 'string') st.badges[id] = badges[id]; });
     if (st.settings) {
-      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false }, obj(st.settings));
+      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false, goal: GOAL_DEFAULT }, obj(st.settings));
+      st.settings.goal = GOALS.includes(+st.settings.goal) ? +st.settings.goal : GOAL_DEFAULT;
       if (!STR[st.settings.uiLang]) st.settings.uiLang = 'en';
       if (!LANGS[st.settings.lang]) st.settings.lang = null;
       st.settings.speech = !!st.settings.speech;
@@ -359,6 +404,7 @@
     st.xp = +old.xp || 0;
     st.streak = Object.assign({ count: 0, last: null }, obj(old.streak));
     const fa = freshLangState();
+    delete fa.srs; // seeded from the word strengths by normalizeState
     fa.topics = migrateTopics(old.topics);
     fa.words = obj(old.words);
     fa.speedBest = +old.speedBest || 0;
@@ -411,6 +457,62 @@
     const w = LS().words;
     const s = w[item.id] || 0;
     w[item.id] = correct ? Math.min(5, s + 1) : Math.max(0, s - 2);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Spaced repetition: each item has a step (interval index) and a day when it is due again.
+   * ------------------------------------------------------------------ */
+  /** Update an item's review schedule after an answer (speaking never comes here). */
+  function srsAnswer(item, correct) {
+    if (!item || !item.id) return;
+    const srs = LS().srs || (LS().srs = {});
+    const today = todayNum();
+    const e = srs[item.id];
+    if (!correct) { srs[item.id] = [0, today]; return; }      // comes back in today's review
+    if (!e) { srs[item.id] = [0, today + SRS_STEPS[0]]; return; } // new: due tomorrow
+    if (e[1] > today) return;                                  // right, but not due yet: no change
+    const step = Math.min(SRS_STEPS.length - 1, e[0] + 1);
+    srs[item.id] = [step, today + SRS_STEPS[step]];
+  }
+  /** Items the learner can see in their track (no alphabet letters when speaking only). */
+  const srsVisible = (it) => !!it && (readerMode() || !it.isLetter);
+  /** Items due today or earlier: most overdue first, then the weakest. */
+  function srsDue() {
+    const srs = LS().srs || {};
+    const words = LS().words;
+    const today = todayNum();
+    return Object.keys(srs)
+      .filter((id) => srs[id][1] <= today && srsVisible(ITEM_BY_ID[id]))
+      .sort((a, b) => srs[a][1] - srs[b][1] || (words[a] || 0) - (words[b] || 0))
+      .map((id) => ITEM_BY_ID[id]);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Daily goal (XP per local day)
+   * ------------------------------------------------------------------ */
+  let goalJustReached = false; // set when the goal is first reached; celebrated once on the next results screen / menu
+  const goalTarget = () => (S.settings && GOALS.includes(+S.settings.goal) ? +S.settings.goal : GOAL_DEFAULT);
+  const todayKey = () => dayKey(shiftedNow());
+  /** Today's XP record (a new day starts at 0). */
+  function goalToday() {
+    const k = todayKey();
+    if (!S.daily || S.daily.day !== k) S.daily = { day: k, xp: 0 };
+    return S.daily;
+  }
+  /** Note today in the goal log once the goal is reached. Returns true the first time. */
+  function goalSync() {
+    const d = goalToday();
+    if (d.xp < goalTarget() || S.goalLog.includes(d.day)) return false;
+    S.goalLog.push(d.day);
+    if (S.goalLog.length > GOAL_LOG_MAX) S.goalLog.splice(0, S.goalLog.length - GOAL_LOG_MAX);
+    return true;
+  }
+  /** Every XP gain goes through here: the global total and today's goal. */
+  function addXP(n) {
+    n = +n || 0;
+    S.xp += n;
+    goalToday().xp += n;
+    if (goalSync()) goalJustReached = true;
   }
 
   /* ------------------------------------------------------------------ *
@@ -718,6 +820,7 @@
     else if (where === 'settings') renderSettings();
     else if (where === 'dictionary') renderDictionary();
     else if (where === 'langs') renderLangPicker();
+    else if (where === 'badges') renderBadges();
   }
   function confetti() {
     const colors = confettiColors();
@@ -904,7 +1007,7 @@
       $('#ob-next', app).addEventListener('click', () => {
         if (key === 'lang' && choice.lang) ensureLoaded(choice.lang); // start fetching its lessons while the learner answers the rest
         if (step < stepsNow().length - 1) { step++; draw(); return; }
-        if (!S.settings) S.settings = { uiLang: choice.uiLang, lang: choice.lang, speech: !!choice.speech };
+        if (!S.settings) S.settings = { uiLang: choice.uiLang, lang: choice.lang, speech: !!choice.speech, goal: GOAL_DEFAULT };
         S.settings.uiLang = choice.uiLang;
         S.settings.lang = choice.lang;
         const ls = langState(choice.lang);
@@ -1012,14 +1115,20 @@
       .map((l) => ({ level: l, groups: visibleGroups().filter((g) => g.level === l) }))
       .filter((s) => s.groups.length);
     const best = LS().speedBest;
+    // Badges earned by progress made before they existed (or elsewhere): one combined message.
+    const newBadges = checkBadges();
+    if (goalSync() || newBadges.length) saveState();
+    const due = srsDue().length;
 
     render(`<main class="menu">
       ${deco('banner')}
       ${mascotSays(themeLine('greet'))}
       <h1 class="page-title">${esc(t('menuTitle'))}</h1>
+      ${celebrationHTML(newBadges, true)}
+      ${goalCard()}
       <div class="modes">
-        <button class="mode review" id="m-review"><span class="mode-icon">🔁</span>
-          <span><strong>${esc(t('review'))}</strong><small>${esc(t('reviewDesc'))}</small></span></button>
+        <button class="mode review" id="m-review"><span class="mode-icon">🔁${due ? `<em class="srs-count" aria-hidden="true">${due > 99 ? '99+' : due}</em>` : ''}</span>
+          <span><strong>${esc(t('review'))}</strong><small class="srs-due">${esc(due ? countText(due, 'srsDue') : t('srsCaughtUp'))}</small></span></button>
         <button class="mode speed" id="m-speed"><span class="mode-icon">⚡</span>
           <span><strong>${esc(t('speed'))}</strong><small>${esc(t('speedDesc'))}${best ? ` · ${esc(t('best'))}: ${best}` : ''}</small></span></button>
         <button class="mode dict" id="m-dict" data-go="dictionary"><span class="mode-icon">📖</span>
@@ -1034,6 +1143,7 @@
     $$('[data-group]', app).forEach((b) => b.addEventListener('click', () => renderGroup(GROUP_BY_ID[b.dataset.group])));
     $('#m-review', app).addEventListener('click', startReview);
     $('#m-speed', app).addEventListener('click', startSpeed);
+    bindCelebration();
   }
 
   /* ------------------------------------------------------------------ *
@@ -1086,6 +1196,7 @@
       ${L.script ? `<label>${esc(t('track'))} <small class="muted">· ${esc(langName(cur))}</small></label>${seg('track', [['speak', t('trackSpeak')], ['full', t('trackFull')]])}` : ''}
       <label>${esc(t('speechSetting'))}</label>
       ${SR ? seg('speech', [[true, t('on')], [false, t('off')]]) : `<p class="muted">${esc(t('speechUnsupported'))}</p>`}
+      ${goalSetting()}
       <div class="row wrap"><button class="btn danger" id="reset-lang">${esc(t('resetLang'))}</button>
       <button class="btn ghost" id="reset">${esc(t('resetProgress'))}</button></div>
       <div class="row"><span></span><button class="btn primary" data-go="menu" data-enter>${esc(t('done'))}</button></div>
@@ -1094,6 +1205,7 @@
       let v = b.dataset.v;
       const name = g.dataset.name;
       if (name === 'speech') v = v === 'true';
+      if (name === 'goal') v = GOALS.includes(+v) ? +v : GOAL_DEFAULT;
       if (name === 'level' || name === 'track') ls[name] = v; else st[name] = v;
       saveState();
       renderSettings();
@@ -1101,7 +1213,7 @@
     $$('[data-pick]', app).forEach((b) => b.addEventListener('click', () => pickLang(b.dataset.pick)));
     $('#reset-lang', app).addEventListener('click', () => {
       if (!confirm(t('confirmResetLang'))) return;
-      Object.assign(ls, { topics: {}, words: {}, speedBest: 0 });
+      Object.assign(ls, { topics: {}, words: {}, speedBest: 0, srs: {} });
       saveState();
       renderMenu();
     });
@@ -1249,7 +1361,7 @@
       $('#next', app).addEventListener('click', () => {
         if (i < items.length - 1) { i++; draw(); return; }
         const rec = topicRecord(topic);
-        if (!rec.stages.learn) S.xp += 10;
+        if (!rec.stages.learn) addXP(10);
         rec.stages.learn = 3;
         bumpStreak();
         saveState();
@@ -1346,7 +1458,31 @@
     session = { mode: 'topic', topic, stage, queue: stageQueue(topic, stage), idx: 0, first: 0, firstRight: 0, xp: 0 };
     renderQuestion();
   }
+  const SRS_SESSION_MAX = 15;
+  /** Review = the words due today (spaced repetition): up to 15, most overdue first. */
   function startReview() {
+    const due = srsDue().slice(0, SRS_SESSION_MAX);
+    if (!due.length) { renderReviewNone(); return; }
+    session = { mode: 'review', queue: buildQueue(due), idx: 0, first: 0, firstRight: 0, xp: 0 };
+    renderQuestion();
+  }
+  /** Words the hardest-words practice can use (seen, and visible in this track). */
+  const hardIds = () => Object.keys(LS().words).filter((id) => srsVisible(ITEM_BY_ID[id]));
+  /** Nothing due today: say so kindly and offer the hardest words instead. */
+  function renderReviewNone() {
+    const known = Object.keys(LS().srs || {}).some((id) => srsVisible(ITEM_BY_ID[id]));
+    const hardOk = hardIds().length >= 4;
+    render(`<main class="center-page srs-none">${mascot(known ? 'cheer' : 'happy', 'mascot-hero')}
+      ${known ? `<h1>${esc(t('srsNoneTitle'))}</h1><p class="lead">${esc(t('srsNoneText'))}</p>`
+        : `<p class="lead">${esc(t('reviewEmpty'))}</p>`}
+      <div class="stack">
+        ${hardOk ? `<button class="btn primary" id="srs-hardest" data-enter>💪 ${esc(t('srsHardest'))}</button>` : ''}
+        <button class="btn ${hardOk ? 'ghost' : 'primary'}" data-go="menu" ${hardOk ? '' : 'data-enter'}>${esc(t('menu'))}</button>
+      </div></main>`);
+    if (hardOk) $('#srs-hardest', app).addEventListener('click', startHardReview);
+  }
+  /** Practice the weakest words (what Review did before spaced repetition). */
+  function startHardReview() {
     const words = LS().words;
     const ids = Object.keys(words).filter((id) => ITEM_BY_ID[id] && (readerMode() || !ITEM_BY_ID[id].isLetter));
     if (ids.length < 4) {
@@ -1355,7 +1491,7 @@
       return;
     }
     const weakest = shuffle(ids).sort((a, b) => (words[a] || 0) - (words[b] || 0)).slice(0, 12).map((id) => ITEM_BY_ID[id]);
-    session = { mode: 'review', queue: buildQueue(weakest), idx: 0, first: 0, firstRight: 0, xp: 0 };
+    session = { mode: 'review', hard: true, queue: buildQueue(weakest), idx: 0, first: 0, firstRight: 0, xp: 0 };
     renderQuestion();
   }
 
@@ -1379,6 +1515,9 @@
     const items = q.items || [q.item];
     if (result !== null) {
       items.forEach((it) => strengthen(it, result));
+      // Spaced repetition: speaking is an optional bonus and never counts; a right retry of a missed
+      // question doesn't move the word on (it stays due today).
+      if (q.type !== 'speak' && !(q.retry && result)) items.forEach((it) => srsAnswer(it, result));
       if (!q.retry) { session.first++; if (result) session.firstRight++; }
       if (result) session.xp += q.type === 'match' ? 15 : 10;
       if (!result && !q.retry && q.type !== 'match') session.queue.push({ type: q.type, item: q.item, retry: true });
@@ -1704,7 +1843,7 @@
     const starCount = pct >= 90 ? 3 : pct >= 70 ? 2 : 1;
     const bonus = 20 + (pct === 100 ? 10 : 0);
     const xp = done.xp + bonus;
-    S.xp += xp;
+    addXP(xp);
     bumpStreak();
     let nextStage = null;
     let nextLesson = null;
@@ -1723,6 +1862,8 @@
       // Every exercise done: move on to the next sub-topic of the same topic.
       if (!nextStage) nextLesson = nextLessonAfter(done.topic);
     }
+    const newBadges = checkBadges({ finished: true, pct });
+    const cele = celebrationHTML(newBadges);
     saveState();
     const msg = pct === 100 ? t('perfect') : pct >= 70 ? t('great') : t('keepGoing');
     const title = done.mode === 'review' ? t('reviewDone') : `${STAGE_ICONS[done.stage]} ${t('st_' + done.stage)}`;
@@ -1736,6 +1877,7 @@
         <div><strong>+${xp}</strong><small>${esc(t('xpEarned'))}</small></div>
         <div><strong>🔥 ${currentStreak()}</strong><small>${esc(t('streak'))}</small></div>
       </div>
+      ${cele}
       <div class="stack">
         ${nextStage ? `<button class="btn primary" id="next-stage" data-next="${nextStage}" data-enter>${esc(t('nextStage'))}: ${STAGE_ICONS[nextStage]} ${esc(t('st_' + nextStage))}</button>` : ''}
         ${nextLesson ? `<button class="btn primary" id="next-lesson" data-next="${esc(nextLesson.id)}" data-enter>${esc(t('nextLesson'))}: <span class="nowrap">${iconHTML(nextLesson.icon)}</span> ${mixed(tx(nextLesson.title))}</button>` : ''}
@@ -1746,8 +1888,9 @@
           : `<button class="btn ghost" data-go="menu">${esc(t('menu'))}</button>`}
       </div>
     </main>`);
-    if (starCount >= 2) confetti();
-    $('#again', app).addEventListener('click', () => (done.mode === 'topic' ? startStage(done.topic, done.stage) : startReview()));
+    if (starCount >= 2 || cele) confetti();
+    bindCelebration();
+    $('#again', app).addEventListener('click', () => (done.mode === 'topic' ? startStage(done.topic, done.stage) : done.hard ? startHardReview() : startReview()));
     if (done.mode === 'topic') $('#to-topic', app).addEventListener('click', () => renderTopic(done.topic));
     if ($('#to-group', app)) $('#to-group', app).addEventListener('click', () => renderGroup(groupOf(done.topic)));
     if (nextStage) {
@@ -1912,8 +2055,10 @@
       if (speed === run) speed = null;
       const record = score > ls.speedBest;
       if (record) ls.speedBest = score;
-      S.xp += score * 2;
+      addXP(score * 2);
       if (score > 0) bumpStreak();
+      const newBadges = checkBadges({ finished: score > 0, speed: score });
+      const cele = celebrationHTML(newBadges);
       saveState();
       render(`<main class="results">
         ${resultsHero(record && score > 0 ? 'cheer' : 'happy')}
@@ -1924,10 +2069,12 @@
           <div><strong>${ls.speedBest}</strong><small>${esc(t('best'))}</small></div>
           <div><strong>+${score * 2}</strong><small>${esc(t('xpEarned'))}</small></div>
         </div>
+        ${cele}
         <div class="stack"><button class="btn primary" id="again" data-enter>${esc(t('play'))}</button>
         <button class="btn ghost" data-go="menu">${esc(t('menu'))}</button></div>
       </main>`);
-      if (record && score > 0) confetti();
+      if ((record && score > 0) || cele) confetti();
+      bindCelebration();
       $('#again', app).addEventListener('click', startSpeed);
     }
     function question() {
@@ -1958,6 +2105,7 @@
         b.classList.add(ok ? 'right' : 'wrong');
         $$('.opt', app).forEach((x) => (x.disabled = true));
         strengthen(it, ok);
+        srsAnswer(it, ok);
         if (ok) score++;
         setTimeout(question, ok ? 250 : 700);
       }));
@@ -1970,6 +2118,147 @@
       if (timeLeft <= 0) end();
     }, 1000);
     question();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Daily goal card, badges, and the celebration banners
+   * ------------------------------------------------------------------ */
+  /** The compact daily-goal card on the menu (with the way to the badges page). */
+  function goalCard() {
+    const target = goalTarget();
+    const xp = goalToday().xp;
+    const done = xp >= target;
+    const pct = Math.min(100, Math.round((xp / target) * 100));
+    const got = BADGES.filter((b) => S.badges[b.id]).length;
+    return `<section class="goal-card ${done ? 'done' : ''}" aria-label="${esc(t('goalTitle'))}">
+      <div class="goal-ring" role="img" aria-label="${esc(fmt(t('goalRingLabel'), { x: xp, y: target }))}">
+        <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="goal-ring-bg" cx="22" cy="22" r="18"/>
+          <circle class="goal-ring-fg" cx="22" cy="22" r="18" pathLength="100" stroke-dasharray="${pct} 100"/></svg>
+        <span class="goal-ring-icon" aria-hidden="true">${done ? '🎉' : '🎯'}</span>
+      </div>
+      <div class="goal-body">
+        <strong class="goal-title">${esc(done ? t('goalDone') : t('goalTitle'))}</strong>
+        <span class="goal-num">${fmt(esc(t('goalProgress')), { n: `<span class="goal-xp" dir="ltr">${xp} / ${target} XP</span>` })}</span>
+      </div>
+      <button class="goal-badges" data-go="badges" aria-label="${esc(t('badgeTitle') + ': ' + fmt(t('badgeCount'), { x: got, y: BADGES.length }))}">
+        <span aria-hidden="true">🏅</span> <span class="goal-badges-label">${esc(t('badgeLink'))}</span> <span class="goal-badges-n" dir="ltr">${got}/${BADGES.length}</span></button>
+    </section>`;
+  }
+  /** Settings: the daily goal, as a segmented control (handled with the other .seg[data-name] controls). */
+  function goalSetting() {
+    const names = { 30: 'goalCasual', 50: 'goalRegular', 100: 'goalSerious' };
+    return `<label>${esc(t('goalSetting'))}</label>
+      <div class="seg goal-seg" data-name="goal">${GOALS.map((g) => `<button class="${goalTarget() === g ? 'selected' : ''}" data-v="${g}" aria-pressed="${goalTarget() === g}">
+        <strong>${esc(t(names[g]))}</strong><small dir="ltr">${g} XP</small></button>`).join('')}</div>`;
+  }
+
+  /** Badges are global (all languages). test(stats) unlocks; prog(stats) = [now, needed] for the locked card. */
+  const BADGES = [
+    { id: 'first', icon: '🐣', test: (s) => s.exercises },
+    { id: 'streak3', icon: '🔥', test: (s) => s.streak >= 3, prog: (s) => [s.streak, 3] },
+    { id: 'streak7', icon: '☄️', test: (s) => s.streak >= 7, prog: (s) => [s.streak, 7] },
+    { id: 'streak30', icon: '🏔️', test: (s) => s.streak >= 30, prog: (s) => [s.streak, 30] },
+    { id: 'goal1', icon: '🎯', test: (s) => s.goalDays >= 1 },
+    { id: 'goal7', icon: '📅', test: (s) => s.goalDays >= 7, prog: (s) => [s.goalDays, 7] },
+    { id: 'words50', icon: '🌱', test: (s) => s.learned >= 50, prog: (s) => [s.learned, 50] },
+    { id: 'words200', icon: '🌳', test: (s) => s.learned >= 200, prog: (s) => [s.learned, 200] },
+    { id: 'words500', icon: '📚', test: (s) => s.learned >= 500, prog: (s) => [s.learned, 500] },
+    { id: 'perfect', icon: '💯', test: (s) => s.perfect },
+    { id: 'speed15', icon: '⚡', test: (s) => s.speed >= 15, prog: (s) => [s.speed, 15] },
+    { id: 'group', icon: '🏆', test: (s) => s.group },
+    { id: 'story', icon: '📜', test: (s) => s.story },
+    { id: 'polyglot', icon: '🌍', test: (s) => s.langsUsed >= 2, prog: (s) => [s.langsUsed, 2] },
+    { id: 'xp1000', icon: '⭐', test: (s) => s.xp >= 1000, prog: (s) => [s.xp, 1000] },
+    { id: 'xp5000', icon: '🌟', test: (s) => s.xp >= 5000, prog: (s) => [s.xp, 5000] },
+  ];
+  /** A whole topic (every sub-topic) finished in the current language. */
+  const groupFinished = () => !!(DB && L) && visibleGroups().some((g) => { const p = groupProgress(g); return p.total > 0 && p.done === p.total; });
+  /** What the badges look at. ev: what just happened ({finished, pct, speed}). */
+  function badgeStats(ev = {}) {
+    const langs = Object.keys(S.langs).map((k) => S.langs[k]);
+    const recsOf = (ls) => Object.keys(obj(ls.topics)).map((k) => obj(ls.topics[k]));
+    const recs = langs.flatMap(recsOf);
+    const anyStage = (r) => Object.keys(obj(r.stages)).some((k) => (+r.stages[k] || 0) > 0);
+    return {
+      exercises: !!ev.finished || recs.some(anyStage),
+      streak: currentStreak(),
+      goalDays: S.goalLog.length,
+      learned: langs.reduce((n, ls) => n + Object.keys(obj(ls.srs)).filter((id) => ls.srs[id][0] >= 2).length, 0),
+      perfect: ev.pct === 100 || recs.some((r) => +r.best >= 100),
+      speed: Math.max(+ev.speed || 0, ...langs.map((ls) => +ls.speedBest || 0)),
+      group: groupFinished(),
+      story: recs.some((r) => +obj(r.stages).story > 0),
+      langsUsed: langs.filter((ls) => Object.keys(obj(ls.words)).length > 0 || recsOf(ls).some(anyStage)).length,
+      xp: S.xp,
+    };
+  }
+  /** Unlock every badge whose condition is met. Returns the newly unlocked ones (the caller saves). */
+  function checkBadges(ev) {
+    if (!S.settings) return [];
+    const st = badgeStats(ev);
+    const fresh = BADGES.filter((b) => !S.badges[b.id] && b.test(st));
+    fresh.forEach((b) => (S.badges[b.id] = todayKey()));
+    return fresh;
+  }
+  /** "2026-11-8" -> a short date in the UI language. */
+  function fmtDay(key) {
+    const [y, m, d] = String(key).split('-').map(Number);
+    try { return new Date(y, m - 1, d).toLocaleDateString(ui() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: ui() === 'he' ? 'numeric' : 'short', year: 'numeric' }); }
+    catch (e) { return String(key); }
+  }
+  /**
+   * Banners for the daily goal (reached for the first time today) and new badges.
+   * combined: several badges become one "You earned N badges" banner (used on the menu).
+   */
+  function celebrationHTML(fresh, combined) {
+    const parts = [];
+    if (goalJustReached) {
+      goalJustReached = false;
+      parts.push(`<div class="goal-toast"><span class="cele-icon" aria-hidden="true">🎯</span>
+        <span class="cele-text"><strong>${esc(t('goalReached'))}</strong><small>${fmt(esc(t('goalReachedMsg')), { y: `<span dir="ltr">${goalTarget()} XP</span>` })}</small></span></div>`);
+    }
+    const list = fresh || [];
+    if (combined && list.length > 1) {
+      parts.push(`<button class="badge-toast" data-go="badges"><span class="cele-icon" aria-hidden="true">${list.slice(0, 3).map((b) => b.icon).join('')}</span>
+        <span class="cele-text"><strong>${esc(fmt(t('badgeNewN'), { n: list.length }))}</strong><small>${list.map((b) => esc(t('badge_' + b.id))).join(' · ')}</small></span></button>`);
+    } else {
+      list.forEach((b) => parts.push(`<button class="badge-toast" data-go="badges"><span class="cele-icon" aria-hidden="true">${b.icon}</span>
+        <span class="cele-text"><small>${esc(t('badgeNew'))}</small><strong>${esc(t('badge_' + b.id))}</strong></span></button>`));
+    }
+    return parts.length ? `<div class="celebrate" role="status">${parts.join('')}
+      <button class="icon-btn cele-close" aria-label="${esc(t('badgeClose'))}">✕</button></div>` : '';
+  }
+  function bindCelebration() {
+    const box = $('.celebrate', app);
+    if (box) $('.cele-close', box).addEventListener('click', () => box.remove());
+  }
+  function badgeCard(b, st) {
+    const day = S.badges[b.id];
+    const p = !day && b.prog ? b.prog(st) : null;
+    return `<li class="badge-card ${day ? 'unlocked' : 'locked'}" data-badge="${b.id}">
+      <span class="badge-icon" aria-hidden="true">${b.icon}</span>
+      <strong class="badge-name">${esc(t('badge_' + b.id))}</strong>
+      <span class="badge-desc">${esc(t('badge_' + b.id + '_d'))}</span>
+      ${day ? `<span class="badge-date">✓ ${esc(fmt(t('badgeEarned'), { date: fmtDay(day) }))}</span>`
+        : `<span class="badge-lock"><span aria-hidden="true">🔒</span> ${esc(t('badgeLocked'))}${p ? ` · <span dir="ltr">${Math.min(p[0], p[1])}/${p[1]}</span>` : ''}</span>`}
+    </li>`;
+  }
+  /** The badges page: unlocked in color with their date, locked greyed with how to earn them. */
+  function renderBadges() {
+    if (!S.settings || !cur || !DB) return renderMenu();
+    if (checkBadges().length) saveState();
+    const st = badgeStats();
+    const got = BADGES.filter((b) => S.badges[b.id]).length;
+    render(`<main class="badges-page">
+      <div class="lesson-head">
+        <button class="icon-btn back-btn" data-go="menu" aria-label="${esc(t('menu'))}">${backArrow()}</button>
+        <h1><span class="title-icon">🏅</span><span class="title-text">${esc(t('badgeTitle'))}</span></h1>
+      </div>
+      <div class="badge-summary"><span>${esc(fmt(t('badgeCount'), { x: got, y: BADGES.length }))}</span>
+        <div class="progress grow"><i style="width:${(got / BADGES.length) * 100}%"></i></div></div>
+      <ul class="badge-grid">${BADGES.map((b) => badgeCard(b, st)).join('')}</ul>
+      <p class="muted badge-note">${esc(t('badgeWordsNote'))}</p>
+    </main>`);
   }
 
   /* ------------------------------------------------------------------ *
@@ -2022,5 +2311,8 @@
     session: () => session,
     renderAt(i) { session.idx = i; renderQuestion(); },
     finish: finishSession,
+    // Progress: spaced repetition, daily goal, badges
+    srsAnswer, srsDue, startHardReview, renderReviewNone, seedSrs, dayNum, todayNum, todayKey, SRS_STEPS,
+    shiftDays(n) { dayShift = n; }, addXP, goalTarget, goalToday, goalCard, checkBadges, badgeStats, renderBadges, BADGES,
   };
 })();
