@@ -1,11 +1,12 @@
 /* Japanese theme: sakura pink, indigo (ai-iro), vermilion (torii red), soft cream, matcha green.
    Mascot: Hana the shiba inu. See docs/theme-format.md. Every rule is scoped to html[data-lang="ja"]. */
 html[data-lang="ja"] {
-  --bg: #fdf6ec;          /* soft cream washi */
+  --bg: #fbeef0;          /* pale sakura */
+  --theme-wash: linear-gradient(180deg, #fde0ea 0%, #fbeef0 45%, #e3eefb 100%); /* sakura pink to spring sky */
   --surface: #ffffff;
   --surface-2: #fbece4;   /* blush cream */
   --text: #1e2650;        /* deep indigo ink */
-  --muted: #6a6585;
+  --muted: #5e5979;
   --line: #f3e2d8;
   --line-strong: #e8cbbd;
 
@@ -25,7 +26,7 @@ html[data-lang="ja"] {
   /* seigaiha (blue ocean waves) */
   --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M15.3 -9.4A18 18 0 0 0 -15.3 -9.4M11 -7.9A13.5 13.5 0 0 0 -11 -7.9M7.2 -5.4A9 9 0 0 0 -7.2 -5.4M4 -2A4.5 4.5 0 0 0 -4 -2M55.3 -9.4A18 18 0 0 0 24.7 -9.4M51 -7.9A13.5 13.5 0 0 0 29 -7.9M47.2 -5.4A9 9 0 0 0 32.8 -5.4M44 -2A4.5 4.5 0 0 0 36 -2M35.3 0.6A18 18 0 0 0 4.7 0.6M31 2.1A13.5 13.5 0 0 0 9 2.1M27.2 4.6A9 9 0 0 0 12.8 4.6M24 8A4.5 4.5 0 0 0 16 8M15.3 10.6A18 18 0 0 0 -15.3 10.6M11 12.1A13.5 13.5 0 0 0 -11 12.1M7.2 14.6A9 9 0 0 0 -7.2 14.6M4 18A4.5 4.5 0 0 0 -4 18M55.3 10.6A18 18 0 0 0 24.7 10.6M51 12.1A13.5 13.5 0 0 0 29 12.1M47.2 14.6A9 9 0 0 0 32.8 14.6M44 18A4.5 4.5 0 0 0 36 18M35.3 20.6A18 18 0 0 0 4.7 20.6M31 22.1A13.5 13.5 0 0 0 9 22.1M27.2 24.6A9 9 0 0 0 12.8 24.6M24 28A4.5 4.5 0 0 0 16 28M15.3 30.6A18 18 0 0 0 -15.3 30.6M11 32.1A13.5 13.5 0 0 0 -11 32.1M7.2 34.6A9 9 0 0 0 -7.2 34.6M4 38A4.5 4.5 0 0 0 -4 38M55.3 30.6A18 18 0 0 0 24.7 30.6M51 32.1A13.5 13.5 0 0 0 29 32.1M47.2 34.6A9 9 0 0 0 32.8 34.6M44 38A4.5 4.5 0 0 0 36 38M35.3 40.6A18 18 0 0 0 4.7 40.6M31 42.1A13.5 13.5 0 0 0 9 42.1M27.2 44.6A9 9 0 0 0 12.8 44.6M24 48A4.5 4.5 0 0 0 16 48M15.3 50.6A18 18 0 0 0 -15.3 50.6M11 52.1A13.5 13.5 0 0 0 -11 52.1M7.2 54.6A9 9 0 0 0 -7.2 54.6M4 58A4.5 4.5 0 0 0 -4 58M55.3 50.6A18 18 0 0 0 24.7 50.6M51 52.1A13.5 13.5 0 0 0 29 52.1M47.2 54.6A9 9 0 0 0 32.8 54.6M44 58A4.5 4.5 0 0 0 36 58' fill='none' stroke='%232d3f8f' stroke-width='1.6'/%3E%3C/svg%3E");
   --theme-pattern-size: 64px;
-  --theme-pattern-opacity: .09;
+  --theme-pattern-opacity: .18;
 
   /* theme-only helpers for the decorations */
   --ja-branch: #7a4a33;
@@ -39,6 +40,7 @@ html[data-lang="ja"] {
 }
 @media (prefers-color-scheme: dark) {
   html[data-lang="ja"] {
+    --theme-wash: none;
     --bg: #141a33;        /* night indigo */
     --surface: #1e2547;
     --surface-2: #283060;

@@ -2,10 +2,14 @@
    Pattern: Andean woven textile stripes. Decorations: papel picado, cacti and sun, maracas.
    Contrast (WCAG): text/bg 14.2 light, 16.3 dark; text/surface 15.2 light, 14.2 dark;
    white/--green 4.73 light and dark; white/--sky 3.6 light, 3.5 dark;
-   white/--orange 3.3 (also the 20px bold onboarding tagline on --bg: 3.1); #2b2d42/--sun 8.8 light, 9.2 dark. */
+   white/--orange 3.3; the 20px bold hero line uses --orange-d on the light peach wash (3.5+); #2b2d42/--sun 8.8 light, 9.2 dark. */
+html[data-lang="es"] .hero-tg { color: var(--orange-d); }
+@media (prefers-color-scheme: dark) { html[data-lang="es"] .hero-tg { color: var(--orange); } }
 html[data-lang="es"] {
-  --bg: #fff6ec; --surface: #ffffff; --surface-2: #fff0e0;
-  --text: #2a2238; --muted: #7a6478; --line: #f6dfcc; --line-strong: #ecc6ad;
+  --bg: #ffe5dc;
+  --theme-wash: linear-gradient(180deg, #ffe3c9 0%, #ffe5dc 50%, #fddbe8 100%); /* sunset peach to fiesta pink */
+  --surface: #ffffff; --surface-2: #fff0e0;
+  --text: #2a2238; --muted: #6a5468; --line: #f6dfcc; --line-strong: #ecc6ad;
   --green: #17844a;  --green-d: #0e5f34;   /* cactus green: primary buttons */
   --sun: #ffc928;    --sun-d: #e0a100;     /* sunny yellow */
   --coral: #ea3d64;  --coral-d: #c0234a;   /* watermelon rose */
@@ -17,10 +21,11 @@ html[data-lang="es"] {
   --font-target: "Fredoka", sans-serif;
   --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpolyline points='0,7 10,17 20,7 30,17 40,7 50,17 60,7 70,17 80,7 90,17 100,7 110,17 120,7' fill='none' stroke='%23ec2f8f' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M10 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M30 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M50 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M70 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M90 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M110 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Ccircle cx='0' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='20' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='40' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='60' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='80' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='100' cy='31' r='1.8' fill='%23ffc928'/%3E%3Cpolyline points='0,44 10,52 20,44 30,52 40,44 50,52 60,44 70,52 80,44 90,52 100,44 110,52 120,44' fill='none' stroke='%23f57a10' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpolyline points='0,51 10,59 20,51 30,59 40,51 50,59 60,51 70,59 80,51 90,59 100,51 110,59 120,51' fill='none' stroke='%23f57a10' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M0 80L10 68L20 80L30 68L40 80L50 68L60 80L70 68L80 80L90 68L100 80L110 68L120 80Z' fill='%2317844a'/%3E%3Cpath d='M10 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='10' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M30 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='30' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M50 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='50' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M70 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='70' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M90 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='90' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M110 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='110' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpolyline points='0,108.5 10,115.5 20,108.5 30,115.5 40,108.5 50,115.5 60,108.5 70,115.5 80,108.5 90,115.5 100,108.5 110,115.5 120,108.5' fill='none' stroke='%230f9e98' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E");
   --theme-pattern-size: 120px;
-  --theme-pattern-opacity: .10;
+  --theme-pattern-opacity: .17;
 }
 @media (prefers-color-scheme: dark) {
   html[data-lang="es"] {
+    --theme-wash: none;
     --bg: #1d1428; --surface: #2a1f38; --surface-2: #352846;
     --text: #fbf2ff; --muted: #bfaecb; --line: #3d2f50; --line-strong: #4f3d66;
     --green: #17844a;  --green-d: #0f6a39;   /* cactus green: primary buttons */

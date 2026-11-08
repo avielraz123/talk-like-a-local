@@ -63,7 +63,8 @@ body {
     radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--sun) 28%, transparent) 0 90px, transparent 91px),
     radial-gradient(circle at 95% 30%, color-mix(in srgb, var(--sky) 18%, transparent) 0 120px, transparent 121px),
     radial-gradient(circle at 10% 85%, color-mix(in srgb, var(--pink) 14%, transparent) 0 110px, transparent 111px),
-    radial-gradient(circle at 90% 92%, color-mix(in srgb, var(--green) 16%, transparent) 0 80px, transparent 81px);
+    radial-gradient(circle at 90% 92%, color-mix(in srgb, var(--green) 16%, transparent) 0 80px, transparent 81px),
+    var(--theme-wash, none); /* each language's soft color wash (light mode) */
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--font);

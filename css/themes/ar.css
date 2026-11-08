@@ -1,7 +1,8 @@
 /* Arabic (Levantine) theme: olive groves, terracotta roofs, warm sand, the deep Mediterranean,
    pomegranates, brass coffee pots and mosaic star tiles. Mascot: Hudhud the hoopoe. */
 html[data-lang="ar"] {
-  --bg: #f7eedc;          /* warm sand */
+  --bg: #ebedd4;          /* olive and sand */
+  --theme-wash: linear-gradient(180deg, #dce6c3 0%, #ebedd4 50%, #f6e7cf 100%); /* olive groves to warm sand */
   --surface: #fffaf0;
   --surface-2: #f2e4c7;
   --text: #2f2a22;
@@ -24,10 +25,11 @@ html[data-lang="ar"] {
   --font-target: "Baloo Bhaijaan 2", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
   --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%231f6aa0' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M60 34L67.6 41.6L78.4 41.6L78.4 52.4L86 60L78.4 67.6L78.4 78.4L67.6 78.4L60 86L52.4 78.4L41.6 78.4L41.6 67.6L34 60L41.6 52.4L41.6 41.6L52.4 41.6Z'/%3E%3Cpath d='M0 -26L7.6 -18.4L18.4 -18.4L18.4 -7.6L26 0L18.4 7.6L18.4 18.4L7.6 18.4L0 26L-7.6 18.4L-18.4 18.4L-18.4 7.6L-26 0L-18.4 -7.6L-18.4 -18.4L-7.6 -18.4Z'/%3E%3Cpath d='M120 -26L127.6 -18.4L138.4 -18.4L138.4 -7.6L146 0L138.4 7.6L138.4 18.4L127.6 18.4L120 26L112.4 18.4L101.6 18.4L101.6 7.6L94 0L101.6 -7.6L101.6 -18.4L112.4 -18.4Z'/%3E%3Cpath d='M0 94L7.6 101.6L18.4 101.6L18.4 112.4L26 120L18.4 127.6L18.4 138.4L7.6 138.4L0 146L-7.6 138.4L-18.4 138.4L-18.4 127.6L-26 120L-18.4 112.4L-18.4 101.6L-7.6 101.6Z'/%3E%3Cpath d='M120 94L127.6 101.6L138.4 101.6L138.4 112.4L146 120L138.4 127.6L138.4 138.4L127.6 138.4L120 146L112.4 138.4L101.6 138.4L101.6 127.6L94 120L101.6 112.4L101.6 101.6L112.4 101.6Z'/%3E%3Cpath d='M20 20L40 40M100 20L80 40M20 100L40 80M100 100L80 80'/%3E%3C/g%3E%3Cg fill='none' stroke='%23c4553a' stroke-width='1.8'%3E%3Cpath d='M70.2 64.2L64.2 70.2L55.8 70.2L49.8 64.2L49.8 55.8L55.8 49.8L64.2 49.8L70.2 55.8Z'/%3E%3Cpath d='M10.2 4.2L4.2 10.2L-4.2 10.2L-10.2 4.2L-10.2 -4.2L-4.2 -10.2L4.2 -10.2L10.2 -4.2Z'/%3E%3Cpath d='M130.2 4.2L124.2 10.2L115.8 10.2L109.8 4.2L109.8 -4.2L115.8 -10.2L124.2 -10.2L130.2 -4.2Z'/%3E%3Cpath d='M10.2 124.2L4.2 130.2L-4.2 130.2L-10.2 124.2L-10.2 115.8L-4.2 109.8L4.2 109.8L10.2 115.8Z'/%3E%3Cpath d='M130.2 124.2L124.2 130.2L115.8 130.2L109.8 124.2L109.8 115.8L115.8 109.8L124.2 109.8L130.2 115.8Z'/%3E%3C/g%3E%3Cg fill='%235b7a1e'%3E%3Cpath d='M60 -8L65 0L60 8L55 0Z'/%3E%3Cpath d='M0 52L5 60L0 68L-5 60Z'/%3E%3Cpath d='M120 52L125 60L120 68L115 60Z'/%3E%3Cpath d='M60 112L65 120L60 128L55 120Z'/%3E%3Ccircle cx='60' cy='60' r='3.2'/%3E%3Ccircle cx='0' cy='0' r='3.2'/%3E%3Ccircle cx='120' cy='0' r='3.2'/%3E%3Ccircle cx='0' cy='120' r='3.2'/%3E%3Ccircle cx='120' cy='120' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
   --theme-pattern-size: 120px;
-  --theme-pattern-opacity: .10;
+  --theme-pattern-opacity: .18;
 }
 @media (prefers-color-scheme: dark) {
   html[data-lang="ar"] {
+    --theme-wash: none;
     --bg: #1a1915;        /* night in the old city */
     --surface: #26241e;
     --surface-2: #312e26;
