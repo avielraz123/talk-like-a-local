@@ -319,6 +319,8 @@
               const fb = $('#story-fb');
               if (!fb || !fb.classList.contains('bad')) err(`${where}: no wrong feedback`);
               else if (said && !fb.textContent.includes(said[c.uiLang || 'en'])) err(`${where}: wrong feedback does not say what the reply means (${said.en})`);
+              else if (said && !fb.textContent.includes(storyMain(said))) err(`${where}: wrong feedback does not name the reply in the reading-mode text (${storyMain(said)})`);
+              if (fb && fb.parentElement !== $('main')) err(`${where}: wrong feedback is not a direct child of main (it cannot stick to the screen bottom)`);
               if (!fb || !fb.querySelector('.mascot.mood-sad')) err(`${where}: wrong feedback has no sad mascot`);
               if (!bad.disabled || !bad.classList.contains('wrong')) err(`${where}: the wrong reply is not marked`);
               if (right[0].disabled) err(`${where}: cannot try again after a wrong reply`);
@@ -333,6 +335,8 @@
             if (last && last.querySelector('.chat-avatar')) err(`${where}: learner bubble has an avatar`);
             const fb = $('#story-fb');
             if (!fb || !fb.classList.contains('ok') || !fb.querySelector('.mascot.mood-cheer')) err(`${where}: no right feedback with a happy mascot`);
+            if (fb && fb.parentElement !== $('main')) err(`${where}: right feedback is not a direct child of main`);
+            if ($$('#story-fb').length > 1) err(`${where}: more than one feedback strip`);
             if (!$('#story-next')) { err(`${where}: no next button after the right reply`); return res; }
           }
           const next = $('#story-next');
@@ -366,6 +370,7 @@
           (wrongQs.has(k) ? bad : right).click();
           const fb = $('#story-fb');
           if (!fb || !fb.classList.contains(wrongQs.has(k) ? 'bad' : 'ok')) err(`${where}: question ${k} feedback`);
+          if (fb && fb.parentElement !== $('main')) err(`${where}: question ${k} feedback is not a direct child of main`);
           if (wrongQs.has(k) && (!bad.classList.contains('wrong') || !right.classList.contains('right') || !fb.textContent.includes(want))) err(`${where}: question ${k}: wrong answer not explained`);
           if (optsQ.some((b) => !b.disabled)) err(`${where}: question ${k}: options still enabled`);
           $('#continue').click();

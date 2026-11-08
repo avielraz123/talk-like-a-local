@@ -525,6 +525,7 @@
   const isGlyph = (s) => /\p{L}/u.test(s || '');
   const iconHTML = (icon) => (isGlyph(icon) ? tgS(icon, 'icon-tg') : esc(icon || '📘'));
   const backArrow = () => (ui() === 'he' ? '→' : '←');
+  const fwdArrow = () => (ui() === 'he' ? '←' : '→');
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -2044,6 +2045,14 @@
       <div class="fb-text"><strong>${ok ? '✓ ' : '✗ '}${esc(title)}</strong>${more ? `<div>${more}</div>` : ''}</div>${btnHTML || ''}</div>`;
   }
   const scrollToEnd = () => { try { window.scrollTo({ top: document.documentElement.scrollHeight }); } catch (e) { /* ignore */ } };
+  /** Show (or with no html, remove) the feedback strip. It goes straight into <main>, like the exercises',
+   * so that its position: sticky; bottom: 0 keeps it on screen. */
+  function showStoryFb(html) {
+    const old = $('#story-fb', app);
+    if (old) old.remove();
+    const main = $('main', app);
+    if (html && main) main.insertAdjacentHTML('beforeend', html);
+  }
   const focusBtn = (sel) => { const b = $(sel, app); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } };
 
   function startStory(topic) {
@@ -2075,6 +2084,7 @@
     /** After a line: the learner's turn comes straight away, otherwise a Next (or Done) button. */
     function after() {
       if (session !== run) return;
+      showStoryFb('');
       if (isTurn(lines[i])) { turn(lines[i]); return; }
       controls.innerHTML = `<div class="row story-row"><span></span>${nextBtn()}</div>`;
       bindNext();
@@ -2084,6 +2094,7 @@
     function step() {
       const ln = lines[i];
       if (!ln) { finishSession(); return; }
+      showStoryFb('');
       if (isTurn(ln)) { turn(ln); return; }
       addBubble(ln); // includes a "me" line without replies: it is simply said
       after();
@@ -2092,20 +2103,23 @@
       const opts = shuffle([{ say: ln.say, correct: true }, ...ln.wrong.slice(0, 2).map((w) => ({ say: w, correct: false }))]);
       let tried = false;
       controls.innerHTML = `<p class="story-turn">🗨️ ${esc(t('storyYourTurn'))}</p>
-        <div class="options story-replies">${opts.map((o, k) => `<button class="opt" data-i="${k}">${wordShort(o.say)}</button>`).join('')}</div>
-        <div id="story-fb-box"></div>`;
+        <div class="options story-replies">${opts.map((o, k) => `<button class="opt" data-i="${k}">${wordShort(o.say)}</button>`).join('')}</div>`;
+      showStoryFb('');
       $$('.story-replies .opt', app).forEach((b) => b.addEventListener('click', () => {
         const o = opts[+b.dataset.i];
         if (!tried) { tried = true; session.first++; if (o.correct) { session.firstRight++; session.xp += 10; } }
         if (!o.correct) {
           b.classList.add('wrong');
           b.disabled = true;
-          const means = fmt(esc(t('storyMeans')), { say: tgS(o.say.tg), meaning: esc(meaning(o.say)) });
-          $('#story-fb-box', app).innerHTML = storyFeedback(false, themeLine('wrong'), `${means}<br>${esc(t('storyTryAgain'))}`);
+          const said = readerMode() || !o.say.tr ? tgS(o.say.tg) : trS(o.say.tr);
+          const means = fmt(esc(t('storyMeans')), { say: said, meaning: esc(meaning(o.say)) });
+          showStoryFb(storyFeedback(false, themeLine('wrong'), `${means}<br>${esc(t('storyTryAgain'))}`));
+          scrollToEnd(); // the strip and the remaining replies both in view
           return;
         }
         addBubble(ln);
-        controls.innerHTML = storyFeedback(true, themeLine('right'), '', nextBtn());
+        controls.innerHTML = '';
+        showStoryFb(storyFeedback(true, themeLine('right'), '', nextBtn()));
         bindNext();
         focusBtn('#story-next');
         scrollToEnd();
@@ -2135,7 +2149,7 @@
       $('#story-prog', app).style.width = (i / total) * 100 + '%';
       const last = i >= lines.length;
       controls.innerHTML = `<div class="row story-row"><span></span><button class="btn primary" id="story-next" data-enter>${
-        esc(!last ? t('next') : qs.length ? t('storyToQuestions') + ' →' : t('done') + ' 🎉')}</button></div>`;
+        esc(!last ? t('next') : qs.length ? t('storyToQuestions') + ' ' + fwdArrow() : t('done') + ' 🎉')}</button></div>`;
       $('#story-next', app).addEventListener('click', () => {
         if (!last) step();
         else if (qs.length) renderStoryQuestion(topic, 0);
@@ -2164,7 +2178,6 @@
       </div>
       <details class="story-again"><summary>📜 ${esc(t('storyReadAgain'))}</summary>
         <div class="story-read">${lines.map((ln) => storyLine(ln.say)).join('')}</div></details>
-      <div id="story-fb-box"></div>
     </main>`);
     $('#quit', app).addEventListener('click', () => { if (confirm(t('confirmQuit'))) renderTopic(topic); });
     $('.story-again', app).addEventListener('click', (e) => { const b = e.target.closest('.story-line'); if (b) toggleLine(b); });
@@ -2175,9 +2188,9 @@
       $$('.story-answers .opt', app).forEach((x, n) => { x.disabled = true; if (opts[n].correct) x.classList.add('right'); });
       if (!o.correct) b.classList.add('wrong');
       const last = k >= qs.length - 1;
-      $('#story-fb-box', app).innerHTML = storyFeedback(o.correct, themeLine(o.correct ? 'right' : 'wrong'),
+      showStoryFb(storyFeedback(o.correct, themeLine(o.correct ? 'right' : 'wrong'),
         o.correct ? '' : `${esc(t('correctAnswer'))} ${mixed(tx(right.o))}`,
-        `<button class="btn ${o.correct ? 'primary' : 'danger'}" id="continue" data-enter>${esc(t('continue'))}</button>`);
+        `<button class="btn ${o.correct ? 'primary' : 'danger'}" id="continue" data-enter>${esc(t('continue'))}</button>`));
       $('#continue', app).addEventListener('click', () => (last ? finishSession() : renderStoryQuestion(topic, k + 1)));
       focusBtn('#continue');
     }));

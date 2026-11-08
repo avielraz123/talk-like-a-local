@@ -39,6 +39,22 @@ LANGS = {
 }
 
 
+def norm_say(lang, s):
+    """Target text reduced for "is this the same reply?" (case, accents/vowel marks, spacing,
+    punctuation), close to the app's normTarget. Japanese keeps its dakuten (が is not か)."""
+    s = str(s)
+    if lang == "ja":
+        s = unicodedata.normalize("NFKC", s)
+        s = "".join(chr(ord(ch) - 0x60) if "ァ" <= ch <= "ヶ" else ch for ch in s)  # katakana -> hiragana
+    else:
+        s = unicodedata.normalize("NFKD", s).lower()
+        s = "".join(ch for ch in s if not unicodedata.combining(ch))
+        if lang in ("fa", "ar"):  # teh marbuta -> heh, alef maqsura -> yeh (hamza seats are handled by NFKD)
+            s = s.replace("ة", "ه").replace("ى", "ي")
+    s = PUNCT.sub("", s)
+    return re.sub("[\\s‌‍]+", "", s)  # spaces and ZWNJ/ZWJ
+
+
 def tokens(s):
     return [t for t in (PUNCT.sub("", w) for w in s.split()) if t]
 
@@ -161,6 +177,8 @@ def check_story(lang, g, lesson, lw, errors, warnings):
         errors.append(f"{lw}: every dialogue/story sets its own level")
     if "intro" not in lesson:
         errors.append(f"{lw}: intro (the scene) is required")
+    else:
+        check_bi(lesson["intro"], lw, "intro", errors)
     if len(lesson.get("items", [])) > 12:
         errors.append(f"{lw}: 6-12 key words (has {len(lesson.get('items', []))})")
     lines = lesson.get("lines")
@@ -206,10 +224,16 @@ def check_story(lang, g, lesson, lw, errors, warnings):
             if not isinstance(wrong, list) or len(wrong) != 2:
                 errors.append(f"{w}: a me line needs exactly 2 wrong replies")
                 wrong = wrong if isinstance(wrong, list) else []
+            seen_wrong = set()
             for j, x in enumerate(wrong):
-                if check_word(lang, x, f"{w}.wrong[{j}]", errors, order_rules=False) and got and isinstance(line.get("say"), list):
-                    if PUNCT.sub("", x[0]).strip() == PUNCT.sub("", line["say"][0]).strip():
-                        errors.append(f"{w}.wrong[{j}]: same as the right reply")
+                if not check_word(lang, x, f"{w}.wrong[{j}]", errors, order_rules=False):
+                    continue
+                n = norm_say(lang, x[0])
+                if got and isinstance(line.get("say"), list) and n == norm_say(lang, line["say"][0]):
+                    errors.append(f"{w}.wrong[{j}]: same as the right reply")
+                elif n in seen_wrong:
+                    errors.append(f"{w}.wrong[{j}]: same as the other wrong reply")
+                seen_wrong.add(n)
         elif "wrong" in line:
             errors.append(f"{w}: only me lines have wrong replies")
     if kind == "dialogue" and not 3 <= me_turns <= 5:
@@ -268,10 +292,11 @@ def check_pack(lang, pack, where, errors, warnings=None):
         for lg in ("en", "he"):
             if not lesson.get("title", {}).get(lg):
                 errors.append(f"{lw}: missing title.{lg}")
-            if "intro" in lesson and not lesson["intro"].get(lg):
+            if "intro" in lesson and not (isinstance(lesson["intro"], dict) and lesson["intro"].get(lg)):
                 errors.append(f"{lw}: missing intro.{lg}")
-        for txt in (lesson.get("title", {}).get("he", ""), lesson.get("intro", {}).get("he", "")):
-            if HEBREW_NIQQUD.search(txt):
+        intro = lesson.get("intro") if isinstance(lesson.get("intro"), dict) else {}
+        for txt in (lesson.get("title", {}).get("he", ""), intro.get("he", "")):
+            if isinstance(txt, str) and HEBREW_NIQQUD.search(txt):
                 errors.append(f"{lw}: Hebrew title/intro contains niqqud")
         items = lesson.get("items", [])
         if len(items) < 6:
