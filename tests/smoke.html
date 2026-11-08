@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Smoke test</title>
+  <!--
+    Automated smoke test. Open this file in a browser (or run headless):
+    it plays through every topic in both languages and both learning tracks,
+    answering every exercise, plus review mode and every exercise type for
+    every item, and prints PASS or the errors it found.
+  -->
+</head>
+<body>
+  <pre id="out">running…</pre>
+  <div id="app"></div>
+  <script>
+    window.__errors = [];
+    window.addEventListener('error', (e) => window.__errors.push('window error: ' + e.message));
+    window.confirm = () => true;
+    try { localStorage.clear(); } catch (e) {}
+  </script>
+  <script src="../js/data.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/app.js"></script>
+  <script>
+  (function () {
+    const T = window.__TLAP_TEST__;
+    const app = document.getElementById('app');
+    const errors = window.__errors;
+    const $ = (s) => app.querySelector(s);
+    const $$ = (s) => Array.from(app.querySelectorAll(s));
+    let questions = 0, sessions = 0, cards = 0;
+
+    function autoAnswer(where) {
+      const q = T.session().queue[T.session().idx];
+      if ($('.type-in')) { $('.type-in').value = q.item.tr; $('#check').click(); }
+      else if ($('.match')) {
+        const left = $$('.m-btn[data-side="l"]');
+        left.forEach((l) => { l.click(); app.querySelector(`.m-btn[data-side="r"][data-id="${l.dataset.id}"]`).click(); });
+      }
+      else if ($('.spell-out')) {
+        let guard = 0;
+        while ($('#check').disabled && guard++ < 20) { const tl = $('.tile:not([disabled])'); if (!tl) break; tl.click(); }
+        $('#check').click();
+      }
+      else if ($('#bank') && $('.answer-line')) {
+        let guard = 0;
+        while ($('#bank .tile') && guard++ < 30) $('#bank .tile').click();
+        $('#check').click();
+      }
+      else if ($('#skip')) $('#skip').click();
+      else if ($('.opt')) $('.opt').click();
+      else errors.push(where + ': no way to answer question type ' + q.type);
+      const cont = $('#continue');
+      if (!cont) { errors.push(where + ': no continue button after ' + q.type); return false; }
+      cont.click();
+      return true;
+    }
+
+    function playTopic(topic, where) {
+      T.renderLearn(topic);
+      for (let i = 0; i < topic.items.length; i++) {
+        if (!$('#card')) { errors.push(where + ': learn card missing'); break; }
+        $('#card').click(); cards++;
+        if (i < topic.items.length - 1) $('#next').click();
+      }
+      $('#next').click(); // starts practice
+      sessions++;
+      let guard = 0;
+      while (!$('.results') && guard++ < 80) {
+        if (!$('.prompt')) { errors.push(where + ': expected a question'); return; }
+        questions++;
+        if (!autoAnswer(where)) return;
+      }
+      if (!$('.results')) errors.push(where + ': session never finished');
+    }
+
+    const combos = [];
+    ['en', 'he'].forEach((uiLang) => ['speak', 'full'].forEach((track) => combos.push({ uiLang, track })));
+
+    combos.forEach((c) => {
+      T.setSettings({ uiLang: c.uiLang, level: 'beginner', track: c.track, speech: false });
+      T.renderMenu();
+      const shown = $$('[data-topic]').length;
+      const expected = T.TOPICS.filter((t) => t.kind !== 'alphabet' || c.track === 'full').length;
+      if (shown !== expected) errors.push(`${c.uiLang}/${c.track}: menu shows ${shown} topics, expected ${expected}`);
+      T.TOPICS.forEach((topic) => {
+        if (topic.kind === 'alphabet' && c.track !== 'full') return;
+        try { playTopic(topic, `${c.uiLang}/${c.track}/${topic.id}`); }
+        catch (e) { errors.push(`${c.uiLang}/${c.track}/${topic.id}: ${e.message}\n${e.stack}`); }
+      });
+      try {
+        T.startReview(); sessions++;
+        let guard = 0;
+        while (!$('.results') && guard++ < 80) { questions++; if (!autoAnswer('review')) break; }
+        if (!$('.results')) errors.push(`${c.uiLang}/${c.track}: review never finished`);
+        T.renderSettings();
+      } catch (e) { errors.push(`${c.uiLang}/${c.track} review/settings: ${e.message}`); }
+
+      // Every exercise type for every item.
+      T.TOPICS.forEach((topic) => {
+        if (topic.kind === 'alphabet' && c.track !== 'full') return;
+        T.startTopic(topic);
+        const s = T.session();
+        const types = topic.kind === 'alphabet'
+          ? ['letterName', 'soundLetter', 'formLetter', 'exampleRead']
+          : ['mcMeaning', 'mcReverse', 'trueFalse', 'typeTr', 'order', 'speak'].concat(c.track === 'full' ? ['readScript', 'spell'] : []);
+        topic.items.forEach((item) => types.forEach((type) => {
+          if (type === 'order' && item.tr.split(/\s+/).length < 3) return;
+          if (type === 'spell' && /[\s‌]/.test(item.fa)) return;
+          try {
+            s.queue = [{ type, item }, { type: 'mcMeaning', item: topic.items[0] }];
+            T.renderAt(0);
+            questions++;
+            if (type === 'mcMeaning' || type === 'mcReverse' || type === 'readScript' || type.startsWith('letter') || type === 'soundLetter' || type === 'formLetter' || type === 'exampleRead') {
+              const n = $$('.opt').length;
+              if (n !== 4) errors.push(`${topic.id}/${item.tr}/${type}: ${n} options instead of 4`);
+            }
+            autoAnswer(`${c.uiLang}/${c.track}/${topic.id}/${item.tr}/${type}`);
+          } catch (e) { errors.push(`${topic.id}/${item.tr}/${type}: ${e.message}\n${e.stack}`); }
+        }));
+      });
+    });
+
+    // Answer checking.
+    const ct = [['salam', 'salâm', 'exact'], ['khodahafez', 'khodâhâfez', 'exact'], ['xodahafez', 'khodâhâfez', 'exact'],
+      ['khodahafz', 'khodâhâfez', 'almost'], ['hello', 'salâm', 'no'], ['', 'salâm', 'no'],
+      ['esme man sara ast', 'esm-e man sârâ ast.', 'exact'], ['to', 'to', 'exact'], ['ta', 'to', 'no']];
+    ct.forEach(([a, b, want]) => { const got = T.compareTr(a, b); if (got !== want) errors.push(`compareTr(${a}, ${b}) = ${got}, want ${want}`); });
+    if (!T.speechMatches('سلام', 'سلام')) errors.push('speechMatches exact failed');
+    if (!T.speechMatches('سلام خوبی', 'سلام')) errors.push('speechMatches contains failed');
+    if (T.speechMatches('خداحافظ', 'سلام')) errors.push('speechMatches false positive');
+
+    const out = document.getElementById('out');
+    out.textContent = (errors.length ? 'FAIL\n' + errors.slice(0, 40).join('\n') : 'PASS')
+      + `\nsessions=${sessions} questions=${questions} cards=${cards}`;
+    app.innerHTML = '';
+  })();
+  </script>
+</body>
+</html>
