@@ -2223,7 +2223,7 @@
     const lessons = visibleLessons(g);
     const done = lessons.filter(lessonDone).length;
     return `<button class="mode stories" id="m-stories"><span class="mode-icon">💬</span>
-      <span><strong>${esc(t('storyMenu'))}</strong><small>${esc(t('storyMenuDesc'))} · <span class="story-menu-count">${esc(fmt(t('storyLessonsDone'), { done, total: lessons.length }))}</span></small></span></button>`;
+      <span><strong>${esc(t('storyMenu'))}</strong><small>${esc(t('storyMenuDesc'))}<span class="story-menu-count">${esc(fmt(t('storyLessonsDone'), { done, total: lessons.length }))}</span></small></span></button>`;
   }
   /** A dialogue/story card on the group page: like lessonCard, with the kind instead of the level. */
   function storyLessonCard(tp, i) {
@@ -2267,7 +2267,7 @@
     return `${a}${kana ? tgS(kana, 'reading') : ''}${b}`;
   }
   /** A tappable line: tap (or Enter/Space) shows its translation in the UI language. */
-  const storyLine = (say, open) => `<button class="story-line ${open ? 'open' : ''}" aria-expanded="${!!open}" title="${esc(t('storyShowMeaning'))}">
+  const storyLine = (say, open, n) => `<button class="story-line ${open ? 'open' : ''}" aria-expanded="${!!open}" title="${esc(t('storyShowMeaning'))}"${n >= 0 ? ` data-line="${n}"` : ''}>
     <span class="story-say">${storySayHTML(say)}</span>
     <span class="story-meaning" ${open ? '' : 'hidden'}>${esc(meaning(say))}</span>
     <span class="story-eye" aria-hidden="true">👁</span></button>`;
@@ -2279,6 +2279,16 @@
     b.classList.toggle('open', on);
     b.setAttribute('aria-expanded', String(on));
   }
+  /** A story line as an item for reportHref: its text, the lesson, and which line it is. */
+  const storyReportItem = (topic, n) => Object.assign({}, topic.lines[n].say, { id: topic.id + ' line ' + (n + 1), topic: topic.id });
+  /** After a tap on one line: a small "Report a mistake" link under the line just opened (one at a time;
+   * none while every translation is shown at once). */
+  function storyReportFor(topic, b) {
+    $$('.story-report', app).forEach((x) => x.remove());
+    const n = b ? +b.dataset.line : -1;
+    if (!b || !b.classList.contains('open') || !(n >= 0) || !topic.lines[n]) return;
+    b.insertAdjacentHTML('afterend', `<div class="story-report">${reportLink(storyReportItem(topic, n), topic.kind === 'dialogue' ? 'dialogue' : 'story')}</div>`);
+  }
   /** One chat bubble. The other speakers sit on the start side with their icon and name, the learner on the end side. */
   function chatBubble(topic, line, open) {
     const me = line.who === 'me';
@@ -2286,7 +2296,7 @@
     const name = me ? '' : tx(c);
     return `<div class="chat-row ${me ? 'me' : 'them'} who-${esc(line.who)}">
       ${me ? '' : `<span class="chat-avatar" aria-hidden="true">${iconHTML(c.icon || '💬')}</span>`}
-      <div class="chat-col">${name ? `<span class="chat-name">${mixed(name)}</span>` : ''}${storyLine(line.say, open)}</div>
+      <div class="chat-col">${name ? `<span class="chat-name">${mixed(name)}</span>` : ''}${storyLine(line.say, open, topic.lines.indexOf(line))}</div>
     </div>`;
   }
   /** Header, scene and "show all translations" toggle shared by both players. */
@@ -2311,13 +2321,14 @@
     $('#quit', app).addEventListener('click', () => { if (confirm(t('confirmQuit'))) renderTopic(topic); });
     $('main.story-player', app).addEventListener('click', (e) => {
       const b = e.target.closest('.story-line');
-      if (b) toggleLine(b);
+      if (b) { toggleLine(b); storyReportFor(topic, b); }
     });
     $('#story-all', app).addEventListener('click', (e) => {
       all = !all;
       e.currentTarget.setAttribute('aria-pressed', String(all));
       e.currentTarget.classList.toggle('selected', all);
       $$('.story-line', app).forEach((b) => toggleLine(b, all));
+      storyReportFor(topic, null);
     });
     return { all: () => all };
   }
@@ -2448,7 +2459,7 @@
     const controls = $('#story-controls', app);
     function step() {
       if (session !== run) return;
-      box.insertAdjacentHTML('beforeend', storyLine(lines[i].say, shell.all()));
+      box.insertAdjacentHTML('beforeend', storyLine(lines[i].say, shell.all(), i));
       i++;
       $('#story-prog', app).style.width = (i / total) * 100 + '%';
       const last = i >= lines.length;
@@ -2481,11 +2492,11 @@
         <div class="options story-answers">${opts.map((o, n) => `<button class="opt" data-i="${n}">${mixed(tx(o.o))}</button>`).join('')}</div>
       </div>
       <details class="story-again"><summary>📜 ${esc(t('storyReadAgain'))}</summary>
-        <div class="story-read">${lines.map((ln) => storyLine(ln.say)).join('')}</div></details>
+        <div class="story-read">${lines.map((ln, n) => storyLine(ln.say, false, n)).join('')}</div></details>
     </main>`);
     storyTapGuard(); // the answers appear where "Continue" / "To the questions" was
     $('#quit', app).addEventListener('click', () => { if (confirm(t('confirmQuit'))) renderTopic(topic); });
-    $('.story-again', app).addEventListener('click', (e) => { const b = e.target.closest('.story-line'); if (b) toggleLine(b); });
+    $('.story-again', app).addEventListener('click', (e) => { const b = e.target.closest('.story-line'); if (b) { toggleLine(b); storyReportFor(topic, b); } });
     $$('.story-answers .opt', app).forEach((b) => b.addEventListener('click', () => {
       const o = opts[+b.dataset.i];
       session.first++;
@@ -3071,13 +3082,16 @@
   /** Each separate gloss of a meaning ("money / cash" -> money, cash), lowercased and without notes. */
   const placeGlosses = (it) => [placeMeaning(it), it.en].flatMap((m) => placeBare(m).split(/\s*[\/;,]\s*/))
     .map((g) => low(g).replace(/[.?!؟]+$/, '').trim()).filter(Boolean);
+  /** The notes in brackets of a meaning ("heart (shape)" -> shape): a wrong option whose note is the answer gives it away. */
+  const placeNotes = (it) => [placeMeaning(it), it.en].flatMap((m) => (String(m || '').match(/\(([^)]*)\)/g) || [])
+    .flatMap((n) => n.slice(1, -1).split(/\s*[\/;,]\s*/))).map((g) => low(g).trim()).filter(Boolean);
   /** A whole sentence or a short word/phrase? Wrong options get the same shape as the answer, so the shape gives nothing away. */
   const placeSentence = (it) => {
     const m = String(placeMeaning(it)).trim();
     return /[.?!؟]$/.test(m) || placeBare(m).split(/\s+/).length >= 4;
   };
   /** Lessons a question may come from: words, phrases and grammar of one level (never letters or stories). */
-  const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind));
+  const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind) && tp.group !== STORY_GROUP);
   /**
    * Four options with different meanings: the answer and three like it, as distractors() picks them:
    * the same lesson, then the same group, then the whole level, always the same shape (sentence or word) first.
@@ -3094,7 +3108,7 @@
     [same(lesson), same(group), same(pool), same(all), pool, all].forEach((p) => shuffle(p).forEach((x) => {
       if (out.length >= 3 || x === it || sameAnswer(it, x)) return;
       const k = low(placeMeaning(x));
-      if (seen.has(k) || placeGlosses(x).some((g) => glosses.has(g))) return;
+      if (seen.has(k) || placeGlosses(x).some((g) => glosses.has(g)) || placeNotes(x).some((g) => glosses.has(g))) return;
       seen.add(k);
       out.push(x);
     }));
@@ -3289,7 +3303,7 @@
     startStage, stagesFor, countedStages, stageProgress, stageQueue, visibleGroups, visibleLessons,
     renderTopic, renderGroup, renderLearn, renderMenu, renderSettings, renderDictionary, renderLangPicker, renderOnboarding,
     startReview, startSpeed,
-    startStory, isStory, STORY_GROUP, storyLessonList, storyPlayable,
+    startStory, isStory, STORY_GROUP, storyLessonList, storyPlayable, storyReportItem, pokeTargetAt,
     /** Read, or set (e.g. 0 to end it), the time until which story taps are held back. */
     storyTapHold: (v) => (v === undefined ? storyTapHold : (storyTapHold = v)),
     dictSearch, dictUpdate: updateDictionary, mixed, nextLessonAfter,

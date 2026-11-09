@@ -827,6 +827,7 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
  * the chat player (dialogue) and the reading player (story).
  * ========================================================================== */
 .mode.stories { grid-column: 1 / -1; background: var(--coral); box-shadow: 0 6px 0 var(--coral-d); }
+.mode.stories .story-menu-count { display: block; margin-top: 2px; font-weight: 700; } /* the lesson count on its own line */
 
 /* group page: one block per level, the learner's level marked */
 .story-level {
@@ -886,6 +887,12 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
   display: grid; place-items: center; font-size: 14px; background: var(--surface); border: 2px solid var(--line-strong);
 }
 .story-line.open .story-eye { background: var(--sun); border-color: var(--sun-d); }
+/* "Report a mistake" under the line the learner just opened (one at a time) */
+.story-report { display: flex; margin-top: 4px; }
+.story-read > .story-report { margin-top: -4px; }
+.chat-row.me .story-report { justify-content: flex-end; }
+.chat-row:has(.story-report) .chat-avatar { margin-bottom: 37px; } /* stay next to the bubble, not the link */
+.story-report .report-link { padding: 2px 10px; font-size: 13px; }
 
 /* chat */
 .chat { display: grid; gap: 14px; margin: 4px 0 8px; }

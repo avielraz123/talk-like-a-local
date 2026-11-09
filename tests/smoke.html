@@ -1835,6 +1835,152 @@
       T.setPlaceDelay(650);
     }
 
+    /* ---------------- features working together (progress + tools + stories) ---------------- */
+    async function checkIntegration() {
+      const code = REAL || 'fa';
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      await T.setSettings({ uiLang: 'en', lang: code, level: 'beginner', track: 'full', speech: false });
+      const storyLessons = T.TOPICS.filter((tp) => tp.group === T.STORY_GROUP);
+      const dlg = storyLessons.find((tp) => tp.kind === 'dialogue' && T.storyPlayable(tp));
+      const sto = storyLessons.find((tp) => tp.kind === 'story' && T.storyPlayable(tp));
+      if (!dlg || !sto) { err('integ: need a playable dialogue and story'); return; }
+
+      // A story stage: saved as stages.story, counted in today's goal, unlocks the "story" badge, leaves srs alone.
+      let S = T.state();
+      const srsBefore = JSON.stringify(S.langs[code].srs); const wordsBefore = JSON.stringify(S.langs[code].words);
+      const xp0 = S.xp; const day0 = T.goalToday().xp;
+      if (S.badges.story) err('integ: story badge before any story');
+      T.startStory(dlg);
+      playStory('integ/dialogue', dlg, { uiLang: 'en' });
+      S = T.state();
+      const rec = S.langs[code].topics[dlg.id];
+      if (!rec || !(rec.stages.story > 0)) err('integ: dialogue stage not saved as stages.story ' + JSON.stringify(rec));
+      if (S.xp <= xp0 || T.goalToday().xp - day0 !== S.xp - xp0) err(`integ: story XP not in the daily goal (xp +${S.xp - xp0}, today +${T.goalToday().xp - day0})`);
+      if (!S.badges.story) err('integ: "story" badge not unlocked by a finished dialogue');
+      if (JSON.stringify(S.langs[code].srs) !== srsBefore || JSON.stringify(S.langs[code].words) !== wordsBefore) err('integ: story replies changed the review schedule or word strengths');
+      const saved = JSON.parse(localStorage.getItem(T.STORE_KEY) || '{}');
+      if (!saved.badges || !saved.badges.story || !(((saved.langs || {})[code] || {}).topics || {})[dlg.id]) err('integ: story result not saved');
+
+      // Story items are reviewed like any items.
+      const sItem = dlg.items[0];
+      S.langs[code].srs[sItem.id] = [0, T.todayNum()];
+      if (!T.srsDue().includes(sItem)) err('integ: a due story-lesson word is not in the review');
+      T.renderMenu();
+      if (!$('.srs-count') || +$('.srs-count').textContent < 1) err('integ: due count on the Review button misses story words');
+      delete S.langs[code].srs[sItem.id];
+
+      // Export / import keeps every new field.
+      S.settings.goal = 100;
+      S.daily = { day: T.todayKey(), xp: 42 };
+      S.goalLog = ['2026-1-2', T.todayKey()];
+      S.langs[code].srs[sItem.id] = [3, T.todayNum() + 5];
+      S.langs[code].topics[sto.id] = { best: 80, stages: { story: 2, learn: 3 } };
+      const snap = JSON.parse(JSON.stringify(S));
+      for (const gz of [true, false]) {
+        const back = await T.readProgress(await T.progressCode(S, gz));
+        ['settings', 'daily', 'goalLog', 'badges', 'xp', 'streak'].forEach((k) => { if (!same(back[k], snap[k])) err(`integ: ${gz ? 'gzip' : 'plain'} round trip changed ${k}: ${JSON.stringify(back[k])}`); });
+        if (!same(back.langs[code].srs, snap.langs[code].srs)) err('integ: round trip changed srs');
+        if (!same(back.langs[code].topics, snap.langs[code].topics)) err('integ: round trip changed topics / story stages');
+      }
+      const odd = T.normalizeState({ v: 2, settings: { uiLang: 'he', lang: code, goal: 7 }, goalLog: Array.from({ length: 450 }, (_, i) => { const d = new Date(2024, 0, 1 + i); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }),
+        langs: { [code]: { topics: { [sto.id]: { stages: { story: '2', learn: 'x', mix: 9 } } }, srs: { a: [1, 2], b: ['1', 2], c: [1] } } } });
+      if (odd.settings.goal !== 50 || odd.goalLog.length !== 400) err('integ: goal / goalLog not cleaned');
+      if (!same(odd.langs[code].topics[sto.id].stages, { story: 2, mix: 3 })) err('integ: story stage not cleaned ' + JSON.stringify(odd.langs[code].topics[sto.id].stages));
+      if (!same(odd.langs[code].srs, { a: [1, 2] })) err('integ: srs not cleaned ' + JSON.stringify(odd.langs[code].srs));
+
+      // Report a mistake from the story player: the tapped line, with its lesson.
+      T.startStory(sto);
+      $('#story-read .story-line').click();
+      let link = $('.story-report .report-link');
+      if (!link) err('integ: no report link under a tapped story line');
+      else {
+        const body = decodeURIComponent(link.href);
+        if (!link.href.startsWith('mailto:avielraz123@gmail.com?') || !body.includes('Item: ' + sto.id + ' line 1') || !body.includes('(' + sto.id + ')')
+          || !body.includes('Target: ' + sto.lines[0].say.tg) || !body.includes('Screen: story')) err('integ: story report link body ' + body.slice(0, 300));
+      }
+      $('#story-read .story-line').click(); // closed again: link gone
+      if ($('.story-report')) err('integ: report link stays after closing the line');
+      $('#story-read .story-line').click();
+      $('#story-all').click();
+      if ($('.story-report')) err('integ: report link shown with every translation open');
+      T.startStory(dlg);
+      const bub = $('.chat-row .story-line');
+      if (bub) { bub.click(); link = $('.chat-row .story-report .report-link'); if (!link || !decodeURIComponent(link.href).includes('Screen: dialogue')) err('integ: dialogue report link'); }
+
+      // Enter in the dialogue: a focused button handles it itself; with nothing focused it presses Next once; never picks a reply.
+      T.startStory(dlg);
+      const enter = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      let guard = 0;
+      while ($('#story-next') && guard++ < 40) {
+        const rows = $$('.chat-row').length;
+        $('#story-next').focus(); enter();
+        if ($$('.chat-row').length !== rows) { err('integ: Enter on a focused Next was handled twice'); break; }
+        document.activeElement.blur(); enter();
+        if ($$('.chat-row').length === rows && !$('.story-replies')) { err('integ: Enter did not press Next'); break; }
+        if ($('.story-replies')) break;
+      }
+      if ($('.story-replies')) {
+        const rows = $$('.chat-row').length;
+        if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+        enter();
+        if ($$('.chat-row').length !== rows || $('#story-fb')) err('integ: Enter picked a reply');
+      }
+
+      // Placement test: never asks about (or offers options from) dialogues, stories or the alphabet.
+      const db = T.dbFor(code);
+      const lessonOf = (it) => db.TOPIC_BY_ID[it.topic];
+      for (let r = 0; r < 4; r++) {
+        T.placementQuestions(db).forEach((q) => [q.item, ...q.options.map((o) => o.item)].forEach((it) => {
+          const tp = lessonOf(it);
+          if (!tp || tp.group === T.STORY_GROUP || T.isStory(tp) || tp.kind === 'alphabet' || it.isLetter) err('integ: placement uses ' + it.id);
+        }));
+        // A wrong option's note in brackets never names the answer ("heart (shape)" next to "shape").
+        T.placementQuestions(db).forEach((q) => q.options.filter((o) => !o.correct).forEach((o) => {
+          const notes = (String(o.item.en).match(/\(([^)]*)\)/g) || []).map((n) => n.slice(1, -1).trim().toLowerCase());
+          const ans = String(q.item.en).replace(/\([^)]*\)/g, ' ').trim().toLowerCase();
+          if (notes.includes(ans)) err(`integ: placement option "${o.item.en}" gives away "${q.item.en}"`);
+        }));
+      }
+
+      // Tapping the background world never fires through the new UI (goal card, badges, settings, dialog, stories page).
+      let layer = document.getElementById('theme-layer');
+      const fake = document.createElement('div');
+      fake.setAttribute('data-poke', 'test');
+      fake.style.cssText = 'position:fixed;inset:0;pointer-events:auto';
+      if (layer) layer.appendChild(fake);
+      const noPoke = (sel, where) => $$(sel).forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const x = r.left + r.width / 2; const y = r.top + r.height / 2;
+        if (y < 0 || y > innerHeight) return;
+        if (T.pokeTargetAt(x, y, el)) err(`integ: a tap on ${where} <${el.tagName.toLowerCase()} class="${el.getAttribute('class') || ''}"> pokes the background`);
+      });
+      if (layer) {
+        T.renderMenu(); window.scrollTo(0, 0);
+        const m = $('main').getBoundingClientRect();
+        if (!T.pokeTargetAt(m.left + 2, Math.max(2, m.top + 2), $('main'))) err('integ: poke test is not working (empty page area does not poke)');
+        noPoke('.goal-card, .goal-card *, .modes .mode, .modes .mode *, .srs-count', 'menu');
+        T.renderBadges(); noPoke('.badge-summary .progress, .badge-card, .badge-card *', 'badges'); // the summary text sits on the page like a heading
+        T.renderSettings(); noPoke('.xfer, .xfer *, .goal-seg, .goal-seg *', 'settings');
+        $('#xfer-paste').value = await T.progressCode(T.state()); $('#xfer-load').click();
+        await waitFor(() => document.querySelector('.xfer-modal'));
+        const modal = document.querySelector('.xfer-modal');
+        if (modal) {
+          [modal, ...modal.querySelectorAll('*')].forEach((el) => {
+            const r = el.getBoundingClientRect(); if (!r.width) return;
+            if (T.pokeTargetAt(r.left + r.width / 2, r.top + r.height / 2, el)) err('integ: a tap in the replace dialog pokes the background');
+          });
+          if (T.pokeTargetAt(4, 4, modal)) err('integ: a tap on the dialog backdrop pokes the background');
+          document.getElementById('xfer-cancel').click();
+        }
+        T.renderGroup(T.GROUPS.find((x) => x.id === T.STORY_GROUP)); noPoke('.story-level .topic, .story-level .topic *', 'stories page');
+        T.startStory(dlg);
+        if (!html.classList.contains('calm') || T.pokeTargetAt(4, 4, $('main'))) err('integ: the story player is not calm');
+        fake.remove();
+      }
+      T.renderMenu();
+    }
+
     /* ---------------- run ---------------- */
     const langs = REAL ? [REAL] : ['fa', 'es', 'ja', 'ar'];
     for (const code of langs) await runLanguage(code);
@@ -1847,6 +1993,7 @@
     await step('transfer', checkTransfer);
     await step('import safety', checkImportSafety);
     await step('placement', checkPlacement);
+    await step('integration', checkIntegration);
 
     // Every string key exists in both languages, and no t('...') key used was missing.
     Object.keys(STR.en).forEach((k) => { if (STR.he[k] === undefined) err(`string ${k} missing in Hebrew`); });
