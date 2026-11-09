@@ -831,6 +831,8 @@
     return typeof svg === 'string' && svg.trim() ? `<div class="theme-deco ${spot}" aria-hidden="true">${svg}</div>` : '';
   }
   const themeName = (code) => { const th = theme(code); return (th && tx(th.name)) || langName(code); };
+  /** Language names on the top button and the language picker are always in English (the user's choice). */
+  const englishName = (code) => { const th = theme(code); return (th && th.name && th.name.en) || (LANGS[code] && LANGS[code].name.en) || code; };
   const themeNative = (code) => { const th = theme(code); return (th && typeof th.native === 'string' && th.native) || LANGS[code].native; };
   const themeFlag = (code) => { const th = theme(code); return (th && typeof th.flag === 'string' && th.flag) || LANGS[code].flag; };
   const DEFAULT_CONFETTI = ['#58cc02', '#ffc93c', '#ff6b6b', '#38b6ff', '#9b5de5', '#f15bb5', '#ff9f1c'];
@@ -948,7 +950,7 @@
         </button>
         ${code ? `<button class="lang-chip" data-go="langs" aria-label="${esc(t('changeLang') + ': ' + langName(code))}" title="${esc(t('changeLang'))}">
           <span class="lang-chip-flag" aria-hidden="true">${esc(themeFlag(code))}</span>
-          <span class="lang-chip-name font-${code}" lang="${code}" dir="${L.dir}">${esc(themeNative(code))}</span>
+          <span class="lang-chip-name" lang="en" dir="ltr">${esc(englishName(code))}</span>
           <span class="caret" aria-hidden="true">▾</span></button>` : ''}
       </div>
       <div class="stats">
@@ -1073,8 +1075,7 @@
       <span class="lang-mascot">${mascot(selected ? 'cheer' : 'happy', '', code)}</span>
       <span class="lang-info">
         <span class="lang-title"><span class="lang-flag" aria-hidden="true">${esc(themeFlag(code))}</span>
-          <strong>${esc(themeName(code))}</strong>
-          <span class="lang-native font-${code}" lang="${code}" dir="${LANGS[code].dir}">${esc(themeNative(code))}</span></span>
+          <strong lang="en" dir="ltr">${esc(englishName(code))}</strong></span>
         <small class="lang-variety">${esc(tx(LANGS[code].variety))}</small>
         ${tag ? `<span class="lang-tagline"><span class="font-${code}" lang="${code}" dir="${LANGS[code].dir}">${esc(tag.target || '')}</span>
           <span class="muted">${esc(tx(tag))}</span></span>` : ''}

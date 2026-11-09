@@ -981,9 +981,10 @@
         const card = app.querySelector(`[data-pick="${code}"]`);
         const th = T.theme(code);
         if (!card) return err(`no card for ${code}`);
-        const native = card.querySelector('.lang-native');
-        if (!native || native.getAttribute('lang') !== code || native.getAttribute('dir') !== T.LANGS[code].dir) err(`${code} card: native name not tagged`);
-        if (th && !card.textContent.includes(th.name.he)) err(`${code} card: theme name missing`);
+        // Language names are always shown in English (the user's choice), even in the Hebrew interface.
+        if (card.querySelector('.lang-native')) err(`${code} card: still shows the native name`);
+        const nm = card.querySelector('.lang-title strong');
+        if (!nm || nm.textContent !== (th ? th.name.en : T.LANGS[code].name.en)) err(`${code} card: English name missing: ${nm && nm.textContent}`);
         if (th && th.mascot && !card.textContent.includes(th.mascot.name.he)) err(`${code} card: mascot name missing`);
         if (th && th.tagline && !card.textContent.includes(th.tagline.target)) err(`${code} card: tagline missing`);
       });
@@ -1006,7 +1007,7 @@
       if (S.settings.lang !== 'ja' || S.settings.uiLang !== 'he' || S.settings.speech !== false) err('onboarding settings: ' + JSON.stringify(S.settings));
       if (!S.langs.ja || S.langs.ja.level !== 'beginner' || S.langs.ja.track !== 'full') err('onboarding: langs.ja not set up');
       if (html.dataset.lang !== 'ja') err('menu after onboarding: data-lang ' + html.dataset.lang);
-      if (!$('.lang-chip .lang-chip-name') || $('.lang-chip .lang-chip-name').getAttribute('lang') !== 'ja') err('language chip not showing Japanese');
+      if (!$('.lang-chip .lang-chip-name') || $('.lang-chip .lang-chip-name').textContent !== 'Japanese') err('language chip not showing "Japanese" in English: ' + ($('.lang-chip .lang-chip-name') || {}).textContent);
       // 2) Spanish: no track step.
       await fresh();
       $$('.choice')[0].click(); $('#ob-next').click();
