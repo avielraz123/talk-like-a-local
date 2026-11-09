@@ -21,11 +21,11 @@ html[data-lang="es"] {
   --font-target: "Fredoka", sans-serif;
   --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpolyline points='0,7 10,17 20,7 30,17 40,7 50,17 60,7 70,17 80,7 90,17 100,7 110,17 120,7' fill='none' stroke='%23ec2f8f' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M10 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M30 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M50 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M70 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M90 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Cpath d='M110 25l6 6-6 6-6-6z' fill='%230f9e98'/%3E%3Ccircle cx='0' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='20' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='40' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='60' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='80' cy='31' r='1.8' fill='%23ffc928'/%3E%3Ccircle cx='100' cy='31' r='1.8' fill='%23ffc928'/%3E%3Cpolyline points='0,44 10,52 20,44 30,52 40,44 50,52 60,44 70,52 80,44 90,52 100,44 110,52 120,44' fill='none' stroke='%23f57a10' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpolyline points='0,51 10,59 20,51 30,59 40,51 50,59 60,51 70,59 80,51 90,59 100,51 110,59 120,51' fill='none' stroke='%23f57a10' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M0 80L10 68L20 80L30 68L40 80L50 68L60 80L70 68L80 80L90 68L100 80L110 68L120 80Z' fill='%2317844a'/%3E%3Cpath d='M10 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='10' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M30 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='30' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M50 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='50' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M70 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='70' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M90 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='90' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpath d='M110 88l7 7-7 7-7-7z' fill='none' stroke='%23ec2f8f' stroke-width='2.5'/%3E%3Ccircle cx='110' cy='95' r='2' fill='%23ec2f8f'/%3E%3Cpolyline points='0,108.5 10,115.5 20,108.5 30,115.5 40,108.5 50,115.5 60,108.5 70,115.5 80,108.5 90,115.5 100,108.5 110,115.5 120,108.5' fill='none' stroke='%230f9e98' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E");
   --theme-pattern-size: 120px;
-  --theme-pattern-opacity: .17;
+  --theme-pattern-opacity: .08;
 }
 @media (prefers-color-scheme: dark) {
   html[data-lang="es"] {
-    --theme-wash: none;
+    --theme-wash: linear-gradient(180deg, #160f26 0%, #1d1428 55%, #2a1838 100%); /* night sky, a touch warmer near the town */
     --bg: #1d1428; --surface: #2a1f38; --surface-2: #352846;
     --text: #fbf2ff; --muted: #bfaecb; --line: #3d2f50; --line-strong: #4f3d66;
     --green: #17844a;  --green-d: #0f6a39;   /* cactus green: primary buttons */
@@ -36,7 +36,7 @@ html[data-lang="es"] {
     --pink: #ec2f8f;   --pink-d: #b8186a;    /* fiesta pink */
     --orange: #e66a00; --orange-d: #c25700;  /* marigold orange */
     --ok: #6fe08a; --ok-bg: #183a26; --bad: #ff8a96; --bad-bg: #461f2b; --neutral-bg: #352846;
-    --theme-pattern-opacity: .12;
+    --theme-pattern-opacity: .06;
   }
 }
 
@@ -49,19 +49,185 @@ html[data-lang="es"] .theme-deco.results g + g .es-shake { animation-delay: -.55
 @keyframes es-sway { 50% { transform: rotate(4deg); } }
 @keyframes es-shake { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
 
-/* Ambient layer: a few tiny papel picado flecks drifting down, very slowly. */
+/* ================= The world: an Andean valley with a pastel hillside town ================= */
+/* The shared round color circles clash with the sky, so only the soft wash stays. */
+html[data-lang="es"] body { background-image: var(--theme-wash, none); }
+html[data-lang="es"] .theme-deco.scene svg { width: 100%; height: 100%; }
+html[data-lang="es"] .theme-deco.sky svg, html[data-lang="es"] .theme-deco.objects svg { width: 100%; height: auto; }
+
+/* --- sky ---
+   Two layouts, chosen by how much room there is beside the 760px content column:
+   - narrow (up to 1040px: phones, tablets, small laptops): the side gutter is small, so the sky keeps to the corners
+     and the clouds sit just above the landscape;
+   - wide (1041px and up): a gutter of 140px+ on each side holds the clouds, the condor and the hanging things.
+   --es-h is the scene height (from style.css), --es-g the width of one side gutter. */
+html[data-lang="es"] { --es-h: clamp(120px, max(22vh, 100vw / 6), 300px); --es-g: calc((100vw - 760px) / 2); }
+html[data-lang="es"] .es-day, html[data-lang="es"] .es-night { position: absolute; inset: 0; }
+html[data-lang="es"] .es-night { display: none; }
+html[data-lang="es"] .theme-deco.sky .es-sun, html[data-lang="es"] .theme-deco.sky .es-moon {
+  position: absolute; top: 7vh; right: max(-46px, calc(10vw - 96px)); width: clamp(124px, 14vw, 190px);
+}
+html[data-lang="es"] .es-sun { opacity: .82; }
+html[data-lang="es"] .es-rays { transform-box: view-box; transform-origin: 60px 60px; animation: es-spin 140s linear infinite; }
+html[data-lang="es"] .es-cl { position: absolute; width: 92px; opacity: .8; animation: es-float 50s ease-in-out infinite alternate; }
+html[data-lang="es"] .es-cl1 { bottom: calc(var(--es-h) + 4px); left: -22px; }
+html[data-lang="es"] .es-cl2 { bottom: calc(var(--es-h) + 52px); right: -20px; width: 70px; animation-duration: 62s; animation-delay: -24s; }
+html[data-lang="es"] .es-cl3 { display: none; width: 66px; opacity: .65; animation-duration: 44s; animation-delay: -12s; }
+html[data-lang="es"] .theme-deco.sky .es-condor { display: none; position: absolute; width: clamp(90px, 6vw, 120px); opacity: .62; animation: es-glide 34s ease-in-out infinite alternate; }
+/* stars are little four-point sparkles (never round dots that could pass for punctuation) */
+html[data-lang="es"] .es-st { position: absolute; background: #fff1c9; opacity: .8; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); }
+html[data-lang="es"] .es-sw { position: absolute; width: 40px; height: 40px; }   /* a star's invisible tap box (it sits just before the star) */
+html[data-lang="es"] .es-g { display: none; }
+html[data-lang="es"] .es-tw { animation: es-twinkle 9s ease-in-out infinite; }
+html[data-lang="es"] .es-tw:nth-of-type(2n) { animation-duration: 12s; animation-delay: -5s; }
+html[data-lang="es"] .es-tw:nth-of-type(3n) { animation-duration: 10s; animation-delay: -2s; }
+@media (max-width: 1040px) {
+  /* In Hebrew the mascot sits top right, so the sun and moon move to the top left (behind the settings button). */
+  html[data-lang="es"][dir="rtl"] .theme-deco.sky .es-sun, html[data-lang="es"][dir="rtl"] .theme-deco.sky .es-moon { right: auto; left: max(-46px, calc(10vw - 96px)); }
+  html[data-lang="es"][dir="rtl"] .theme-deco.sky .es-moon { transform: scaleX(-1); }
+}
+@media (max-width: 640px) {
+  /* Phones: both top corners hold buttons and the banner, so the sun and the moon rise over the Andes at the right
+     instead, their lower edge tucked behind the far peaks (the sky layer sits behind the landscape). */
+  html[data-lang="es"] .theme-deco.sky .es-sun, html[data-lang="es"] .theme-deco.sky .es-moon,
+  html[data-lang="es"][dir="rtl"] .theme-deco.sky .es-sun, html[data-lang="es"][dir="rtl"] .theme-deco.sky .es-moon {
+    top: auto; bottom: calc(var(--es-h) * .58); left: auto; right: -24px; width: 96px; transform: none;
+  }
+  html[data-lang="es"] .es-cl2 { right: auto; left: 34%; bottom: calc(var(--es-h) + 30px); width: 64px; }
+}
+@media (min-width: 1041px) {
+  html[data-lang="es"] .es-cl { width: 112px; }
+  html[data-lang="es"] .es-cl1 { bottom: auto; top: 22vh; left: 1vw; }
+  html[data-lang="es"] .es-cl2 { bottom: auto; top: 33vh; right: 3vw; width: 84px; }
+  html[data-lang="es"] .es-cl3 { display: block; top: 67vh; left: 4vw; width: 66px; }
+  html[data-lang="es"] .es-g { display: block; }
+}
+@media (min-width: 1301px) {   /* the condor needs a roomy gutter, or it reads as a smudge beside the cards */
+  html[data-lang="es"] .theme-deco.sky .es-condor { display: block; top: 48vh; right: calc(var(--es-g) * .22); }
+}
+
+/* --- scene colors (day) --- */
+html[data-lang="es"] .es-m1 { fill: #efd0e4; }
+html[data-lang="es"] .es-sn { fill: #fff8fb; }
+html[data-lang="es"] .es-m2 { fill: #e6c3dc; }
+html[data-lang="es"] .es-hl { fill: #cfe5c2; }
+html[data-lang="es"] .es-tr { stroke: #e2f1d6; stroke-width: 2.4; }
+html[data-lang="es"] .es-ri { stroke: #bcdaae; stroke-width: 1.2; }
+html[data-lang="es"] .es-th { fill: #d6eac8; }
+html[data-lang="es"] .es-c0 { stroke: #ffd2b3; }
+html[data-lang="es"] .es-c1 { stroke: #c3e9e1; }
+html[data-lang="es"] .es-c2 { stroke: #ffc9dc; }
+html[data-lang="es"] .es-c3 { stroke: #ffe6a3; }
+html[data-lang="es"] .es-c4 { stroke: #dfcff5; }
+/* On wide screens the main town always sits behind the content column; only slivers show between cards, so it
+   fades back into the hill there (the side-hill casitas carry the town in the gutters). */
+@media (min-width: 1041px) { html[data-lang="es"] .es-mt { opacity: .5; } }
+html[data-lang="es"] .es-rf { fill: #f2a98b; }
+html[data-lang="es"] .es-tm { fill: none; stroke: #fff6ea; stroke-width: 4; }
+html[data-lang="es"] .es-wn { fill: none; stroke: #ad9fcb; stroke-width: 5; }
+html[data-lang="es"] .es-wd { fill: none; stroke: #ad9fcb; stroke-width: 4; }
+html[data-lang="es"] .es-dr { fill: none; stroke: #cf9d84; stroke-width: 6; }
+html[data-lang="es"] .es-wire { fill: none; stroke: #c9a3ad; stroke-width: 1; }
+html[data-lang="es"] .es-bulbs, html[data-lang="es"] .es-mg { stroke-linecap: round; stroke-width: 4.4; }
+html[data-lang="es"] .es-mg { stroke-width: 5; }
+html[data-lang="es"] .es-b0 { stroke: #ff9fc8; }
+html[data-lang="es"] .es-b1 { stroke: #ffd56a; }
+html[data-lang="es"] .es-b2 { stroke: #7fd9cf; }
+html[data-lang="es"] .es-b3 { stroke: #ffb070; }
+html[data-lang="es"] .es-lm { fill: #caa894; stroke: #caa894; }
+html[data-lang="es"] .es-fg { fill: #bcdeaa; }
+html[data-lang="es"] .es-cac { stroke: #8fcb9e; color: #ff92bd; }
+html[data-lang="es"] .es-npl { fill: #9fd1a6; color: #ff92bd; }
+html[data-lang="es"] .es-agv { fill: #a3cebe; }
+html[data-lang="es"] .es-p { fill: #96cd96; color: #d9b896; }
+html[data-lang="es"] .es-mg0 { stroke: #ffae45; }
+html[data-lang="es"] .es-mg1 { stroke: #ffd255; }
+
+/* --- objects ---
+   Narrow: just two things, maracas on the left and a pot of marigolds on the right, standing on the hills above the scene.
+   Wide: everything belongs somewhere. A chili ristra (a paper lantern at night), the pinata and a woven textile hang on
+   strings in the top-left gutter at different drops; a guitar with maracas leans on the left hill; the marigold pot
+   stands on the right hill with a hummingbird visiting it. All positions are fractions of the gutter, so nothing
+   reaches the content column. */
+html[data-lang="es"] .es-o { position: absolute; display: none; width: 34px; opacity: .62; }
+/* Up to 900px the side gutter is only ~16px, so the two objects stand at the very bottom among the cacti,
+   where they stay whole beside the cards. */
+html[data-lang="es"] .es-o1 { display: block; left: -6px; bottom: 4px; width: 30px; }
+html[data-lang="es"] .es-o4 { display: block; right: -3px; bottom: 4px; width: 30px; }
+html[data-lang="es"] .es-hb { transform-box: view-box; animation: es-hover 9s ease-in-out infinite; }
+html[data-lang="es"] .es-o5 svg { transform: scaleX(-1); }   /* face the marigolds */
+@media (min-width: 641px) { html[data-lang="es"] .es-o1, html[data-lang="es"] .es-o4 { width: 38px; opacity: .7; } }
+/* From 901px the standing things are placed in landscape units, so they stand on the front meadow at the far left
+   and right of the valley at every width: --es-s is the scene's scale (px per viewBox unit, as in xMidYMax slice),
+   --es-x0 the screen x of the scene's left edge, and the ground there is at y=178 (22 units above the bottom). */
+@media (min-width: 901px) {
+  html[data-lang="es"] { --es-s: max(100vw / 1200, var(--es-h) / 200); --es-x0: calc(50vw - 600 * var(--es-s)); }
+  html[data-lang="es"] .es-o1 { left: max(4px, calc(var(--es-x0) + 4 * var(--es-s))); bottom: calc(22 * var(--es-s) - 7px); width: 44px; }
+  html[data-lang="es"] .es-o4 { right: max(4px, calc(var(--es-x0) + 4 * var(--es-s))); bottom: calc(22 * var(--es-s)); width: 44px; }
+}
+@media (min-width: 1041px) {
+  html[data-lang="es"] { --es-w: clamp(44px, calc(var(--es-g) * .24), 58px); }
+  html[data-lang="es"] .es-o { display: block; width: var(--es-w); opacity: .72; }
+  html[data-lang="es"] .es-o2::before, html[data-lang="es"] .es-o6::before, html[data-lang="es"] .es-o7::before, html[data-lang="es"] .es-o8::before {
+    content: ""; position: absolute; left: 50%; bottom: calc(100% - 2px); height: 60vh; border-left: 1.5px solid #b08a5a;
+  }
+  html[data-lang="es"] .es-o6 { top: 3vh; left: calc(var(--es-g) * .1); width: clamp(26px, calc(var(--es-g) * .13), 34px); }
+  html[data-lang="es"] .es-o8 { display: none; top: 6vh; left: calc(var(--es-g) * .07); width: clamp(40px, calc(var(--es-g) * .18), 52px); }
+  html[data-lang="es"] .es-o2 { top: 15vh; left: calc(var(--es-g) * .38); }
+  html[data-lang="es"] .es-o7 { top: 7vh; left: calc(var(--es-g) * .68); opacity: .62; }
+  /* standing things: their bases (with a soft shadow) meet the green terraces; the hummingbird sips from the pot's marigolds */
+  html[data-lang="es"] .es-o3 { left: max(4px, calc(var(--es-x0) + 4 * var(--es-s))); bottom: calc(22 * var(--es-s) - 5px); }
+  html[data-lang="es"] .es-o1 { left: calc(max(4px, var(--es-x0) + 4 * var(--es-s)) + var(--es-w) * .7); width: 44px; }
+  html[data-lang="es"] .es-o5 { right: calc(max(4px, var(--es-x0) + 4 * var(--es-s)) + var(--es-w) - 20px); bottom: calc(22 * var(--es-s) + var(--es-w) * .56 - 22px); width: 46px; }
+}
+
+/* --- ambient: papel picado flecks drifting down (day and night) and fireflies (night) --- */
 html[data-lang="es"] .theme-deco.ambient { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
 html[data-lang="es"] .theme-deco.ambient i {
-  position: absolute; top: -24px; width: 11px; height: 13px; opacity: .55;
+  position: absolute; top: -24px; width: 11px; height: 13px; opacity: .35;
   clip-path: polygon(0 0, 100% 0, 100% 80%, 83% 100%, 67% 80%, 50% 100%, 33% 80%, 17% 100%, 0 80%);
-  animation: es-drift 22s linear infinite;
+  animation: es-drift 24s linear infinite;
 }
-html[data-lang="es"] .theme-deco.ambient i:nth-child(1) { left: 7%;  background: #ec2f8f;   animation-delay: -3s; }
-html[data-lang="es"] .theme-deco.ambient i:nth-child(2) { left: 23%; background: #ffc928; animation-delay: -15s; animation-duration: 26s; }
-html[data-lang="es"] .theme-deco.ambient i:nth-child(3) { left: 41%; background: #0f9e98;   animation-delay: -9s;  animation-duration: 24s; }
-html[data-lang="es"] .theme-deco.ambient i:nth-child(4) { left: 62%; background: #f57a10; animation-delay: -19s; }
-html[data-lang="es"] .theme-deco.ambient i:nth-child(5) { left: 79%; background: #17844a;  animation-delay: -6s;  animation-duration: 28s; }
-html[data-lang="es"] .theme-deco.ambient i:nth-child(6) { left: 93%; background: #9b4dca; animation-delay: -12s; animation-duration: 25s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(1) { left: 8%;  background: #ec2f8f; animation-delay: -3s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(2) { left: 27%; background: #ffc928; animation-delay: -15s; animation-duration: 28s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(3) { left: 52%; background: #0f9e98; animation-delay: -9s;  animation-duration: 26s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(4) { left: 74%; background: #f57a10; animation-delay: -19s; }
+html[data-lang="es"] .theme-deco.ambient i:nth-child(5) { left: 92%; background: #9b4dca; animation-delay: -6s;  animation-duration: 30s; }
+@media (min-width: 1041px) {   /* wide screens: the flecks fall in the side gutters, never across the titles */
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(1) { left: 3%; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(2) { left: 10%; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(3) { left: 90%; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(4) { left: 6.5%; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(5) { left: 96%; }
+}
+@media (max-width: 640px) {
+  html[data-lang="es"] .theme-deco.ambient i { animation-name: es-drift-n; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(1) { left: 3px; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(2) { left: calc(100% - 14px); }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(3) { left: 2px; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(n+4) { display: none; }
+}
+html[data-lang="es"] .theme-deco.ambient b {
+  display: none; position: absolute; width: 5px; height: 5px; border-radius: 50%;
+  background: #ffe9a0; box-shadow: 0 0 8px 3px rgba(255, 214, 110, .45); opacity: 0;
+  animation: es-firefly 11s ease-in-out infinite;
+}
+html[data-lang="es"] .theme-deco.ambient b:nth-of-type(1) { left: 12%; bottom: 17vh; }
+html[data-lang="es"] .theme-deco.ambient b:nth-of-type(2) { left: 58%; bottom: 13vh; animation-duration: 14s; animation-delay: -6s; }
+html[data-lang="es"] .theme-deco.ambient b:nth-of-type(3) { left: 86%; bottom: 20vh; animation-duration: 12s; animation-delay: -3s; }
+
+@keyframes es-glide { from { transform: translate(-30px, 6px) rotate(3deg); } to { transform: translate(40px, -6px) rotate(-3deg); } }
+@keyframes es-spin { to { transform: rotate(360deg); } }
+@keyframes es-float { from { transform: translateX(-26px); } to { transform: translateX(30px); } }
+@keyframes es-twinkle { 0%, 100% { opacity: .85; transform: scale(1); } 50% { opacity: .25; transform: scale(.6); } }
+@keyframes es-hover { 0%, 100% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(-2px, -5px) rotate(-3deg); } }
+@keyframes es-firefly { 0%, 100% { opacity: 0; transform: translate(0, 0); } 50% { opacity: .9; transform: translate(14px, -18px); } }
+@keyframes es-drift-n {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  33%  { transform: translate(2px, 34vh) rotate(120deg); }
+  66%  { transform: translate(-1px, 67vh) rotate(240deg); }
+  100% { transform: translate(0, calc(100vh + 40px)) rotate(360deg); }
+}
 @keyframes es-drift {
   0%   { transform: translate(0, 0) rotate(0deg); }
   25%  { transform: translate(18px, 26vh) rotate(90deg); }
@@ -69,8 +235,255 @@ html[data-lang="es"] .theme-deco.ambient i:nth-child(6) { left: 93%; background:
   75%  { transform: translate(16px, 78vh) rotate(270deg); }
   100% { transform: translate(0, calc(100vh + 40px)) rotate(360deg); }
 }
+
+/* --- night --- */
+@media (prefers-color-scheme: dark) {
+  html[data-lang="es"] .es-day { display: none; }
+  html[data-lang="es"] .es-night { display: block; }
+  html[data-lang="es"] .es-moon { opacity: .9; }
+  html[data-lang="es"] .es-m1 { fill: #34274d; }
+  html[data-lang="es"] .es-sn { fill: #605384; }
+  html[data-lang="es"] .es-m2 { fill: #2c2244; }
+  html[data-lang="es"] .es-hl { fill: #1f3238; }
+  html[data-lang="es"] .es-tr { stroke: #29403f; }
+  html[data-lang="es"] .es-ri { stroke: #18282c; }
+  html[data-lang="es"] .es-th { fill: #22363a; }
+  html[data-lang="es"] .es-c0 { stroke: #4c3a55; }
+  html[data-lang="es"] .es-c1 { stroke: #34505c; }
+  html[data-lang="es"] .es-c2 { stroke: #563b5e; }
+  html[data-lang="es"] .es-c3 { stroke: #514660; }
+  html[data-lang="es"] .es-c4 { stroke: #403b68; }
+  html[data-lang="es"] .es-rf { fill: #6b4048; }
+  html[data-lang="es"] .es-tm { stroke: #5d4d68; }
+  html[data-lang="es"] .es-wn { stroke: #ffd27a; }
+  html[data-lang="es"] .es-wd { stroke: #2b2238; }
+  html[data-lang="es"] .es-dr { stroke: #2e2236; }
+  html[data-lang="es"] .es-wire { stroke: #6e5a7c; }
+  html[data-lang="es"] .es-bulbs { filter: drop-shadow(0 0 2.5px rgba(255, 210, 122, .9)); }
+  html[data-lang="es"] .es-lm { fill: #4a4064; stroke: #4a4064; }
+  html[data-lang="es"] .es-fg { fill: #1c2c2f; }
+  html[data-lang="es"] .es-cac { stroke: #2b4b44; color: #9c4a7a; }
+  html[data-lang="es"] .es-npl { fill: #2e5047; color: #9c4a7a; }
+  html[data-lang="es"] .es-agv { fill: #2f4d4a; }
+  html[data-lang="es"] .es-p { fill: #294840; color: #4a3b40; }
+  html[data-lang="es"] .es-mg0 { stroke: #a8642c; }
+  html[data-lang="es"] .es-mg1 { stroke: #b08a34; }
+  html[data-lang="es"] .es-o { opacity: .6; filter: saturate(.6) brightness(.8); }
+  html[data-lang="es"] .theme-deco.objects .es-o8 { filter: none; }
+  html[data-lang="es"] .theme-deco.objects .es-o5, html[data-lang="es"] .theme-deco.objects .es-o6 { display: none; }
+  html[data-lang="es"] .es-o2::before, html[data-lang="es"] .es-o7::before, html[data-lang="es"] .es-o8::before { border-color: #6e5a7c; }
+  html[data-lang="es"] .theme-deco.ambient i:nth-child(n+4) { display: none; }
+  html[data-lang="es"] .theme-deco.ambient i { opacity: .3; }
+  html[data-lang="es"] .theme-deco.ambient b { display: block; }
+}
+@media (prefers-color-scheme: dark) and (min-width: 1041px) {
+  html[data-lang="es"] .es-o8 { display: block; opacity: .7; }
+}
+
+/* --- tap to react (theme-format.md section 4) ---
+   Sky: the sun laughs and spins its rays, the moon wakes up and sways, a cloud puffs, a star sparkles, the condor
+   flaps. Objects: the maracas shake, the pinata twirls on its string, the guitar strums (strings buzz, notes hop),
+   the marigolds bloom, the hummingbird darts, the chilis and the textile swing, the lantern glows.
+   The third tap in a row (and on) makes each reaction bigger. Hidden surprises live in es.js (onPoke).
+   "3+" below is :not([data-taps="1"]):not([data-taps="2"]). */
+html[data-lang="es"] .es-pk, html[data-lang="es"] .es-rw { transform-box: view-box; transform-origin: 60px 60px; }
+html[data-lang="es"] .es-sun.poked .es-pk { animation: es-boing 1s ease-out; }
+html[data-lang="es"] .es-sun.poked .es-rw { animation: es-rays-go 1.2s cubic-bezier(.2, .7, .3, 1); }
+html[data-lang="es"] .es-sun.poked .es-grin { animation: es-show 1.3s ease-in-out; }
+html[data-lang="es"] .es-sun.poked .es-chk { animation: es-blush 1.3s ease-in-out; }
+html[data-lang="es"] .es-sun.poked:not([data-taps="1"]):not([data-taps="2"]) .es-pk { animation: es-boing-big 1.2s ease-out; }
+html[data-lang="es"] .es-sun.poked:not([data-taps="1"]):not([data-taps="2"]) .es-rw { animation: es-rays-go2 1.4s cubic-bezier(.2, .7, .3, 1); }
+html[data-lang="es"] .es-moon.poked .es-pk { animation: es-wobble 1.3s ease-in-out; }
+html[data-lang="es"] .es-moon.poked:not([data-taps="1"]):not([data-taps="2"]) .es-pk { animation: es-wobble-big 1.4s ease-in-out; }
+html[data-lang="es"] .es-moon.poked .es-eye { animation: es-show 1.3s ease-in-out; }
+html[data-lang="es"] .es-moon.poked .es-lid { animation: es-hide 1.3s ease-in-out; }
+html[data-lang="es"] .es-cl::after { content: ""; position: absolute; inset: -10px -4px; }   /* a finger-sized tap area */
+html[data-lang="es"] .es-cl svg { transform-origin: 50% 85%; }
+html[data-lang="es"] .es-cl.poked svg { animation: es-puff 1s ease-out; }
+html[data-lang="es"] .es-cl.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: es-puff-big 1.2s ease-out; }
+@media (min-width: 641px) and (max-width: 1040px) {   /* the left cloud drifts half off-screen here: reach further in */
+  html[data-lang="es"] .es-cl1::after { inset: -10px -30px -10px -4px; }
+}
+html[data-lang="es"] .es-sw.poked + .es-st { animation: es-sparkle 1s ease-out; }
+html[data-lang="es"] .es-sw.poked:not([data-taps="1"]):not([data-taps="2"]) + .es-st { animation: es-sparkle-big 1.2s ease-out; }
+html[data-lang="es"] .theme-deco.sky .es-condor { padding: 12px 0; margin-top: -12px; }   /* a finger-sized tap area */
+html[data-lang="es"] .es-cw { transform-box: view-box; transform-origin: 60px 16px; }   /* the wings beat, the body bobs */
+html[data-lang="es"] .es-condor.poked .es-cw { animation: es-flap 1.2s ease-in-out; }
+html[data-lang="es"] .es-condor.poked .es-cb { animation: es-bob 1.2s ease-in-out; }
+
+/* objects: small ones get an invisible margin to tap */
+html[data-lang="es"] .es-o6::after { content: ""; position: absolute; inset: 0 -8px; }
+@media (max-width: 900px) { html[data-lang="es"] .es-o1::after, html[data-lang="es"] .es-o4::after { content: ""; position: absolute; inset: -6px; } }
+html[data-lang="es"] .es-mk { transform-box: view-box; transform-origin: 0 28px; }
+html[data-lang="es"] .theme-deco.objects .es-o1.poked { animation: es-hop 1s ease-out; transform-origin: 50% 90%; }
+html[data-lang="es"] .es-o1.poked .es-mk { animation: es-maraca .9s ease-in-out; }
+html[data-lang="es"] .es-o1.poked .es-mk2 { animation-delay: .07s; }
+html[data-lang="es"] .es-o1.poked:not([data-taps="1"]):not([data-taps="2"]) .es-mk { animation-name: es-maraca-big; animation-duration: 1.1s; }
+html[data-lang="es"] .theme-deco.objects .es-o2.poked, html[data-lang="es"] .theme-deco.objects .es-o6.poked,
+html[data-lang="es"] .theme-deco.objects .es-o7.poked, html[data-lang="es"] .theme-deco.objects .es-o8.poked { animation: es-swing 1.5s ease-in-out; transform-origin: 50% -60vh; }
+html[data-lang="es"] .theme-deco.objects .es-o2.poked:not([data-taps="1"]):not([data-taps="2"]),
+html[data-lang="es"] .theme-deco.objects .es-o6.poked:not([data-taps="1"]):not([data-taps="2"]),
+html[data-lang="es"] .theme-deco.objects .es-o7.poked:not([data-taps="1"]):not([data-taps="2"]),
+html[data-lang="es"] .theme-deco.objects .es-o8.poked:not([data-taps="1"]):not([data-taps="2"]) { animation-name: es-swing-big; }
+html[data-lang="es"] .es-o2.poked svg { animation: es-twirl 1.4s ease-in-out; }
+html[data-lang="es"] .es-o2.poked[data-taps="3"] svg { animation: es-pop 1.5s ease-out; }   /* it bursts (the candy is in es.js) */
+html[data-lang="es"] .theme-deco.objects .es-o3.poked { animation: es-rock 1s ease-in-out; transform-origin: 58% 92%; }
+html[data-lang="es"] .es-gs, html[data-lang="es"] .es-gn { transform-box: fill-box; transform-origin: center; }
+html[data-lang="es"] .es-o3.poked .es-gs { animation: es-buzz .9s linear; }
+html[data-lang="es"] .es-o3.poked .es-gn { animation: es-notehop 1s ease-out; }
+html[data-lang="es"] .es-fh { transform-box: view-box; }
+html[data-lang="es"] .es-fh:nth-of-type(1) { transform-origin: 18px 28px; }
+html[data-lang="es"] .es-fh:nth-of-type(2) { transform-origin: 34px 18px; }
+html[data-lang="es"] .es-fh:nth-of-type(3) { transform-origin: 48px 30px; }
+html[data-lang="es"] .theme-deco.objects .es-o4.poked { animation: es-squash 1s ease-out; transform-origin: 50% 100%; }
+html[data-lang="es"] .es-o4.poked .es-fh { animation: es-bloom .9s ease-out; }
+html[data-lang="es"] .es-o4.poked:not([data-taps="1"]):not([data-taps="2"]) .es-fh { animation-name: es-bloom-big; animation-duration: 1.2s; }
+html[data-lang="es"] .es-o4.poked .es-fh + .es-fh { animation-delay: .12s; }
+html[data-lang="es"] .es-o4.poked .es-fh + .es-fh + .es-fh { animation-delay: .24s; }
+html[data-lang="es"] .theme-deco.objects .es-o5.poked { animation: es-zip 1.2s ease-in-out; }
+html[data-lang="es"] .theme-deco.objects .es-o5.poked:not([data-taps="1"]):not([data-taps="2"]) { animation: es-loop 1.4s ease-in-out; }
+html[data-lang="es"] .es-wing { transform-box: view-box; transform-origin: 41px 27px; }
+html[data-lang="es"] .es-o5.poked .es-wing { animation: es-flutter .12s linear 10; }
+html[data-lang="es"] .es-o6 svg, html[data-lang="es"] .es-o8 svg { transform-origin: 50% 0; }
+html[data-lang="es"] .es-o6.poked svg, html[data-lang="es"] .es-o8.poked svg { animation: es-dangle 1.4s ease-in-out; }
+html[data-lang="es"] .es-o6.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: es-twirl 1.4s ease-in-out; }
+html[data-lang="es"] .es-o7 svg { transform-origin: 50% 8%; }
+html[data-lang="es"] .es-o7.poked svg { animation: es-flutter-cloth 1.4s ease-in-out; }
+html[data-lang="es"] .es-lg { opacity: .22; }   /* a soft halo (radial gradient in es.js) */
+html[data-lang="es"] .es-o8.poked .es-lg { animation: es-glow 1.4s ease-in-out; }
+html[data-lang="es"] .es-o8.poked .es-lw { animation: es-glow-in 1.4s ease-in-out; }
+
+@keyframes es-boing { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.14); } 60% { transform: scale(.95); } }
+@keyframes es-boing-big { 0%, 100% { transform: scale(1); } 25% { transform: scale(1.24) rotate(-6deg); } 50% { transform: scale(.92) rotate(4deg); } 75% { transform: scale(1.06); } }
+@keyframes es-rays-go { to { transform: rotate(120deg); } }   /* the rays repeat every 60deg, so it ends seamlessly */
+@keyframes es-rays-go2 { to { transform: rotate(360deg); } }
+@keyframes es-show { 0%, 100% { opacity: 0; } 15%, 80% { opacity: 1; } }
+@keyframes es-hide { 0%, 100% { opacity: 1; } 15%, 80% { opacity: 0; } }
+@keyframes es-blush { 0%, 100% { opacity: .55; } 20%, 75% { opacity: .95; } }
+@keyframes es-wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } }
+@keyframes es-wobble-big { 0%, 100% { transform: rotate(0); } 20% { transform: translateY(-6px) rotate(-18deg); } 50% { transform: translateY(-2px) rotate(13deg); } 75% { transform: rotate(-5deg); } }
+@keyframes es-puff { 0%, 100% { transform: scale(1); } 25% { transform: scale(1.16, .88); } 55% { transform: scale(.93, 1.08); } 80% { transform: scale(1.03, .98); } }
+@keyframes es-puff-big { 0%, 100% { transform: none; } 20% { transform: scale(1.24, .82); } 45% { transform: translateY(-10px) scale(.9, 1.12); } 70% { transform: translateY(-2px) scale(1.05, .96); } }
+@keyframes es-sparkle { 0%, 100% { transform: none; } 30% { opacity: 1; transform: scale(2.4) rotate(45deg); } 65% { opacity: 1; transform: scale(1.3) rotate(90deg); } 99.9% { transform: rotate(90deg); } }
+@keyframes es-sparkle-big { 0%, 100% { transform: none; } 30% { opacity: 1; transform: scale(3.2) rotate(90deg); } 65% { opacity: 1; transform: scale(1.6) rotate(150deg); } 99.9% { transform: rotate(180deg); } }
+@keyframes es-flap {
+  0%, 100% { transform: none; }
+  15% { transform: scaleY(-.5); } 30% { transform: scaleY(1.25); } 45% { transform: scaleY(-.4); } 62% { transform: scaleY(1.12); }
+}
+@keyframes es-bob { 0%, 100% { transform: none; } 15% { transform: translateY(-2px); } 30% { transform: translateY(-5px); } 45% { transform: translateY(-7px); } 62% { transform: translateY(-6px); } }
+@keyframes es-hop { 0%, 100% { transform: none; } 30% { transform: translateY(-5px); } 55% { transform: translateY(0) scale(1.04, .96); } }
+@keyframes es-maraca {
+  0%, 100% { transform: rotate(0); } 10% { transform: rotate(-16deg); } 22% { transform: rotate(14deg); } 34% { transform: rotate(-14deg); }
+  46% { transform: rotate(12deg); } 58% { transform: rotate(-10deg); } 70% { transform: rotate(7deg); } 84% { transform: rotate(-4deg); }
+}
+@keyframes es-maraca-big {
+  0%, 100% { transform: rotate(0); } 8% { transform: rotate(-24deg) scale(1.08); } 18% { transform: rotate(22deg) scale(1.08); } 28% { transform: rotate(-22deg); }
+  38% { transform: rotate(20deg); } 48% { transform: rotate(-18deg); } 58% { transform: rotate(15deg); } 70% { transform: rotate(-10deg); } 84% { transform: rotate(5deg); }
+}
+@keyframes es-swing { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(2.4deg); } 55% { transform: rotate(-1.8deg); } 80% { transform: rotate(.8deg); } }
+@keyframes es-swing-big { 0%, 100% { transform: rotate(0); } 22% { transform: rotate(4deg); } 50% { transform: rotate(-3.2deg); } 76% { transform: rotate(1.5deg); } }
+@keyframes es-twirl { 0%, 100% { transform: scaleX(1); } 18% { transform: scaleX(-1); } 38% { transform: scaleX(1); } 62% { transform: scaleX(-1); } }
+@keyframes es-pop {
+  0% { transform: none; opacity: 1; } 10% { transform: scale(1.3); opacity: 1; } 18% { transform: scale(1.55); opacity: 0; }
+  62% { transform: translateY(-40px); opacity: 0; } 100% { transform: none; opacity: 1; }
+}
+@keyframes es-rock { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-6deg); } 45% { transform: rotate(4deg); } 70% { transform: rotate(-2deg); } }
+@keyframes es-buzz {
+  0%, 100% { transform: scaleX(1); } 8% { transform: scaleX(2.6); } 16% { transform: scaleX(.3); } 24% { transform: scaleX(2.3); } 32% { transform: scaleX(.4); }
+  42% { transform: scaleX(2); } 52% { transform: scaleX(.5); } 64% { transform: scaleX(1.6); } 78% { transform: scaleX(.75); } 90% { transform: scaleX(1.2); }
+}
+@keyframes es-notehop { 0%, 100% { transform: none; } 30% { transform: translate(2px, -7px) rotate(10deg) scale(1.15); } 60% { transform: translate(-1px, -2px) rotate(-6deg); } }
+@keyframes es-squash { 0%, 100% { transform: none; } 20% { transform: scale(1.08, .92); } 45% { transform: scale(.96, 1.05); } 70% { transform: scale(1.02, .98); } }
+@keyframes es-bloom { 0%, 100% { transform: none; } 40% { transform: scale(1.3); } 70% { transform: scale(.94); } }
+@keyframes es-bloom-big { 0% { transform: none; } 40% { transform: scale(1.4) rotate(200deg); } 70% { transform: scale(.94) rotate(330deg); } 100% { transform: rotate(360deg); } }
+@keyframes es-zip { 0%, 100% { transform: translate(0, 0); } 35% { transform: translate(-16px, -12px); } 65% { transform: translate(6px, -4px); } }
+@keyframes es-loop {
+  0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-14px, -6px); } 40% { transform: translate(-16px, -26px); }
+  60% { transform: translate(0, -32px); } 80% { transform: translate(8px, -12px); }
+}
+@keyframes es-flutter { 50% { transform: scale(.55, .3); } }
+@keyframes es-dangle { 0%, 100% { transform: rotate(0); } 18% { transform: rotate(8deg); } 42% { transform: rotate(-6deg); } 66% { transform: rotate(3deg); } 86% { transform: rotate(-1.2deg); } }
+@keyframes es-flutter-cloth { 0%, 100% { transform: none; } 18% { transform: skewX(9deg) scaleY(1.03); } 42% { transform: skewX(-7deg); } 66% { transform: skewX(4deg); } 86% { transform: skewX(-1.5deg); } }
+@keyframes es-glow { 0%, 100% { opacity: .22; } 25%, 70% { opacity: .7; } }
+@keyframes es-glow-in { 0%, 100% { opacity: .5; } 25%, 70% { opacity: 1; } }
+
+/* --- surprises (added by onPoke in es.js, then removed) --- */
+html[data-lang="es"] .es-fx { position: absolute; pointer-events: none; }
+html[data-lang="es"].calm .es-fx { visibility: hidden; }   /* exercises stay calm (es.js also removes them) */
+html[data-lang="es"] .es-fx svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* the pinata bursts: a flash ring, papel picado bits and wrapped candy fly out and fall */
+html[data-lang="es"] .es-fx-burst { width: 0; height: 0; }
+html[data-lang="es"] .es-fx-burst i {
+  position: absolute; left: -4px; top: -5px; width: 8px; height: 10px; opacity: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 75% 100%, 50% 80%, 25% 100%, 0 80%);
+  animation: es-fly 2.2s both;
+}
+html[data-lang="es"] .es-fx-burst .es-candy { left: -9px; top: -4.5px; width: 18px; height: 9px; clip-path: none; }
+html[data-lang="es"] .es-ring {
+  position: absolute; left: -30px; top: -30px; width: 60px; height: 60px; border-radius: 50%;
+  border: 3px solid #ffc928; opacity: 0; animation: es-ring .7s ease-out;
+}
+@keyframes es-fly {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0) scale(.4); animation-timing-function: cubic-bezier(.2, .7, .4, 1); }
+  6% { opacity: 1; }
+  28% { transform: translate(calc(var(--dx) * .6), var(--up)) rotate(calc(var(--r) * .35)) scale(1); animation-timing-function: cubic-bezier(.5, 0, .9, .6); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--fall)) rotate(var(--r)) scale(1); }
+}
+@keyframes es-ring { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(1.6); } }
+/* the guitar plays: music notes float up, swaying */
+html[data-lang="es"] .es-fx-notes { width: 0; height: 0; }
+html[data-lang="es"] .es-fx-notes i { position: absolute; left: -9px; top: -12px; width: 18px; height: 23px; opacity: 0; animation: es-note 2.2s ease-out both; }
+@keyframes es-note {
+  0% { opacity: 0; transform: translate(0, 0) scale(.5); }
+  12% { opacity: .9; }
+  35% { transform: translate(var(--sx), calc(var(--rise) * .33)) rotate(var(--tilt)) scale(1); }
+  65% { transform: translate(calc(var(--sx) * -1), calc(var(--rise) * .66)) rotate(calc(var(--tilt) * -1)) scale(1); }
+  80% { opacity: .85; }
+  100% { opacity: 0; transform: translate(var(--sx), var(--rise)) rotate(var(--tilt)) scale(1); }
+}
+/* the sun brings a rainbow, its feet behind the Andes (it sits behind the landscape) */
+html[data-lang="es"] .es-fx-rainbow {
+  left: 0; right: 0; margin: 0 auto; bottom: calc(var(--es-h) * .42);
+  width: min(96vw, calc((100vh - var(--es-h) * .42 - 6vh) * 2)); aspect-ratio: 2 / 1;
+  opacity: 0; animation: es-rb-life 5.4s ease-in-out both;
+}
+html[data-lang="es"] .es-fx-rainbow path { fill: none; stroke-width: 5.6; opacity: 0; animation: es-rb-band .8s ease-out both; }
+@keyframes es-rb-life { 0% { opacity: 0; transform: translateY(16px); } 16% { opacity: .48; transform: none; } 80% { opacity: .48; } 100% { opacity: 0; transform: none; } }
+@keyframes es-rb-band { to { opacity: 1; } }
+/* the moon sends shooting stars across the night sky */
+html[data-lang="es"] .es-fx-shoot { inset: 0; overflow: hidden; }
+html[data-lang="es"] .es-fx-flip { transform: scaleX(-1); }
+html[data-lang="es"] .es-fx-shoot i {
+  position: absolute; width: 130px; height: 2.4px; border-radius: 2px; opacity: 0; transform-origin: 0 50%;
+  background: linear-gradient(90deg, #fff8dc, rgba(255, 240, 200, .5) 30%, rgba(255, 240, 200, 0));
+  animation: es-shoot 1.3s ease-in both;
+}
+html[data-lang="es"] .es-fx-shoot i::before {
+  content: ""; position: absolute; left: -3px; top: -2.3px; width: 7px; height: 7px; border-radius: 50%;
+  background: #fffbe8; box-shadow: 0 0 8px 3px rgba(255, 236, 170, .6);
+}
+@keyframes es-shoot {
+  0% { opacity: 0; transform: rotate(-20deg) translateX(0); } 12%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(-20deg) translateX(-38vw); }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* nothing moves (style.css also stops every animation and transition): a tapped thing just lights up, the sun
+     smiles, the moon opens an eye, the lantern glows; the rainbow simply shows, still, and the moving surprises are skipped */
+  html[data-lang="es"] #theme-layer [data-poke], html[data-lang="es"] #theme-layer [data-poke] * { animation: none !important; }
+  html[data-lang="es"] #theme-layer [data-poke].poked { opacity: 1; filter: none; }
+  html[data-lang="es"] .es-sw.poked + .es-st { opacity: 1; background: #fff; }
+  html[data-lang="es"] .es-sun.poked .es-grin, html[data-lang="es"] .es-moon.poked .es-eye { opacity: 1; }
+  html[data-lang="es"] .es-moon.poked .es-lid { opacity: 0; }
+  html[data-lang="es"] .es-o8.poked .es-lg { opacity: .7; }
+  html[data-lang="es"] .es-o8.poked .es-lw { opacity: 1; }
+  html[data-lang="es"] .es-fx-rainbow { animation: none; opacity: .4; }
+  html[data-lang="es"] .es-fx-rainbow path { animation: none; opacity: 1; }
+  html[data-lang="es"] .es-fx-burst, html[data-lang="es"] .es-fx-notes, html[data-lang="es"] .es-fx-shoot { display: none; }
   html[data-lang="es"] .theme-deco .es-sway,
-  html[data-lang="es"] .theme-deco .es-shake { animation: none; }
+  html[data-lang="es"] .theme-deco .es-shake,
+  html[data-lang="es"] .es-rays, html[data-lang="es"] .es-cl, html[data-lang="es"] .es-tw,
+  html[data-lang="es"] .es-hb, html[data-lang="es"] .theme-deco.sky .es-condor { animation: none; }
   html[data-lang="es"] .theme-deco.ambient { display: none; }
 }

@@ -26,21 +26,17 @@ html[data-lang="ja"] {
   /* seigaiha (blue ocean waves) */
   --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M15.3 -9.4A18 18 0 0 0 -15.3 -9.4M11 -7.9A13.5 13.5 0 0 0 -11 -7.9M7.2 -5.4A9 9 0 0 0 -7.2 -5.4M4 -2A4.5 4.5 0 0 0 -4 -2M55.3 -9.4A18 18 0 0 0 24.7 -9.4M51 -7.9A13.5 13.5 0 0 0 29 -7.9M47.2 -5.4A9 9 0 0 0 32.8 -5.4M44 -2A4.5 4.5 0 0 0 36 -2M35.3 0.6A18 18 0 0 0 4.7 0.6M31 2.1A13.5 13.5 0 0 0 9 2.1M27.2 4.6A9 9 0 0 0 12.8 4.6M24 8A4.5 4.5 0 0 0 16 8M15.3 10.6A18 18 0 0 0 -15.3 10.6M11 12.1A13.5 13.5 0 0 0 -11 12.1M7.2 14.6A9 9 0 0 0 -7.2 14.6M4 18A4.5 4.5 0 0 0 -4 18M55.3 10.6A18 18 0 0 0 24.7 10.6M51 12.1A13.5 13.5 0 0 0 29 12.1M47.2 14.6A9 9 0 0 0 32.8 14.6M44 18A4.5 4.5 0 0 0 36 18M35.3 20.6A18 18 0 0 0 4.7 20.6M31 22.1A13.5 13.5 0 0 0 9 22.1M27.2 24.6A9 9 0 0 0 12.8 24.6M24 28A4.5 4.5 0 0 0 16 28M15.3 30.6A18 18 0 0 0 -15.3 30.6M11 32.1A13.5 13.5 0 0 0 -11 32.1M7.2 34.6A9 9 0 0 0 -7.2 34.6M4 38A4.5 4.5 0 0 0 -4 38M55.3 30.6A18 18 0 0 0 24.7 30.6M51 32.1A13.5 13.5 0 0 0 29 32.1M47.2 34.6A9 9 0 0 0 32.8 34.6M44 38A4.5 4.5 0 0 0 36 38M35.3 40.6A18 18 0 0 0 4.7 40.6M31 42.1A13.5 13.5 0 0 0 9 42.1M27.2 44.6A9 9 0 0 0 12.8 44.6M24 48A4.5 4.5 0 0 0 16 48M15.3 50.6A18 18 0 0 0 -15.3 50.6M11 52.1A13.5 13.5 0 0 0 -11 52.1M7.2 54.6A9 9 0 0 0 -7.2 54.6M4 58A4.5 4.5 0 0 0 -4 58M55.3 50.6A18 18 0 0 0 24.7 50.6M51 52.1A13.5 13.5 0 0 0 29 52.1M47.2 54.6A9 9 0 0 0 32.8 54.6M44 58A4.5 4.5 0 0 0 36 58' fill='none' stroke='%232d3f8f' stroke-width='1.6'/%3E%3C/svg%3E");
   --theme-pattern-size: 64px;
-  --theme-pattern-opacity: .18;
+  --theme-pattern-opacity: .11;
 
   /* theme-only helpers for the decorations */
   --ja-branch: #7a4a33;
   --ja-cap: #2b2140;
-  --ja-fuji-a: #4a63c4;
-  --ja-fuji-b: #2d3f8f;
-  --ja-sea: #2d3f8f;
-  --ja-wave: #a9b8f2;
   --ja-petal: #f7b3ca;
   --ja-petal-d: #e88aae;
 }
 @media (prefers-color-scheme: dark) {
   html[data-lang="ja"] {
-    --theme-wash: none;
+    --theme-wash: linear-gradient(180deg, #0f1430 0%, #141a33 45%, #1b2247 100%); /* deep night sky */
     --bg: #141a33;        /* night indigo */
     --surface: #1e2547;
     --surface-2: #283060;
@@ -66,57 +62,383 @@ html[data-lang="ja"] {
 
     --ja-branch: #c79a7e;
     --ja-cap: #c9a24a;
-    --ja-fuji-a: #7b90ea;
-    --ja-fuji-b: #4a5fc0;
-    --ja-sea: #3a4ca3;
-    --ja-wave: #b9c6ff;
     --ja-petal: #f7b3ca;
     --ja-petal-d: #e88aae;
   }
-  html[data-lang="ja"] .theme-deco .ja-moon { opacity: 1; fill: #f7cf5f; }
 }
 
 /* ---------- mascot: Hana ---------- */
 html[data-lang="ja"] .ja-hana { overflow: visible; }
 html[data-lang="ja"] .ja-hana .m-wag { transform-box: fill-box; transform-origin: 10% 95%; }
 
-/* ---------- decorations ---------- */
-html[data-lang="ja"] .theme-deco svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* ---------- decorations: banner + results ---------- */
+html[data-lang="ja"] .theme-deco.banner svg, html[data-lang="ja"] .theme-deco.results svg { display: block; width: 100%; height: auto; overflow: visible; }
+html[data-lang="ja"] .results-hero .theme-deco.results svg { height: 100%; }
 html[data-lang="ja"] .theme-deco .ja-branch { stroke: var(--ja-branch); }
 html[data-lang="ja"] .theme-deco .ja-string { stroke: var(--ja-branch); }
 html[data-lang="ja"] .theme-deco .ja-cap { color: var(--ja-cap); }
-html[data-lang="ja"] .theme-deco .ja-fuji-a { stop-color: var(--ja-fuji-a); }
-html[data-lang="ja"] .theme-deco .ja-fuji-b { stop-color: var(--ja-fuji-b); }
-html[data-lang="ja"] .theme-deco .ja-sea { fill: var(--ja-sea); }
-html[data-lang="ja"] .theme-deco .ja-wave { stroke: var(--ja-wave); }
 
-/* ambient: a few sakura petals drifting down behind the content */
-html[data-lang="ja"] .theme-deco.ambient {
-  position: fixed; inset: 0; overflow: hidden; pointer-events: none;
+/* ================= the world: a spring day by Mt Fuji / a moonlit yozakura night ================= */
+/* The world replaces the shared round color circles; only the soft sakura-to-sky wash stays. */
+html[data-lang="ja"] body { background-image: var(--theme-wash, none); }
+/* The seigaiha pattern fades out toward the landscape, so the hills stay clean. */
+html[data-lang="ja"] body::before {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, .55) 50%, transparent 82%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, .55) 50%, transparent 82%);
 }
+
+/* world palette: day */
+html[data-lang="ja"] {
+  --ja-far: #dcd9f1;    --ja-fa: #a9b5e7;   --ja-fb: #cbd3f3;   --ja-snow: #f4f6fd;  --ja-snow2: #d6ddf6;
+  --ja-mist: #fdf0f5;   --ja-mid: #d3e6c3;  --ja-near: #c2dca8;
+  --ja-bl1: #f6c3d5;    --ja-bl2: #fde2ec;  --ja-trk: #b48b7d;  --ja-bl1n: #f2b2c9;  --ja-bl2n: #fbd8e4;
+  --ja-stone: #c8cbe2;  --ja-wall: #fffaf3;  --ja-roof: #919ecf; --ja-win: #7782b8;   --ja-hw: #fff3e6;  --ja-door: #cfae92;
+  --ja-water: #c6d6f4;  --ja-rip: #ffffff;  --ja-sea: #d7e0f7;  --ja-sel: rgba(255, 255, 255, .7); --ja-br: #e36b50;
+  --ja-bam: #a6cc8c;    --ja-bamn: #d9ecca; --ja-bml: #98c47c;  --ja-lan: #e8674d;
+  --ja-cloud: #ffffff;  --ja-cloud-l: #f2c4d3;
+  --ja-k1: #7487d8;    --ja-k2: #ee8068;  --ja-k3: #f39ab8;  --ja-str: #b48b7d;
+  /* the landscape strip height and its SVG scale (px per viewBox unit), to line sky pieces up with the scene */
+  --ja-sh: clamp(120px, max(22vh, 100vw / 6), 300px);
+  --ja-u: max(100vw / 1200, var(--ja-sh) / 200);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-lang="ja"] {
+    --ja-far: #262f62;  --ja-fa: #3a4892;  --ja-fb: #252f68;  --ja-snow: #c3c9ea;  --ja-snow2: #a1a9d6;
+    --ja-mist: #2a3367; --ja-mid: #1d3150; --ja-near: #1f3850;
+    --ja-bl1: #8c5585;  --ja-bl2: #ad6c98; --ja-trk: #5d4664;  --ja-bl1n: #b0689a;  --ja-bl2n: #d488b2;
+    --ja-stone: #343c6c; --ja-wall: #c5cae6; --ja-roof: #2f3770; --ja-win: #ffd26a; --ja-hw: #aeb4d8; --ja-door: #e6a94e;
+    --ja-water: #263777; --ja-rip: #6f86d6; --ja-sea: #233270; --ja-sel: #5d73c4; --ja-br: #c4573f;
+    --ja-bam: #2d5a4b;  --ja-bamn: #44765f; --ja-bml: #2a5444;  --ja-lan: #ffb347;
+    --ja-cloud: #252e62; --ja-cloud-l: #36417e;
+    --ja-k1: #4c5ca6;  --ja-k2: #a65448;  --ja-k3: #94608c;  --ja-str: #8a7a9a;
+  }
+}
+
+/* ---- sky ---- */
+html[data-lang="ja"] .theme-deco.sky .ja-day, html[data-lang="ja"] .theme-deco.sky .ja-night { position: absolute; inset: 0; }
+html[data-lang="ja"] .theme-deco.sky .ja-night { display: none; }
+html[data-lang="ja"] .ja-sun { position: absolute; top: 11vh; right: 7vw; width: clamp(64px, 7vw, 104px); height: clamp(64px, 7vw, 104px); }
+html[data-lang="ja"] .ja-moon { position: absolute; top: 10vh; right: 8vw; width: clamp(64px, 7vw, 104px); height: clamp(64px, 7vw, 104px); }
+html[data-lang="ja"] .ja-cl { position: absolute; height: auto; opacity: .9; animation: ja-drift 46s ease-in-out infinite alternate; }
+html[data-lang="ja"] .ja-cl svg { height: auto; overflow: visible; }
+html[data-lang="ja"] .ja-cl-b { fill: var(--ja-cloud); stroke: var(--ja-cloud-l); stroke-width: 1.6; }
+html[data-lang="ja"] .ja-cl-l { fill: none; stroke: var(--ja-cloud-l); stroke-width: 1.8; stroke-linecap: round; }
+/* wide screens: clouds in the side margins, clear of the hanging lantern and wind chime strings */
+html[data-lang="ja"] .ja-cl1 { top: max(4vh, 74px); left: 6vw; width: clamp(110px, 13vw, 200px); }
+html[data-lang="ja"] .ja-cl2 { top: 31vh; right: 5vw; width: clamp(90px, 11vw, 170px); animation-duration: 58s; animation-direction: alternate-reverse; }
+html[data-lang="ja"] .ja-cl3 { top: 60vh; left: -2vw; width: clamp(80px, 9vw, 150px); animation-duration: 52s; opacity: .75; }
+html[data-lang="ja"] .ja-cl4 { top: 31vh; right: 5vw; width: clamp(100px, 11vw, 170px); opacity: .8; animation-duration: 60s; }
+html[data-lang="ja"] .ja-cl5 { top: 60vh; left: -3vw; width: clamp(90px, 10vw, 150px); opacity: .6; animation-duration: 50s; animation-direction: alternate-reverse; }
+/* phones and tablets: the content column is full width, so the sun / moon and one cloud move down into the
+   sky of the landscape strip, lined up with the scene (sun just right of Fuji's peak at x 705, y 46; the cloud
+   rests on Fuji's right shoulder). They show at the end of every page and on the calm exercise screens. */
+@media (max-width: 900px) {
+  html[data-lang="ja"] .ja-sun, html[data-lang="ja"] .ja-moon { top: auto; right: auto; left: calc(50% + 105 * var(--ja-u) - 23px); bottom: calc(154 * var(--ja-u) - 23px); width: 46px; height: 46px; }
+  html[data-lang="ja"] .ja-moon { left: calc(50% + 105 * var(--ja-u) - 29px); bottom: calc(156 * var(--ja-u) - 29px); width: 58px; height: 58px; }
+  html[data-lang="ja"] .ja-cl1, html[data-lang="ja"] .ja-cl3, html[data-lang="ja"] .ja-cl5 { display: none; }
+  html[data-lang="ja"] .ja-cl2, html[data-lang="ja"] .ja-cl4 { top: auto; right: auto; left: calc(50% + 122 * var(--ja-u)); bottom: calc(92 * var(--ja-u)); width: calc(72 * var(--ja-u)); opacity: .9; }
+}
+html[data-lang="ja"] .ja-st {
+  position: absolute; width: 9px; height: 9px; opacity: .75;
+}
+/* the star is drawn on ::before so the tappable <i> itself stays see-through (the app's tap forwarding skips painted boxes) */
+html[data-lang="ja"] .ja-st::before {
+  content: ""; position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0L6 4L10 5L6 6L5 10L4 6L0 5L4 4Z' fill='%23ffe6a3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+html[data-lang="ja"] .ja-st:nth-child(1)  { top: 6%;  left: 8%; }
+html[data-lang="ja"] .ja-st:nth-child(2)  { top: 13%; left: 30%; width: 6px; height: 6px; }
+html[data-lang="ja"] .ja-st:nth-child(3)  { top: 4%;  left: 52%; animation: ja-twinkle 9s ease-in-out infinite; }
+html[data-lang="ja"] .ja-st:nth-child(4)  { top: 9%;  left: 70%; width: 6px; height: 6px; }
+html[data-lang="ja"] .ja-st:nth-child(5)  { top: 26%; left: 4%; width: 7px; height: 7px; }
+html[data-lang="ja"] .ja-st:nth-child(6)  { top: 33%; left: 94%; animation: ja-twinkle 11s ease-in-out infinite -4s; }
+html[data-lang="ja"] .ja-st:nth-child(7)  { top: 18%; left: 88%; width: 6px; height: 6px; }
+html[data-lang="ja"] .ja-st:nth-child(8)  { top: 52%; left: 6%; width: 6px; height: 6px; opacity: .5; }
+html[data-lang="ja"] .ja-st:nth-child(9)  { top: 58%; left: 95%; width: 7px; height: 7px; opacity: .55; }
+html[data-lang="ja"] .ja-st:nth-child(10) { top: 3%;  left: 20%; width: 5px; height: 5px; }
+html[data-lang="ja"] .ja-st:nth-child(11) { top: 40%; left: 97%; width: 5px; height: 5px; }
+html[data-lang="ja"] .ja-st:nth-child(12) { top: 21%; left: 15%; width: 5px; height: 5px; opacity: .6; }
+
+/* ---- scene ---- */
+html[data-lang="ja"] .theme-deco.scene svg { height: 100%; }
+html[data-lang="ja"] .ja-s-far { fill: var(--ja-far); }
+html[data-lang="ja"] .ja-s-fa { stop-color: var(--ja-fa); }
+html[data-lang="ja"] .ja-s-fb { stop-color: var(--ja-fb); }
+html[data-lang="ja"] .ja-s-snow { fill: var(--ja-snow); }
+html[data-lang="ja"] .ja-s-snow2 { fill: var(--ja-snow2); }
+html[data-lang="ja"] .ja-s-mist { fill: var(--ja-mist); opacity: .7; }
+html[data-lang="ja"] .ja-s-mid { fill: var(--ja-mid); }
+html[data-lang="ja"] .ja-s-near { fill: var(--ja-near); }
+html[data-lang="ja"] .ja-s-trk { fill: none; stroke: var(--ja-trk); stroke-width: 3.5; stroke-linecap: round; }
+html[data-lang="ja"] .ja-s-bl1 { fill: var(--ja-bl1); }
+html[data-lang="ja"] .ja-s-bl2 { fill: var(--ja-bl2); }
+html[data-lang="ja"] .ja-s-stone { fill: var(--ja-stone); }
+html[data-lang="ja"] .ja-s-wall { fill: var(--ja-wall); }
+html[data-lang="ja"] .ja-s-roof { fill: var(--ja-roof); }
+html[data-lang="ja"] .ja-s-win { fill: var(--ja-win); }
+html[data-lang="ja"] .ja-s-hw { fill: var(--ja-hw); }
+html[data-lang="ja"] .ja-s-door { fill: var(--ja-door); }
+html[data-lang="ja"] .ja-s-lan { fill: var(--ja-lan); }
+html[data-lang="ja"] .ja-s-bam { fill: none; stroke: var(--ja-bam); stroke-width: 4.5; stroke-linecap: round; }
+html[data-lang="ja"] .ja-s-bamn { fill: none; stroke: var(--ja-bamn); stroke-width: 1.6; stroke-linecap: round; }
+html[data-lang="ja"] .ja-s-bml { fill: var(--ja-bml); }
+html[data-lang="ja"] .ja-s-sea { fill: var(--ja-sea); }
+html[data-lang="ja"] .ja-s-sel { fill: none; stroke: var(--ja-sel); stroke-width: 1.3; }
+html[data-lang="ja"] .ja-s-foam { fill: none; stroke: var(--ja-sel); stroke-width: 2.5; stroke-linecap: round; }
+html[data-lang="ja"] .ja-s-water { fill: var(--ja-water); }
+html[data-lang="ja"] .ja-s-rip { fill: none; stroke: var(--ja-rip); stroke-width: 1.6; stroke-linecap: round; opacity: .8; }
+html[data-lang="ja"] .ja-s-br { fill: none; stroke: var(--ja-br); stroke-width: 2.4; stroke-linecap: round; }
+html[data-lang="ja"] .ja-s-deck { stroke-width: 6; }
+html[data-lang="ja"] .ja-s-ref { opacity: .3; stroke-width: 4; }
+html[data-lang="ja"] .ja-s-cap { fill: var(--ja-br); }
+html[data-lang="ja"] .ja-s-str { fill: none; stroke: var(--ja-str); stroke-width: 1; }/* the koinobori left of Fuji is for phones and tablets; wide screens have the one beside the houses */html[data-lang="ja"] .theme-deco.scene .ja-s-ph { display: none; }@media (max-width: 900px) { html[data-lang="ja"] .theme-deco.scene .ja-s-ph { display: inline; } }
+/* the big near cherry trees are a touch deeper than the far ones (and glow a little at night: yozakura) */
+html[data-lang="ja"] .theme-deco.scene .ja-s-n { --ja-bl1: var(--ja-bl1n); --ja-bl2: var(--ja-bl2n); }
+
+/* ---- objects: only on screens wide enough for real side margins, so nothing is ever half hidden by a card.
+   Every object is anchored: the lantern and wind chime hang on strings from above, the picnic sits on the
+   river bank of the scene, and the folded paper cranes and the fan are free to float. ---- */
+html[data-lang="ja"] .ja-o { position: absolute; opacity: .88; }
+html[data-lang="ja"] .ja-o svg { height: auto; overflow: visible; }
+html[data-lang="ja"] .ja-o-hang { top: 0; padding-top: var(--ja-len); transform-origin: 50% 0; --ja-hd: 10s; --ja-hdl: 0s; animation: ja-hang var(--ja-hd) ease-in-out var(--ja-hdl) infinite; }
+html[data-lang="ja"] .ja-o-hang::before { content: ""; position: absolute; top: 0; left: 50%; width: 1.4px; margin-left: -.7px; height: calc(var(--ja-len) + 3px); background: var(--ja-str); opacity: .8; }
+html[data-lang="ja"] .ja-o-lan   { --ja-len: 19vh; right: 1.6vw; width: clamp(30px, 3.2vw, 46px); }
+html[data-lang="ja"] .ja-o-furin { --ja-len: 25vh; left: 2vw; width: clamp(24px, 2.6vw, 36px); --ja-hd: 8s; --ja-hdl: -3s; }
+html[data-lang="ja"] .ja-o-crane { top: 43vh; left: 4.5vw; width: clamp(64px, 6.4vw, 96px); }
+html[data-lang="ja"] .ja-o-fan   { top: 51vh; right: 3.5vw; width: clamp(44px, 4.6vw, 64px); }
+/* the hanami picnic sits on the near bank between the two right-hand cherry trees (scene x 1040, y 190) */
+html[data-lang="ja"] .ja-o-pic { left: calc(50% + 440 * var(--ja-u)); bottom: calc(8 * var(--ja-u)); width: calc(66 * var(--ja-u)); transform: translateX(-50%); opacity: .95; }
+html[data-lang="ja"] .ja-glow { opacity: 0; }
+@media (max-width: 900px) { html[data-lang="ja"] .theme-deco.objects { display: none; } }
+@media (max-width: 1099px) { html[data-lang="ja"] .ja-o-pic { display: none; } }
+
+/* ---- night ---- */
+@media (prefers-color-scheme: dark) {
+  html[data-lang="ja"] .theme-deco.sky .ja-day { display: none; }
+  html[data-lang="ja"] .theme-deco.sky .ja-night { display: block; }
+  html[data-lang="ja"] .ja-glow { opacity: .3; }
+  html[data-lang="ja"] .ja-o { opacity: .8; }
+}
+
+/* ---- ambient: sakura petals drifting down ---- */
+html[data-lang="ja"] .theme-deco.ambient { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
 html[data-lang="ja"] .ja-petal {
-  position: absolute; top: -24px; left: 10%; width: 13px; height: 11px; opacity: .6;
-  background: linear-gradient(135deg, var(--ja-petal), var(--ja-petal-d));
-  border-radius: 100% 0 100% 18%;
-  animation: ja-fall 16s linear infinite, ja-sway 4s ease-in-out infinite alternate;
+  position: absolute; top: -24px; left: 10%; width: 14px; height: 14px; opacity: .6;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 19C3.5 15 1.5 8 4.5 2L10 5.5L15.5 2C18.5 8 16.5 15 10 19Z' fill='%23f7b3ca'/%3E%3Cpath d='M10 17V9' stroke='%23ec8fb0' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  animation: ja-fall 18s linear infinite;
 }
-html[data-lang="ja"] .ja-petal:nth-child(1) { left: 6%;  animation-duration: 17s, 3.6s; animation-delay: -2s, 0s; }
-html[data-lang="ja"] .ja-petal:nth-child(2) { left: 22%; animation-duration: 21s, 4.4s; animation-delay: -11s, -1s; width: 10px; height: 9px; }
-html[data-lang="ja"] .ja-petal:nth-child(3) { left: 38%; animation-duration: 19s, 3.9s; animation-delay: -6s, -2s; }
-html[data-lang="ja"] .ja-petal:nth-child(4) { left: 55%; animation-duration: 23s, 4.8s; animation-delay: -15s, -.5s; opacity: .5; }
-html[data-lang="ja"] .ja-petal:nth-child(5) { left: 70%; animation-duration: 18s, 4.1s; animation-delay: -9s, -3s; }
-html[data-lang="ja"] .ja-petal:nth-child(6) { left: 84%; animation-duration: 22s, 3.7s; animation-delay: -4s, -1.5s; opacity: .5; width: 10px; height: 9px; }
-html[data-lang="ja"] .ja-petal:nth-child(7) { left: 94%; animation-duration: 20s, 4.6s; animation-delay: -13s, -2.5s; }
+html[data-lang="ja"] .ja-petal:nth-child(1) { left: 6%;  animation-duration: 19s; animation-delay: -2s; }
+html[data-lang="ja"] .ja-petal:nth-child(2) { left: 22%; animation-duration: 23s; animation-delay: -11s; width: 11px; height: 11px; }
+html[data-lang="ja"] .ja-petal:nth-child(3) { left: 38%; animation-duration: 21s; animation-delay: -6s; }
+html[data-lang="ja"] .ja-petal:nth-child(4) { left: 55%; animation-duration: 25s; animation-delay: -15s; opacity: .48; }
+html[data-lang="ja"] .ja-petal:nth-child(5) { left: 70%; animation-duration: 20s; animation-delay: -9s; }
+html[data-lang="ja"] .ja-petal:nth-child(6) { left: 84%; animation-duration: 24s; animation-delay: -4s; opacity: .48; width: 11px; height: 11px; }
+html[data-lang="ja"] .ja-petal:nth-child(7) { left: 94%; animation-duration: 22s; animation-delay: -13s; }
+
+/* one transform animation: the petal falls, rocks from side to side and turns as it goes */
 @keyframes ja-fall {
-  from { transform: translateY(0) rotate(0deg); }
-  to   { transform: translateY(calc(100vh + 48px)) rotate(540deg); }
+  0%   { transform: translate(-16px, 0) rotate(0deg); }
+  25%  { transform: translate(16px, calc(25vh + 12px)) rotate(135deg); }
+  50%  { transform: translate(-16px, calc(50vh + 24px)) rotate(270deg); }
+  75%  { transform: translate(16px, calc(75vh + 36px)) rotate(405deg); }
+  100% { transform: translate(-16px, calc(100vh + 48px)) rotate(540deg); }
 }
-@keyframes ja-sway {
-  from { translate: -18px 0; }
-  to   { translate: 18px 0; }
-}
+@keyframes ja-drift { from { transform: translateX(-14px); } to { transform: translateX(26px); } }
+@keyframes ja-twinkle { 0%, 100% { opacity: .8; } 50% { opacity: .2; } }
+@keyframes ja-hang { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   html[data-lang="ja"] .ja-petal { display: none; animation: none; }
+  html[data-lang="ja"] .ja-cl, html[data-lang="ja"] .ja-st, html[data-lang="ja"] .ja-o-hang { animation: none; }
   html[data-lang="ja"] .ja-hana .m-wag, html[data-lang="ja"] .ja-hana .m-bob { animation: none; }
+}
+
+/* ================= playing with the world: tap a sky piece or a side object (see docs/theme-format.md 4) ================= */
+/* finger-sized hit areas: every pokeable box grows to at least 44 x 44px with an invisible ::after */
+html[data-lang="ja"] .ja-sun::after, html[data-lang="ja"] .ja-moon::after, html[data-lang="ja"] .ja-cl::after,
+html[data-lang="ja"] .ja-st::after, html[data-lang="ja"] .ja-o::after {
+  content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2));
+}
+html[data-lang="ja"] .ja-cl::after { inset: -8px -4px; }
+/* a drifting night cloud's box must not swallow a tap on a star beside it: tappable stars sit on top inside the night sky */
+html[data-lang="ja"] .theme-deco.sky .ja-night { isolation: isolate; }
+html[data-lang="ja"] .theme-deco.sky .ja-st[data-poke] { z-index: 1; }
+/* the sun's face (a wink), the furin sparkles, the moon's mochi crumbs and the onigiri's happy eyes only show when tapped */
+html[data-lang="ja"] .ja-sun-f, html[data-lang="ja"] .ja-fu-sp, html[data-lang="ja"] .ja-moon-m, html[data-lang="ja"] .ja-pic-eh { opacity: 0; }
+html[data-lang="ja"] .ja-sun svg, html[data-lang="ja"] .ja-moon svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* the animated SVG parts turn around their own box (only these: other parts keep their own transform attributes) */
+html[data-lang="ja"] .ja-sun-h, html[data-lang="ja"] .ja-sun-d, html[data-lang="ja"] .ja-moon-h, html[data-lang="ja"] .ja-moon-d,
+html[data-lang="ja"] .ja-moon-k, html[data-lang="ja"] .ja-moon-m, html[data-lang="ja"] .ja-fu-tz, html[data-lang="ja"] .ja-fu-sp,
+html[data-lang="ja"] .ja-cr-w1, html[data-lang="ja"] .ja-cr-w2, html[data-lang="ja"] .ja-pic-oni, html[data-lang="ja"] .ja-pic-st { transform-box: fill-box; }
+
+/* sun: the halo ripples out, the disc bounces and winks; from the third tap in a row it spins */
+html[data-lang="ja"] .ja-sun .ja-sun-h, html[data-lang="ja"] .ja-sun .ja-sun-d { transform-origin: 50% 50%; }
+html[data-lang="ja"] .ja-sun.poked .ja-sun-h { animation: ja-pk-halo 1.2s ease-out; }
+html[data-lang="ja"] .ja-sun.poked .ja-sun-d { animation: ja-pk-boing 1s ease-out; }
+html[data-lang="ja"] .ja-sun.poked .ja-sun-f { animation: ja-pk-show 1.5s ease-in-out; }
+html[data-lang="ja"] .ja-sun.poked:not([data-taps="1"]):not([data-taps="2"]) .ja-sun-d { animation: ja-pk-spin 1.2s ease-in-out; }
+
+/* moon: a gentle wobble while the moon rabbit pounds its mochi (mochitsuki) */
+html[data-lang="ja"] .ja-moon .ja-moon-d, html[data-lang="ja"] .ja-moon .ja-moon-h { transform-origin: 50% 50%; }
+html[data-lang="ja"] .ja-moon .ja-moon-k { transform-origin: 0% 100%; }
+html[data-lang="ja"] .ja-moon .ja-moon-m { transform-origin: 50% 50%; }
+html[data-lang="ja"] .ja-moon.poked .ja-moon-d { animation: ja-pk-wobble 1.3s ease-in-out; }
+html[data-lang="ja"] .ja-moon.poked .ja-moon-h { animation: ja-pk-halo 1.3s ease-out; }
+html[data-lang="ja"] .ja-moon.poked .ja-moon-k { animation: ja-pk-pound 1.3s ease-in-out; }
+html[data-lang="ja"] .ja-moon.poked .ja-moon-m { animation: ja-pk-crumbs 1.3s ease-out; }
+
+/* clouds: a soft puff (squash and stretch); from the third tap in a row a bigger jiggle */
+html[data-lang="ja"] .ja-cl svg { display: block; width: 100%; transform-origin: 50% 85%; }
+html[data-lang="ja"] .ja-cl.poked svg { animation: ja-pk-puff .9s ease-out; }
+html[data-lang="ja"] .ja-cl.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ja-pk-puff2 1.1s ease-out; }
+/* night clouds are indigo on an indigo sky: a soft moonlit glow behind the puff makes the tap easy to see */
+html[data-lang="ja"] .ja-cl::before {
+  content: ""; position: absolute; inset: -30% -12%; z-index: -1; opacity: 0; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(176, 190, 255, .42), rgba(176, 190, 255, .16) 60%, rgba(176, 190, 255, 0));
+}
+@media (prefers-color-scheme: dark) {
+  html[data-lang="ja"] .ja-cl.poked::before { animation: ja-pk-moonlit 1.2s ease-out; }
+}
+@keyframes ja-pk-moonlit { 0%, 100% { opacity: 0; transform: scale(.8); } 25% { opacity: 1; transform: scale(1.06); } 60% { opacity: .7; transform: scale(1); } }
+
+/* stars: a bright twinkling spin */
+html[data-lang="ja"] .theme-deco.sky .ja-st.poked { animation: ja-pk-star 1s ease-out; }
+
+/* lantern and wind chime: the swing runs on the separate `rotate` property, so the slow idle sway keeps going */
+html[data-lang="ja"] .ja-o-lan.poked { animation: ja-hang var(--ja-hd) ease-in-out var(--ja-hdl) infinite, ja-pk-swing1 1.4s ease-out; }
+html[data-lang="ja"] .ja-o-lan.poked[data-taps="2"] { animation: ja-hang var(--ja-hd) ease-in-out var(--ja-hdl) infinite, ja-pk-swing2 1.5s ease-out; }
+html[data-lang="ja"] .ja-o-lan.poked:not([data-taps="1"]):not([data-taps="2"]) { animation: ja-hang var(--ja-hd) ease-in-out var(--ja-hdl) infinite, ja-pk-swing3 1.5s ease-out; }
+html[data-lang="ja"] .ja-o-lan.poked .ja-glow { animation: ja-pk-glow 1.4s ease-in-out; }
+html[data-lang="ja"] .ja-o-furin.poked { animation: ja-hang var(--ja-hd) ease-in-out var(--ja-hdl) infinite, ja-pk-ring 1.2s ease-out; }
+html[data-lang="ja"] .ja-o-furin .ja-fu-tz { transform-origin: 50% 0%; }
+html[data-lang="ja"] .ja-o-furin.poked .ja-fu-tz { animation: ja-pk-flutter 1.3s ease-out; }
+html[data-lang="ja"] .ja-o-furin .ja-fu-sp { transform-origin: 50% 50%; }
+html[data-lang="ja"] .ja-o-furin.poked .ja-fu-sp { animation: ja-pk-sparkle 1.1s ease-out; }
+
+/* origami cranes: a hop with flapping wings; from the third tap in a row a full loop-the-loop */
+html[data-lang="ja"] .ja-o-crane svg { display: block; width: 100%; transform-origin: 50% 50%; }
+html[data-lang="ja"] .ja-o-crane .ja-cr-w1 { transform-origin: 40% 100%; }
+html[data-lang="ja"] .ja-o-crane .ja-cr-w2 { transform-origin: 80% 100%; }
+html[data-lang="ja"] .ja-o-crane.poked svg { animation: ja-pk-hop 1.1s ease-in-out; }
+html[data-lang="ja"] .ja-o-crane.poked .ja-cr-w1, html[data-lang="ja"] .ja-o-crane.poked .ja-cr-w2 { animation: ja-pk-flap .37s ease-in-out 3; }
+html[data-lang="ja"] .ja-o-crane.poked:not([data-taps="1"]):not([data-taps="2"]) svg { transform-origin: 80% 140%; animation: ja-pk-loop 1.5s ease-in-out; }
+
+/* folding fan (sensu): snaps shut around its rivet and fans open again; from the third tap in a row a twirl */
+html[data-lang="ja"] .ja-o-fan svg { display: block; width: 100%; transform-origin: 50% 86%; }
+html[data-lang="ja"] .ja-o-fan.poked svg { animation: ja-pk-fold 1.1s ease-in-out; }
+html[data-lang="ja"] .ja-o-fan.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ja-pk-twirl 1.3s ease-in-out; }
+
+/* hanami picnic: the onigiri hops with a happy face and the tea puffs steam */
+html[data-lang="ja"] .ja-o-pic svg { display: block; width: 100%; }
+html[data-lang="ja"] .ja-o-pic .ja-pic-oni, html[data-lang="ja"] .ja-o-pic .ja-pic-st { transform-origin: 50% 100%; }
+html[data-lang="ja"] .ja-o-pic.poked .ja-pic-oni { animation: ja-pk-jump 1.1s ease-out; }
+html[data-lang="ja"] .ja-o-pic.poked .ja-pic-eh { animation: ja-pk-show 1.4s ease-in-out; }
+html[data-lang="ja"] .ja-o-pic.poked .ja-pic-eo, html[data-lang="ja"] .ja-o-pic.poked .ja-pic-sm { animation: ja-pk-hide 1.4s ease-in-out; }
+html[data-lang="ja"] .ja-o-pic.poked .ja-pic-st { animation: ja-pk-steam 1.2s ease-out; }
+
+@keyframes ja-pk-halo { 0% { transform: scale(1); opacity: 1; } 35% { transform: scale(1.3); opacity: .5; } 70% { transform: scale(.94); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes ja-pk-boing { 0%, 100% { transform: scale(1); } 22% { transform: scale(1.18, .86); } 44% { transform: scale(.9, 1.12); } 64% { transform: scale(1.06, .96); } 82% { transform: scale(.98, 1.02); } }
+@keyframes ja-pk-spin { 0% { transform: rotate(0) scale(1); } 30% { transform: rotate(-20deg) scale(1.12); } 75% { transform: rotate(370deg) scale(1.05); } 100% { transform: rotate(360deg) scale(1); } }
+@keyframes ja-pk-show { 0%, 100% { opacity: 0; } 15%, 80% { opacity: 1; } }
+@keyframes ja-pk-hide { 0%, 100% { opacity: 1; } 15%, 80% { opacity: 0; } }
+@keyframes ja-pk-wobble { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-10deg) scale(1.12); } 45% { transform: rotate(7deg) scale(.95); } 70% { transform: rotate(-3deg) scale(1.03); } }
+@keyframes ja-pk-pound { 0%, 100% { transform: rotate(0) scale(1); } 15% { transform: rotate(-30deg) scale(1.5); } 30% { transform: rotate(42deg) scale(1.55); } 50% { transform: rotate(-26deg) scale(1.5); } 66% { transform: rotate(42deg) scale(1.55); } 85% { transform: rotate(-8deg) scale(1.15); } }
+@keyframes ja-pk-crumbs { 0%, 25%, 100% { opacity: 0; transform: translateY(0) scale(.8); } 34% { opacity: 1; transform: translateY(-3px) scale(2); } 50% { opacity: 0; transform: translateY(-7px) scale(1.7); } 60% { opacity: 0; transform: translateY(0) scale(.8); } 70% { opacity: 1; transform: translateY(-3px) scale(2.1); } 90% { opacity: 0; transform: translateY(-8px) scale(1.7); } }
+@keyframes ja-pk-puff { 0%, 100% { transform: scale(1); } 25% { transform: scale(1.16, .82); } 55% { transform: scale(.92, 1.12); } 80% { transform: scale(1.03, .97); } }
+@keyframes ja-pk-puff2 { 0%, 100% { transform: scale(1) rotate(0); } 15% { transform: scale(1.18, .82) rotate(-3deg); } 35% { transform: scale(.9, 1.14) rotate(3deg); } 55% { transform: scale(1.1, .92) rotate(-2deg); } 75% { transform: scale(.97, 1.04) rotate(1deg); } }
+@keyframes ja-pk-star { 0% { transform: scale(1) rotate(0); opacity: .75; } 30% { transform: scale(2.8) rotate(60deg); opacity: 1; } 65% { transform: scale(1.7) rotate(150deg); opacity: 1; } 100% { transform: scale(1) rotate(180deg); opacity: .75; } }
+/* the lantern hangs close to the right edge: it swings out mostly toward the screen (positive = inward, to the left)
+   and only a few degrees toward the edge, so it never leaves the world */
+@keyframes ja-pk-swing1 { 0%, 100% { rotate: 0deg; } 18% { rotate: 12deg; } 40% { rotate: -3deg; } 62% { rotate: 5deg; } 82% { rotate: -1deg; } }
+@keyframes ja-pk-swing2 { 0%, 100% { rotate: 0deg; } 16% { rotate: 18deg; } 36% { rotate: -4deg; } 56% { rotate: 9deg; } 76% { rotate: -2deg; } 90% { rotate: 1.5deg; } }
+@keyframes ja-pk-swing3 { 0%, 100% { rotate: 0deg; } 14% { rotate: 25deg; } 32% { rotate: -5deg; } 50% { rotate: 13deg; } 68% { rotate: -3deg; } 85% { rotate: 3deg; } }
+@keyframes ja-pk-glow { 30%, 65% { opacity: .65; } }
+@keyframes ja-pk-ring { 0%, 100% { rotate: 0deg; } 10% { rotate: 7deg; } 22% { rotate: -6deg; } 34% { rotate: 5deg; } 46% { rotate: -4deg; } 58% { rotate: 3deg; } 72% { rotate: -2deg; } 86% { rotate: 1deg; } }
+@keyframes ja-pk-flutter { 0%, 100% { transform: rotate(0); } 12% { transform: rotate(-24deg); } 28% { transform: rotate(18deg); } 44% { transform: rotate(-12deg); } 62% { transform: rotate(7deg); } 80% { transform: rotate(-3deg); } }
+@keyframes ja-pk-sparkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 25% { opacity: 1; transform: scale(1.15) rotate(30deg); } 60% { opacity: .9; transform: scale(1) rotate(60deg); } }
+@keyframes ja-pk-hop { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-20px) rotate(-9deg); } 62% { transform: translateY(-7px) rotate(5deg); } }
+@keyframes ja-pk-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(-.35); } }
+@keyframes ja-pk-loop { 0% { transform: rotate(0); } 85% { transform: rotate(-365deg); } 100% { transform: rotate(-360deg); } }
+@keyframes ja-pk-fold { 0%, 100% { transform: scaleX(1) rotate(0); } 30%, 42% { transform: scaleX(.12) rotate(0); } 70% { transform: scaleX(1.06) rotate(-8deg); } 86% { transform: scaleX(1) rotate(4deg); } }
+@keyframes ja-pk-twirl { 0% { transform: scale(1) rotate(0); } 25% { transform: scale(.9) rotate(-30deg); } 80% { transform: scale(1.1) rotate(370deg); } 100% { transform: scale(1) rotate(360deg); } }
+@keyframes ja-pk-jump { 0%, 100% { transform: translateY(0) scale(1); } 15% { transform: translateY(0) scale(1.12, .86); } 40% { transform: translateY(-14px) scale(.94, 1.08); } 62% { transform: translateY(0) scale(1.1, .9); } 78% { transform: translateY(-4px) scale(1); } }
+@keyframes ja-pk-steam { 0%, 100% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.25, 1.5) translateY(-2px); opacity: .5; } }
+
+/* ---- surprises (added to #theme-layer by onPoke in js/themes/ja.js and removed after a few seconds) ---- */
+html[data-lang="ja"] .ja-sp { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+html[data-lang="ja"].calm #theme-layer > .ja-sp { visibility: hidden; }
+html[data-lang="ja"] .ja-sp i, html[data-lang="ja"] .ja-sp b { position: absolute; display: block; }
+/* moon x3: shooting stars (nagareboshi) heading down to the left */
+html[data-lang="ja"] .ja-sp-ss {
+  height: 2px; border-radius: 2px; opacity: 0; transform-origin: 0 50%;
+  background: linear-gradient(90deg, #fff8dc, rgba(255, 238, 190, .55) 30%, rgba(255, 238, 190, 0));
+  animation: ja-sp-shoot 1.1s ease-in both;
+}
+html[data-lang="ja"] .ja-sp-ss::before { content: ""; position: absolute; left: -3px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: #fffbe8; box-shadow: 0 0 8px 2px rgba(255, 236, 170, .8); }
+@keyframes ja-sp-shoot {
+  0% { opacity: 0; transform: rotate(-28deg) translateX(0); }
+  12%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(-28deg) translateX(-34vw); }
+}
+/* cloud x5: a shower of sakura petals (hanafubuki) */
+html[data-lang="ja"] .ja-sp-pt {
+  opacity: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 19C3.5 15 1.5 8 4.5 2L10 5.5L15.5 2C18.5 8 16.5 15 10 19Z' fill='%23f7a9c4'/%3E%3Cpath d='M10 17V9' stroke='%23e47da3' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  animation: ja-sp-fall 2.4s ease-in both;
+}
+@keyframes ja-sp-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0) scale(.5); }
+  12% { opacity: .95; }
+  40% { transform: translate(calc(var(--ja-dx) * .35 + 12px), calc(var(--ja-dy) * .35)) rotate(calc(var(--ja-rt) * .4)) scale(1); }
+  70% { transform: translate(calc(var(--ja-dx) * .7 - 12px), calc(var(--ja-dy) * .7)) rotate(calc(var(--ja-rt) * .7)) scale(1); }
+  85% { opacity: .9; }
+  100% { opacity: 0; transform: translate(var(--ja-dx), var(--ja-dy)) rotate(var(--ja-rt)) scale(.9); }
+}
+/* lantern x3: hanabi, a rocket climbs and bursts into a ring of sparks */
+html[data-lang="ja"] .ja-sp-hb { position: absolute; width: 0; height: 0; }
+html[data-lang="ja"] .ja-sp-rk { left: -2px; top: -2px; width: 4px; height: 10px; border-radius: 2px; opacity: 0; animation: ja-sp-rise .6s ease-out both; }
+html[data-lang="ja"] .ja-sp-ray { left: 0; top: 0; width: 0; height: 0; }
+html[data-lang="ja"] .ja-sp-ray b { left: -2px; top: -5px; width: 4px; height: 10px; border-radius: 2px; opacity: 0; animation: ja-sp-burst 1.4s cubic-bezier(.15, .7, .3, 1) both; }
+html[data-lang="ja"] .ja-sp-ray b.ja-sp-dot { left: -2.5px; top: -2.5px; width: 5px; height: 5px; border-radius: 50%; }
+@keyframes ja-sp-rise { 0% { opacity: 0; transform: translateY(var(--ja-rise)); } 15%, 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(0); } }
+@keyframes ja-sp-burst {
+  0% { opacity: 0; transform: translateY(0) scale(.3); }
+  10% { opacity: 1; }
+  60% { opacity: 1; transform: translateY(calc(var(--ja-sp-r) * -1)) scale(1); }
+  100% { opacity: 0; transform: translateY(calc(var(--ja-sp-r) * -1.15)) scale(.4, .2); }
+}
+/* crane x3: a flock of paper cranes flies across the sky (right to left, the way they face) */
+html[data-lang="ja"] .ja-sp-cr { left: 100%; width: 44px; animation: ja-sp-fly 3.8s linear both; }
+html[data-lang="ja"] .ja-sp-cr span { display: block; animation: ja-sp-bob .8s ease-in-out infinite alternate; }
+html[data-lang="ja"] .ja-sp-cr svg { display: block; width: 100%; height: auto; overflow: visible; }
+html[data-lang="ja"] .ja-sp-cr .ja-sp-w1, html[data-lang="ja"] .ja-sp-cr .ja-sp-w2 { transform-box: fill-box; transform-origin: 50% 100%; animation: ja-pk-flap .5s ease-in-out infinite; }
+/* light world only: the pale-pink paper vanishes into the pink seigaiha sky, so the flock folds deeper rose paper
+   with a thin plum edge and a soft shadow. The night flock keeps its pale paper (it already glows on indigo). */
+@media not all and (prefers-color-scheme: dark) {
+  html[data-lang="ja"] .ja-sp-cr svg { filter: drop-shadow(0 0 .6px rgba(110, 30, 70, .9)) drop-shadow(0 2px 3px rgba(90, 30, 60, .3)); }
+  html[data-lang="ja"] .ja-sp-cr .ja-sp-t0 { fill: #f2a3bf; }
+  html[data-lang="ja"] .ja-sp-cr .ja-sp-t1 { fill: #e2759b; }
+  html[data-lang="ja"] .ja-sp-cr .ja-sp-t2 { fill: #c84d81; }
+  html[data-lang="ja"] .ja-sp-cr .ja-sp-t3 { fill: #d8638f; }
+  html[data-lang="ja"] .ja-sp-cr .ja-sp-t4 { fill: #a8336a; }
+}
+@keyframes ja-sp-fly { 0% { transform: translateX(20px); opacity: 0; } 6%, 94% { opacity: .95; } 100% { transform: translateX(calc(-100vw - 80px)); opacity: 0; } }
+@keyframes ja-sp-bob { from { transform: translateY(-5px) rotate(2deg); } to { transform: translateY(5px) rotate(-3deg); } }
+
+/* reduced motion: the app stops every animation (style.css), so a tapped piece just changes its look, with no
+   movement, while it is "poked" (2.5 s): the sun shows its wink, the onigiri its happy face, the chime its sparkles,
+   the lantern glows, the moon shows its mochi, stars brighten, the rest fade softly. No surprises. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-lang="ja"] #theme-layer .ja-cl.poked > svg, html[data-lang="ja"] #theme-layer .ja-o-crane.poked > svg,
+  html[data-lang="ja"] #theme-layer .ja-o-fan.poked > svg { opacity: .6; }
+  html[data-lang="ja"] #theme-layer .ja-sun.poked .ja-sun-f, html[data-lang="ja"] #theme-layer .ja-moon.poked .ja-moon-m,
+  html[data-lang="ja"] #theme-layer .ja-o-pic.poked .ja-pic-eh, html[data-lang="ja"] #theme-layer .ja-o-furin.poked .ja-fu-sp { opacity: 1; }
+  html[data-lang="ja"] #theme-layer .ja-o-pic.poked .ja-pic-eo, html[data-lang="ja"] #theme-layer .ja-o-pic.poked .ja-pic-sm { opacity: 0; }
+  html[data-lang="ja"] #theme-layer .ja-moon.poked .ja-moon-h { opacity: .55; }
+  html[data-lang="ja"] #theme-layer .ja-o-lan.poked .ja-glow { opacity: .65; }
+  html[data-lang="ja"] #theme-layer .theme-deco.sky .ja-st.poked { opacity: 1; filter: drop-shadow(0 0 3px #ffe6a3); }
+  html[data-lang="ja"] .ja-sp { display: none; }
+}
+@media (prefers-reduced-motion: reduce) and (prefers-color-scheme: dark) {
+  html[data-lang="ja"] #theme-layer .ja-cl.poked::before { opacity: .8; }
 }
