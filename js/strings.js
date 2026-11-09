@@ -176,7 +176,37 @@ window.TLAP_STRINGS = {
     badge_story: "Storyteller", badge_story_d: "Finish a dialogue or a story",
     badge_polyglot: "Polyglot", badge_polyglot_d: "Learn 2 different languages",
     badge_xp1000: "Star collector", badge_xp1000_d: "Earn 1,000 XP",
-    badge_xp5000: "Superstar", badge_xp5000_d: "Earn 5,000 XP"
+    badge_xp5000: "Superstar", badge_xp5000_d: "Earn 5,000 XP",
+    // Move progress to another device (Settings)
+    xfer_title: "Move your progress",
+    xfer_sub: "Take your progress to another phone or computer: copy your code or download a file here, then load it in Settings on the other device.",
+    xfer_copy: "Copy my code", xfer_copied: "Copied ✓",
+    xfer_copyManual: "Couldn't copy automatically. The code is selected above: copy it yourself.",
+    xfer_codeLabel: "Your progress code",
+    xfer_download: "Download a file", xfer_downloaded: "Download started ✓",
+    xfer_loadTitle: "Load progress from another device",
+    xfer_pasteLabel: "Paste a code", xfer_load: "Load", xfer_openFile: "Open a file",
+    xfer_empty: "Paste a code first.",
+    xfer_bad: "That doesn't look like a progress code. Check that you copied all of it and try again.",
+    xfer_badFile: "This file isn't a Talk like a local progress file.",
+    xfer_noGzip: "This browser can't open this code. Try the file instead, or another browser.",
+    xfer_confirmTitle: "Replace your progress?",
+    xfer_confirmText: "This replaces the progress on this device.",
+    xfer_found: "In this code: {what}", xfer_noLangs: "no languages yet",
+    xfer_cancel: "Cancel", xfer_replace: "Replace",
+    // Report a mistake
+    report_link: "Report a mistake", report_aria: "Report a mistake: {word}",
+    // Placement test (onboarding level step)
+    place_open: "Not sure? Take a 2-minute test",
+    place_count: "Question {n} of {total}",
+    place_dontKnow: "I don't know",
+    place_exit: "Back to choosing a level",
+    place_done: "Test complete!",
+    place_suggest: "We suggest: {level}",
+    place_score: "You got {x} of {y} right",
+    place_note: "You can change your level any time in Settings.",
+    place_use: "Use {level}", place_self: "Choose myself",
+    place_fail: "The test couldn't load. Please choose a level yourself."
   },
   he: {
     tagline: "ללמוד שפה חדשה כמו שהמקומיים באמת מדברים",
@@ -348,6 +378,36 @@ window.TLAP_STRINGS = {
     badge_story: "שעת סיפור", badge_story_d: "לסיים דיאלוג או סיפור",
     badge_polyglot: "עולם של שפות", badge_polyglot_d: "ללמוד 2 שפות שונות",
     badge_xp1000: "אוסף כוכבים", badge_xp1000_d: "לצבור 1,000 XP",
-    badge_xp5000: "כוכב על", badge_xp5000_d: "לצבור 5,000 XP"
+    badge_xp5000: "כוכב על", badge_xp5000_d: "לצבור 5,000 XP",
+    // Move progress to another device (Settings)
+    xfer_title: "העברת ההתקדמות",
+    xfer_sub: "אפשר להעביר את ההתקדמות לטלפון או למחשב אחר: מעתיקים כאן את הקוד או מורידים קובץ, ואז טוענים אותו בהגדרות במכשיר השני.",
+    xfer_copy: "העתקת הקוד שלי", xfer_copied: "הועתק ✓",
+    xfer_copyManual: "ההעתקה האוטומטית לא הצליחה. הקוד מסומן למעלה, אפשר להעתיק אותו ידנית.",
+    xfer_codeLabel: "קוד ההתקדמות שלכם",
+    xfer_download: "הורדת קובץ", xfer_downloaded: "ההורדה התחילה ✓",
+    xfer_loadTitle: "טעינת התקדמות ממכשיר אחר",
+    xfer_pasteLabel: "הדבקת קוד", xfer_load: "טעינה", xfer_openFile: "פתיחת קובץ",
+    xfer_empty: "קודם צריך להדביק קוד.",
+    xfer_bad: "זה לא נראה כמו קוד התקדמות. כדאי לבדוק שהקוד הועתק במלואו ולנסות שוב.",
+    xfer_badFile: "הקובץ הזה אינו קובץ התקדמות של Talk like a local.",
+    xfer_noGzip: "הדפדפן הזה לא יכול לפתוח את הקוד. אפשר לנסות עם הקובץ, או בדפדפן אחר.",
+    xfer_confirmTitle: "להחליף את ההתקדמות?",
+    xfer_confirmText: "הפעולה תחליף את ההתקדמות במכשיר הזה.",
+    xfer_found: "בקוד הזה: {what}", xfer_noLangs: "עדיין אין שפות",
+    xfer_cancel: "ביטול", xfer_replace: "החלפה",
+    // Report a mistake
+    report_link: "דיווח על טעות", report_aria: "דיווח על טעות: {word}",
+    // Placement test (onboarding level step)
+    place_open: "לא בטוחים? מבחן קצר של 2 דקות",
+    place_count: "שאלה {n} מתוך {total}",
+    place_dontKnow: "לא יודעים",
+    place_exit: "חזרה לבחירת רמה",
+    place_done: "המבחן הסתיים!",
+    place_suggest: "ההמלצה שלנו: {level}",
+    place_score: "עניתם נכון על {x} מתוך {y}",
+    place_note: "אפשר לשנות את הרמה בכל זמן בהגדרות.",
+    place_use: "בחירה ברמה: {level}", place_self: "אבחר לבד",
+    place_fail: "לא הצלחנו לטעון את המבחן. אפשר לבחור רמה בעצמכם."
   }
 };

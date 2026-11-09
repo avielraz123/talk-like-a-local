@@ -24,6 +24,8 @@
     (data-lang, mascot, decorations). Plus: onboarding with the language picker, switching languages
     (progress kept separate), migration of an old Farsi save, lazy loading (missing/broken files skipped),
     the fallback theme, answer checking per language, and that every string exists in both languages.
+    Tools: "report a mistake" links (learn cards, answers, dictionary), moving progress (code + file, confirm,
+    replace) and the placement test (first-time onboarding and setting up a new language, en + he).
   -->
 </head>
 <body>
@@ -880,10 +882,10 @@
       if (!same(T.normalizeState(old()).langs[code].srs, srs)) err('progress: seeding is not deterministic');
       if (m.settings.goal !== 50 || !same(m.daily, { day: null, xp: 0 }) || !same(m.goalLog, []) || !same(m.badges, {})) err('progress: new defaults ' + JSON.stringify([m.settings, m.daily, m.goalLog, m.badges]));
       const m2 = T.normalizeState({ v: 2, settings: { uiLang: 'en', lang: code, goal: '100' }, daily: { day: '2026-1-1', xp: '12' },
-        goalLog: ['x', 5, 'x', 'y'], badges: { first: '2026-1-1', bad: 3 },
+        goalLog: ['2026-1-2', 5, '2026-1-2', 'x', '2026-1-3'], badges: { first: '2026-1-1', bad: 3, odd: 'yesterday' },
         langs: { [code]: { words: { 'a:0': 5 }, srs: { 'a:0': [3, 123], bad: 'x', 'b:1': [9, 5.4] } } } });
       if (!same(m2.langs[code].srs, { 'a:0': [3, 123], 'b:1': [5, 5] })) err('progress: saved srs not kept/cleaned ' + JSON.stringify(m2.langs[code].srs));
-      if (m2.settings.goal !== 100 || m2.daily.xp !== 12 || !same(m2.goalLog, ['x', 'y']) || !same(m2.badges, { first: '2026-1-1' })) err('progress: saved fields not normalized');
+      if (m2.settings.goal !== 100 || m2.daily.xp !== 12 || !same(m2.goalLog, ['2026-1-2', '2026-1-3']) || !same(m2.badges, { first: '2026-1-1' })) err('progress: saved fields not normalized');
       if (T.normalizeState({ settings: { uiLang: 'en', goal: 77 } }).settings.goal !== 50) err('progress: bad goal not reset to 50');
 
       // Spaced repetition steps.
@@ -1121,6 +1123,442 @@
       checkTargetSpans(code, 'progress');
     }
 
+    /* ---------------- report a mistake (mailto link on learn cards, answers, dictionary) ---------------- */
+    async function checkReport() {
+      const code = REAL || 'fa';
+      await T.setSettings({ uiLang: 'he', lang: code, level: 'beginner', track: 'full', speech: false });
+      const topic = T.TOPICS.find((tp) => tp.kind !== 'alphabet');
+      const it = topic.items[1];
+      const enc = (s) => encodeURIComponent(s);
+      const href = T.reportHref(it, { screen: 'learn' });
+      if (!href.startsWith('mailto:avielraz123@gmail.com?subject=')) err('report: wrong mailto ' + href.slice(0, 60));
+      const m = href.match(/^mailto:[^?]+\?subject=([^&]*)&body=([^&]*)$/);
+      if (!m) { err('report: no subject/body in ' + href.slice(0, 80)); return; }
+      const subject = decodeURIComponent(m[1]);
+      if (subject !== `Talk like a local — mistake report (${code})`) err('report subject: ' + subject);
+      if (/\s/.test(href)) err('report: unencoded whitespace in the link');
+      if (!m[2].includes('%0D%0A')) err('report: body line breaks are not %0D%0A');
+      const lines = decodeURIComponent(m[2]).split('\r\n');
+      [`Language: ${T.LANGS[code].name.en} (${code})`, `Lesson: ${topic.title.en} (${topic.id})`, `Item: ${it.id}`, `Target: ${it.tg}`,
+        `Latin: ${it.tr}`, `English: ${it.en}`, `Hebrew: ${it.he}`, 'Screen: learn', 'App language: he']
+        .forEach((w) => { if (!lines.includes(w)) err('report body is missing the line: ' + w); });
+      const urlLine = lines.find((l) => l.startsWith('App URL: ')) || '';
+      if (!/smoke\.html$/.test(urlLine)) err('report: app URL line "' + urlLine + '"');
+      if (!/^What is wrong\?/.test(lines[lines.length - 2]) || lines[lines.length - 1] !== '') err('report: body does not end with an empty "What is wrong?" line');
+      const letter = T.TOPICS.find((tp) => tp.kind === 'alphabet');
+      if (letter && !decodeURIComponent(T.reportHref(letter.items[0], 'learn')).includes('Example: ')) err('report: letter report has no example');
+      if (code === 'ja') {
+        const kanji = T.ALL_WORDS.find((x) => x.kana && x.kana !== x.tg);
+        if (kanji && !decodeURIComponent(T.reportHref(kanji, 'learn')).includes('Kana: ' + kanji.kana)) err('report: Japanese report has no kana');
+      }
+      // Learn cards: the link follows the card, and is not inside the card button.
+      T.renderLearn(topic);
+      const a = () => $('.learn .report-link');
+      if (!a() || a().tagName !== 'A' || !a().getAttribute('href').includes(enc('Item: ' + topic.items[0].id))) err('report: learn card link missing or for the wrong item');
+      else {
+        if (a().closest('button')) err('report: link inside the card button');
+        if (!a().textContent.includes(STR.he.report_link)) err('report: learn link text');
+      }
+      $('#next').click();
+      if (!a() || !a().getAttribute('href').includes(enc('Item: ' + topic.items[1].id))) err('report: learn card link did not follow the card');
+      // The answer panel, for that question's item.
+      T.startStage(topic, 'choice');
+      const q = T.session().queue[0];
+      $('.opt').click();
+      const fl = $('#feedback .report-link');
+      if (!fl || !fl.getAttribute('href').includes(enc('Item: ' + q.item.id)) || !fl.getAttribute('href').includes(enc('Screen: exercise'))) err('report: no link for the item in the answer panel');
+      // Dictionary: a small flag per entry, next to (not inside) the row button.
+      T.renderDictionary();
+      const entries = $$('.report-entry');
+      if (!entries.length || entries.length !== $$('.dict-row').length) err('report: dictionary rows not wrapped in entries');
+      if (entries.some((e) => !e.querySelector(':scope > .dict-row') || !e.querySelector(':scope > a.report-flag[aria-label]'))) err('report: a dictionary entry without its flag');
+      const e0 = entries[0];
+      if (e0) {
+        const id = e0.querySelector('.dict-row').dataset.id;
+        const flag = e0.querySelector('.report-flag');
+        if (!flag.getAttribute('href').includes(enc('Item: ' + id)) || !flag.getAttribute('href').includes(enc('Screen: dictionary'))) err('report: dictionary flag for the wrong item');
+        if (!flag.getAttribute('aria-label').startsWith(STR.he.report_link)) err('report: dictionary flag aria-label ' + flag.getAttribute('aria-label'));
+        const fr = flag.getBoundingClientRect();
+        const rr = e0.querySelector('.dict-row').getBoundingClientRect();
+        if (fr.top < rr.top || fr.bottom > rr.bottom || fr.left < rr.left || fr.right > rr.right) err('report: flag sticks out of its row');
+        if (fr.left > rr.left + rr.width / 2) err('report: flag is not at the inline end in Hebrew');
+      }
+      const inp = $('#dict-q');
+      inp.value = 'zzqqxxnotaword'; inp.dispatchEvent(new Event('input')); T.dictUpdate();
+      if ($('.report-flag')) err('report: flag shown with no results');
+    }
+
+    /* ---------------- move progress to another device ---------------- */
+    async function checkTransfer() {
+      const code = REAL || 'fa';
+      await T.setSettings({ uiLang: 'en', lang: code, level: 'intermediate', track: 'full', speech: false });
+      const S = T.state();
+      S.xp = 321; S.streak = { count: 5, last: window.__TODAY };
+      const tp = T.TOPICS.find((x) => x.kind !== 'alphabet');
+      S.langs[code].topics[tp.id] = { best: 90, stages: { learn: 3, choice: 2 } };
+      S.langs[code].words[tp.items[0].id] = 4;
+      S.langs[code].speedBest = 7;
+      T.checkBadges(); // the badges these numbers earn (the menu unlocks them right after an import)
+      const snapshot = JSON.stringify(S);
+      const gz = await T.progressCode(S);
+      const plain = await T.progressCode(S, false);
+      if (!/^TLL1\.[A-Za-z0-9_-]+$/.test(gz)) err('xfer: gzip code format ' + gz.slice(0, 20));
+      if (!/^TLL0\.[A-Za-z0-9_-]+$/.test(plain)) err('xfer: plain code format ' + plain.slice(0, 20));
+      if (gz.length >= plain.length) err('xfer: the gzip code is not shorter');
+      for (const [name, text] of [['gzip', gz], ['plain', plain], ['json', snapshot], ['wrapped', ' ' + gz.slice(0, 30) + '\n' + gz.slice(30) + '\n']]) {
+        try { if (JSON.stringify(await T.readProgress(text)) !== snapshot) err(`xfer: ${name} round trip changed the state`); }
+        catch (e) { err(`xfer: ${name} code rejected (${e.message})`); }
+      }
+      const v1 = { settings: { uiLang: 'he', level: 'advanced', track: 'speak', speech: false }, topics: { greetings: { stars: 3 } },
+        words: { 'greetings:0': 5 }, xp: 12, streak: { count: 1, last: null }, speedBest: 3 };
+      try {
+        const mig = await T.readProgress(JSON.stringify(v1));
+        if (!mig.langs.fa || mig.langs.fa.level !== 'advanced' || mig.langs.fa.topics.greetings.stages.mix !== 3 || mig.settings.uiLang !== 'he' || mig.xp !== 12) err('xfer: old v1 save not migrated');
+      } catch (e) { err('xfer: old v1 save rejected'); }
+      const bads = ['', '   ', 'hello', 'TLL1.', 'TLL1.abc', 'TLL1.' + gz.slice(5, 40), 'TLL0.' + btoa('not json').replace(/=+$/, ''),
+        'TLL9.' + gz.slice(5), 'TLL0.!!!!', '{"foo":1}', '[]', '{"v":2}', '{"v":3,"langs":{}}', 'null', '{broken', '{"v":2,"langs":[]}'];
+      for (const bad of bads) {
+        let ok = false;
+        try { await T.readProgress(bad); ok = true; } catch (e) { if (!['empty', 'bad'].includes(e.message)) err(`xfer: odd error "${e.message}" for ${bad.slice(0, 20)}`); }
+        if (ok) err(`xfer: bad input accepted: ${bad.slice(0, 30)}`);
+      }
+      if (JSON.stringify(T.state()) !== snapshot) err('xfer: reading codes changed the state');
+      // Invisible marks that chat and mail apps add (LRM/RLM, zero-width space, bidi isolates/embeddings, BOM) are ignored.
+      const ch = (n) => String.fromCharCode(n);
+      const marked = [ch(0x200E) + gz + ch(0x200E), ch(0x200F) + gz, gz.slice(0, 20) + ch(0x200B) + gz.slice(20), ch(0x2066) + gz + ch(0x2069),
+        ch(0x202B) + gz + ch(0x202C), ch(0x2068) + ' ' + plain + ' ' + ch(0x2069), ch(0xFEFF) + ch(0x200F) + snapshot];
+      for (const text of marked) {
+        try { if (JSON.stringify(await T.readProgress(text)) !== snapshot) err('xfer: a code with invisible marks changed the state'); }
+        catch (e) { err(`xfer: a code with invisible marks rejected (${e.message}): ${Array.from(text.slice(0, 3)).map((c) => c.charCodeAt(0).toString(16))}`); }
+      }
+      // Only real language codes count: inherited names ('constructor', 'toString', '__proto__') are dropped, never saved.
+      const protoJSON = `{"v":2,"settings":{"uiLang":"constructor","lang":"constructor","speech":false},"langs":{"constructor":{"level":"beginner"},"toString":{},"__proto__":{"level":"beginner"},"${code}":{"level":"beginner","topics":{"__proto__":{"best":5}},"words":{}}}}`;
+      try {
+        const ps = await T.readProgress(protoJSON);
+        if (ps.settings.lang !== null || ps.settings.uiLang !== 'en' || Object.keys(ps.langs).join() !== code
+          || Object.getPrototypeOf(ps.langs) !== Object.prototype || Object.getPrototypeOf(ps) !== Object.prototype
+          || Object.keys(ps.langs[code].topics).length) err('xfer: inherited names kept: ' + JSON.stringify(ps));
+        const ps2 = T.normalizeState(JSON.parse(`{"v":2,"settings":{"uiLang":"he","lang":"toString"},"langs":{}}`));
+        if (ps2.settings.lang !== null || ps2.settings.uiLang !== 'he') err('xfer: settings.lang "toString" kept');
+      } catch (e) { err('xfer: a save with odd language names was rejected (' + e.message + ')'); }
+
+      // Settings section.
+      T.renderSettings();
+      if (!$('.xfer') || !$('#xfer-copy') || !$('#xfer-download') || !$('#xfer-paste') || !$('#xfer-load') || !$('#xfer-file-btn')) { err('xfer: settings section incomplete'); return; }
+      const fileIn = $('#xfer-file');
+      if (!fileIn || fileIn.type !== 'file' || !fileIn.hidden || fileIn.accept !== '.json,application/json,text/plain') err('xfer: hidden file input');
+      if (!$('label[for="xfer-paste"]')) err('xfer: paste box has no label');
+      if (parseFloat(getComputedStyle($('#xfer-paste')).fontSize) < 16) err('xfer: paste box under 16px (iPhones zoom in on focus)');
+      $('#xfer-copy').click();
+      await waitFor(() => $('#xfer-status') && $('#xfer-status').textContent);
+      const box = $('#xfer-code');
+      if (box.hidden || !box.readOnly || !/^TLL1\./.test(box.value)) err('xfer: code box after copying');
+      if (![STR.en.xfer_copied, STR.en.xfer_copyManual].includes($('#xfer-status').textContent)) err('xfer: copy status "' + $('#xfer-status').textContent + '"');
+      try { if (JSON.stringify(await T.readProgress(box.value)) !== snapshot) err('xfer: the copied code does not round trip'); } catch (e) { err('xfer: the copied code is rejected'); }
+      // Download a file.
+      let blob = null; let fname = null;
+      const realCreate = URL.createObjectURL; const realClick = HTMLAnchorElement.prototype.click;
+      URL.createObjectURL = (b) => { blob = b; return 'blob:test'; };
+      HTMLAnchorElement.prototype.click = function () { fname = this.download; };
+      try { $('#xfer-download').click(); } finally { URL.createObjectURL = realCreate; HTMLAnchorElement.prototype.click = realClick; }
+      const d = new Date(); const p2 = (n) => String(n).padStart(2, '0');
+      if (fname !== `talk-like-a-local-progress-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}.json`) err('xfer: file name ' + fname);
+      const fileText = blob ? await blob.text() : '{}';
+      if (!blob || blob.type !== 'application/json' || JSON.stringify(JSON.parse(fileText)) !== snapshot) err('xfer: downloaded file content');
+      // Friendly errors.
+      $('#xfer-paste').value = 'not a code'; $('#xfer-load').click();
+      await waitFor(() => !$('#xfer-error').hidden);
+      if ($('#xfer-error').hidden || $('#xfer-error').textContent !== STR.en.xfer_bad) err('xfer: no error for a bad code');
+      if ($('.xfer-modal')) err('xfer: confirmation shown for a bad code');
+      $('#xfer-paste').value = '';
+      $('#xfer-paste').focus();
+      $('#xfer-paste').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      await waitFor(() => $('#xfer-error') && $('#xfer-error').textContent === STR.en.xfer_empty);
+      if (!$('.settings')) err('xfer: Enter in the paste box left Settings');
+      else if ($('#xfer-error').textContent !== STR.en.xfer_empty) err('xfer: no error for an empty code');
+      // Another device's progress: confirm, cancel, Escape, then replace.
+      const other = { v: 2, settings: { uiLang: 'he', lang: 'ja', speech: false }, xp: 999, streak: { count: 2, last: null },
+        langs: { ja: { level: 'advanced', track: 'speak', topics: { greetings: { best: 80, stages: { choice: 2 } } }, words: { 'greetings:0': 3 }, speedBest: 4 } } };
+      const otherCode = await T.progressCode(other);
+      const openConfirm = async () => { $('#xfer-paste').value = otherCode; $('#xfer-load').click(); await waitFor(() => $('.xfer-modal')); return $('.xfer-modal'); };
+      let modal = await openConfirm();
+      if (!modal || !modal.querySelector('[role="alertdialog"][aria-modal="true"]') || !modal.textContent.includes(STR.en.xfer_confirmText)) err('xfer: no in-app confirmation');
+      else {
+        if (!modal.textContent.includes('Japanese') || !modal.textContent.includes('999')) err('xfer: confirmation summary: ' + modal.textContent.replace(/\s+/g, ' '));
+        if (document.activeElement !== $('#xfer-cancel')) err('xfer: Cancel not focused');
+        $('#xfer-cancel').click();
+        if ($('.xfer-modal') || JSON.stringify(T.state()) !== snapshot) err('xfer: Cancel changed something');
+        modal = await openConfirm();
+        modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        if ($('.xfer-modal') || JSON.stringify(T.state()) !== snapshot) err('xfer: Escape did not cancel');
+        await openConfirm();
+        $('#xfer-replace').click();
+        await waitFor(() => $('.menu') && T.cur() === 'ja');
+        const N = T.state();
+        if (T.cur() !== 'ja' || !$('.menu')) err('xfer: after replacing, not on the Japanese menu');
+        if (Object.keys(N.langs).join() !== 'ja' || N.xp !== 999 || N.langs.ja.level !== 'advanced' || N.langs.ja.words['greetings:0'] !== 3) err('xfer: state not replaced as a whole: ' + JSON.stringify(N).slice(0, 200));
+        if (html.dir !== 'rtl' || html.lang !== 'he' || html.dataset.lang !== 'ja') err('xfer: UI language / theme not applied after replacing');
+        const saved = JSON.parse(localStorage.getItem(T.STORE_KEY) || 'null');
+        if (!saved || JSON.stringify(saved) !== JSON.stringify(N)) err('xfer: replaced state not saved');
+      }
+      // A file: JSON works, junk gets a friendly error.
+      const openFile = (text, name) => {
+        const dt = new DataTransfer();
+        dt.items.add(new File([text], name, { type: name.endsWith('.json') ? 'application/json' : 'text/plain' }));
+        const fi = $('#xfer-file'); fi.files = dt.files; fi.dispatchEvent(new Event('change'));
+      };
+      T.renderSettings();
+      openFile('just some text', 'notes.txt');
+      await waitFor(() => !$('#xfer-error').hidden);
+      if ($('#xfer-error').textContent !== STR.he.xfer_badFile) err('xfer: no error for a junk file');
+      openFile(gz, 'code.txt');
+      await waitFor(() => $('.xfer-modal'));
+      if (!$('.xfer-modal')) err('xfer: a file with a code inside was not accepted');
+      else $('#xfer-cancel').click();
+      openFile(JSON.stringify(JSON.parse(snapshot), null, 2), 'p.json');
+      await waitFor(() => $('.xfer-modal'));
+      if (!$('.xfer-modal')) { err('xfer: JSON file not accepted'); return; }
+      $('#xfer-replace').click();
+      await waitFor(() => $('.menu') && T.cur() === code);
+      if (JSON.stringify(T.state()) !== snapshot) err('xfer: the file did not restore the state');
+      if (html.dir !== 'ltr' || html.dataset.lang !== code) err('xfer: UI not back to English/' + code);
+      // A save without settings goes to onboarding.
+      await T.replaceProgress(T.importState({ v: 2, langs: {} }));
+      if (!$('.onboard')) err('xfer: a state without settings did not open onboarding');
+    }
+
+    /* ---------------- imported progress can't inject HTML; keyboard on links and dialogs ---------------- */
+    async function checkImportSafety() {
+      const code = REAL || 'fa';
+      await T.setSettings({ uiLang: 'en', lang: code, level: 'beginner', track: 'full', speech: false });
+      const tp = T.TOPICS.find((x) => x.kind !== 'alphabet');
+      const evil = '<img class="pwn" src="x" onerror="window.__pwned=1">';
+      const quoteEvil = '"><img class="pwn" src="x" onerror="window.__pwned=1">';
+      const bad = { v: 2, settings: { uiLang: 'en', lang: code, speech: false }, xp: '1e400', streak: { count: evil, last: window.__TODAY + evil },
+        langs: { [code]: { level: 'beginner', track: 'full', speedBest: evil,
+          topics: { [tp.id]: { best: evil, stages: { learn: quoteEvil, choice: 2, mix: 9, x: null } }, __proto__x: 5 },
+          words: { [tp.items[0].id]: evil, [tp.items[1].id]: 4, [tp.items[2] ? tp.items[2].id : 'z:9']: 99 } } } };
+      window.__pwned = 0;
+      let st;
+      try { st = await T.readProgress(await T.progressCode(bad)); } catch (e) { err('safety: a code with odd values was rejected (' + e.message + ')'); return; }
+      await T.replaceProgress(st);
+      await waitFor(() => $('.menu'));
+      T.renderTopic(tp);
+      T.renderMenu();
+      await new Promise((r) => setTimeout(r, 50));
+      if ($('.pwn') || window.__pwned) err('safety: an imported code injected HTML');
+      const S = T.state(); const ls = S.langs[code]; const rec = ls.topics[tp.id];
+      if (S.xp !== 0 || S.streak.count !== 0 || S.streak.last !== null) err('safety: xp/streak not cleaned ' + JSON.stringify([S.xp, S.streak]));
+      if (ls.speedBest !== 0 || rec.best !== 0 || JSON.stringify(rec.stages) !== '{"choice":2,"mix":3}') err('safety: topic record not cleaned ' + JSON.stringify(rec) + ' ' + ls.speedBest);
+      if (ls.words[tp.items[0].id] !== undefined || ls.words[tp.items[1].id] !== 4 || (tp.items[2] && ls.words[tp.items[2].id] !== 5)) err('safety: word strengths not cleaned ' + JSON.stringify(ls.words));
+      if (/Infinity|NaN/.test($('.topbar').textContent)) err('safety: top bar shows ' + $('.topbar').textContent);
+      // A good old save keeps its values.
+      const good = T.normalizeState({ v: 2, xp: 50, streak: { count: 3, last: window.__TODAY }, langs: { [code]: { level: 'beginner', topics: { [tp.id]: { best: 75, stages: { learn: 3 } } }, words: { a: 2 }, speedBest: 6 } } });
+      if (good.xp !== 50 || good.streak.count !== 3 || good.streak.last !== window.__TODAY || good.langs[code].topics[tp.id].best !== 75
+        || good.langs[code].topics[tp.id].stages.learn !== 3 || good.langs[code].words.a !== 2 || good.langs[code].speedBest !== 6) err('safety: a normal save lost values ' + JSON.stringify(good));
+
+      // Enter on a focused report link opens the link, it does not move the lesson on.
+      const enter = (el) => { const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
+      T.renderLearn(tp);
+      const before = $('.learn').innerHTML;
+      const link = $('.learn .report-link');
+      link.focus();
+      const ev = enter(link);
+      if (ev.defaultPrevented || $('.learn').innerHTML !== before) err('safety: Enter on the learn report link moved to the next card');
+      T.startStage(tp, 'choice');
+      $('.opt').click();
+      const fl = $('#feedback .report-link');
+      fl.focus();
+      enter(fl);
+      if (!$('#feedback') || T.session().idx !== 0) err('safety: Enter on the answer report link went on to the next question');
+      // While the replace dialog is open, Enter never presses the screen behind it.
+      T.renderSettings();
+      T.confirmReplace(T.importState({ v: 2, langs: {} }), null);
+      document.activeElement.blur();
+      enter(document.body);
+      if (!$('.xfer-modal') || !$('.settings')) err('safety: Enter behind the dialog left Settings');
+      // The page behind is inert; Tab and Escape still work after focus left the dialog (e.g. a click on its text).
+      if (!$('.settings') || !$('.settings').closest('[inert]')) err('safety: the page behind the dialog is not inert');
+      if ($('.xfer-modal') && $('.xfer-modal').closest('[inert]')) err('safety: the dialog itself is inert');
+      document.activeElement.blur();
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+      if (!$('.xfer-modal') || !$('.xfer-modal').contains(document.activeElement)) err('safety: Tab from outside did not go back into the dialog');
+      document.activeElement.blur();
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      if ($('.xfer-modal')) err('safety: Escape with focus outside the dialog did not close it');
+      if ($('[inert]')) err('safety: the page stays inert after the dialog closed');
+      if ($('#xfer-cancel')) $('#xfer-cancel').click();
+      // Opening it twice leaves one dialog, and closing it frees the page.
+      T.confirmReplace(T.importState({ v: 2, langs: {} }), null);
+      T.confirmReplace(T.importState({ v: 2, langs: {} }), null);
+      if ($$('.xfer-modal').length !== 1) err('safety: two dialogs open');
+      if ($('#xfer-cancel')) $('#xfer-cancel').click();
+      if ($('[inert]')) err('safety: the page stays inert after a reopened dialog closed');
+      // The XP in the summary never breaks across lines.
+      T.confirmReplace(T.importState({ v: 2, xp: 1234, langs: {} }), null);
+      const xpEl = $('.xfer-modal .xfer-xp');
+      if (!xpEl || getComputedStyle(xpEl).whiteSpace !== 'nowrap') err('safety: XP in the dialog can wrap');
+      if ($('#xfer-cancel')) $('#xfer-cancel').click();
+    }
+
+    /* ---------------- placement test (onboarding level step) ---------------- */
+    async function placeAnswerAll(code, mode, uiLang) {
+      const seen = [];
+      const db = T.dbFor(code);
+      for (let guard = 0; guard < 30; guard++) {
+        await waitFor(() => $('.placement .opt:not([disabled])') || $('.place-result'));
+        if ($('.place-result')) break;
+        const run = T.placement();
+        if (!run) { err('placement: no run while a question shows'); break; }
+        const q = run.qs[run.i];
+        seen.push(q);
+        const where = `placement/${code}/${q.item.id}`;
+        const opts = $$('.placement .opt');
+        const labels = opts.map((o) => o.textContent.trim());
+        if (opts.length !== 4) err(`${where}: ${opts.length} options`);
+        if (new Set(labels).size !== labels.length) err(`${where}: duplicate options ${labels.join(' | ')}`);
+        if (q.options.filter((o) => o.correct).length !== 1) err(`${where}: not exactly one right option`);
+        if (labels.join('|') !== q.options.map((o) => o.item[uiLang]).join('|')) err(`${where}: options not in the UI language`);
+        const lesson = db.TOPIC_BY_ID[q.item.topic];
+        if (!lesson || !['vocab', 'phrases', 'grammar'].includes(lesson.kind) || lesson.level !== q.level) err(`${where}: from lesson ${lesson && lesson.id} (${lesson && lesson.kind}/${lesson && lesson.level}), asked as ${q.level}`);
+        q.options.forEach((o) => { const l = db.TOPIC_BY_ID[o.item.topic]; if (!l || l.kind === 'alphabet') err(`${where}: option from a letters lesson`); });
+        const main = $('.placement .stem .tg.primary');
+        if (!main || main.textContent !== q.item.tg || main.getAttribute('lang') !== code || main.getAttribute('dir') !== T.LANGS[code].dir) err(`${where}: target not shown in its script`);
+        if (q.item.tr !== q.item.tg && (!$('.placement .stem .tr.secondary') || $('.placement .stem .tr.secondary').textContent !== q.item.tr)) err(`${where}: no Latin reading under the target`);
+        if (code === 'ja' && /[一-鿿]/.test(q.item.tg) && q.item.kana && (!$('.placement .stem .reading') || $('.placement .stem .reading').textContent !== q.item.kana)) err(`${where}: no kana under kanji`);
+        if (!$('#place-idk') || $('.placement .lesson-head #place-exit') === null) err(`${where}: no "I don't know" / exit button`);
+        if ($('.topbar')) err(`${where}: top bar shown during the test`);
+        const want = typeof mode === 'function' ? mode(seen.length - 1, q) : mode;
+        if (want === 'idk') $('#place-idk').click();
+        else opts[q.options.findIndex((o) => o.correct === (want === 'right'))].click();
+        if (!$('.placement .opt.right') || $$('.placement .opt:not([disabled])').length) err(`${where}: answer not shown / options still active`);
+      }
+      return seen;
+    }
+    function checkPlaceOrder(code, seen, where) {
+      const idx = seen.map((q) => ['beginner', 'intermediate', 'advanced'].indexOf(q.level));
+      if (idx.some((v, i) => i && v < idx[i - 1])) err(`${where}: levels out of order ${seen.map((q) => q.level)}`);
+      const db = T.dbFor(code);
+      ['beginner', 'intermediate', 'advanced'].forEach((lv) => {
+        const qs = seen.filter((q) => q.level === lv);
+        if (qs.length > 4) err(`${where}: ${qs.length} ${lv} questions`);
+        const avail = db.TOPICS.filter((tp) => tp.level === lv && ['vocab', 'phrases', 'grammar'].includes(tp.kind)).length;
+        const lessons = new Set(qs.map((q) => q.item.topic)).size;
+        if (qs.length === 4 && lessons < Math.min(4, avail)) err(`${where}: ${lv} questions from only ${lessons} lessons (of ${avail})`);
+      });
+      if (new Set(seen.map((q) => q.item.en.toLowerCase())).size !== seen.length) err(`${where}: the same meaning asked twice`);
+      // No give-aways: the reading is not in the meaning ("tatami = tatami"), and the answer has the shape of the others.
+      const words = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f\u02b0-\u02ff]/g, '').toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);
+      const bare = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').trim();
+      const sentence = (x) => { const m = String(x[html.lang === 'he' ? 'he' : 'en'] || x.en).trim(); return /[.?!؟]$/.test(m) || bare(m).split(/\s+/).length >= 4; };
+      const glosses = (x) => [x[html.lang === 'he' ? 'he' : 'en'], x.en].flatMap((m) => bare(m).split(/\s*[/;,]\s*/)).map((g) => g.toLowerCase().replace(/[.?!؟]+$/, '').trim()).filter(Boolean);
+      seen.forEach((q) => {
+        const said = words(q.item.tr + ' ' + q.item.tg);
+        if (said.some((a) => words(q.item.en).some((b) => a.startsWith(b) || b.startsWith(a)))) err(`${where}: give-away question ${q.item.tr} = ${q.item.en}`);
+        if (T.placeGiveaway(q.item)) err(`${where}: give-away (sounds like the meaning) ${q.item.tr} = ${q.item.en}`);
+        if (REAL && q.options) {
+          const mine = sentence(q.item);
+          if (q.options.filter((o) => sentence(o.item) === mine).length === 1) err(`${where}: the answer is the only ${mine ? 'sentence' : 'short one'}: ${q.options.map((o) => o.item.en).join(' | ')}`);
+        }
+        if (q.options) {
+          const g = new Set(glosses(q.item));
+          q.options.forEach((o) => { if (!o.correct && glosses(o.item).some((x) => g.has(x))) err(`${where}: a wrong option means the same as the answer: ${o.item.en} / ${q.item.en}`); });
+        }
+      });
+    }
+    async function checkPlacement() {
+      T.setPlaceDelay(20);
+      const cases = [
+        [{ beginner: 4, intermediate: 4, advanced: 4 }, 'advanced'], [{ beginner: 4, intermediate: 3, advanced: 3 }, 'advanced'],
+        [{ beginner: 1, intermediate: 3, advanced: 3 }, 'advanced'], [{ beginner: 4, intermediate: 2, advanced: 4 }, 'intermediate'],
+        [{ beginner: 3, intermediate: 2, advanced: 0 }, 'intermediate'], [{ beginner: 2, intermediate: 4, advanced: 1 }, 'beginner'],
+        [{ beginner: 4, intermediate: 1, advanced: 4 }, 'beginner'], [{}, 'beginner'],
+      ];
+      cases.forEach(([r, want]) => { if (T.placementLevel(r) !== want) err(`placementLevel(${JSON.stringify(r)}) = ${T.placementLevel(r)}, want ${want}`); });
+      // Loanwords that sound like their meaning are never asked; real words are.
+      const it = (tg, tr, en, he = 'x') => ({ tg, tr, en, he });
+      [it('レストラン', 'resutoran', 'restaurant'), it('ドア', 'doa', 'door'), it('スーツケース', 'sūtsukēsu', 'suitcase'), it('ティッシュ', 'tisshu', 'tissues'),
+        it('ドライヤー', 'doraiyā', 'hair dryer'), it('ネックレス', 'nekkuresu', 'necklace'), it('ایمیل', 'imeyl', 'email'), it('畳', 'tatami', 'tatami (straw floor mat)'),
+        it('restaurante', 'res-tau-RAN-te', 'restaurant')].forEach((x) => { if (!T.placeGiveaway(x)) err(`placement: give-away not caught: ${x.tr} = ${x.en}`); });
+      [it('猫', 'neko', 'cat'), it('ウサギ', 'usagi', 'rabbit'), it('車', 'kuruma', 'car'), it('کتاب', 'ketâb', 'book'), it('perro', 'PE-rro', 'dog'),
+        it('بيت', 'bēt', 'house')].forEach((x) => { if (T.placeGiveaway(x)) err(`placement: a real word counted as a give-away: ${x.tr} = ${x.en}`); });
+      if (T.placeSentence(it('دویست', 'devist', 'two hundred (200)', 'מאתיים (200)'))) err('placement: "two hundred (200)" counted as a sentence');
+      if (!T.placeSentence(it('x', 'x', 'I am learning Farsi.', 'אני לומד פרסית.'))) err('placement: a sentence not counted as one');
+      const code = REAL || 'fa';
+      // 1) First-time onboarding, English: everything right.
+      localStorage.clear();
+      await T.reload();
+      $$('.choice')[0].click(); $('#ob-next').click();
+      app.querySelector(`[data-pick="${code}"]`).click(); $('#ob-next').click();
+      if (!$('#place-start')) { err('placement: no test button on the level step'); return; }
+      if (!$('#place-start').textContent.includes(STR.en.place_open)) err('placement: button text');
+      if ($('.dots + h2 + .choices + .place-offer') === null) err('placement: offer is not under the level choices');
+      await T.ensureLoaded(code);
+      for (let r = 0; r < 4; r++) {
+        const qs = T.placementQuestions(T.dbFor(code));
+        checkPlaceOrder(code, qs, `placement/${code}/questions${r}`);
+        const per = ['beginner', 'intermediate', 'advanced'].map((lv) => qs.filter((q) => q.level === lv).length);
+        if (REAL && per.join() !== '4,4,4') err(`placement/${code}: real data gives ${per} questions per level`);
+      }
+      $('#place-start').click();
+      let seen = await placeAnswerAll(code, 'right', 'en');
+      checkPlaceOrder(code, seen, `placement/${code}/right`);
+      const rightBy = (lv) => seen.filter((q) => q.level === lv).length;
+      const expect = REAL ? 'advanced' : T.placementLevel({ beginner: rightBy('beginner'), intermediate: rightBy('intermediate'), advanced: rightBy('advanced') });
+      if (!REAL && expect !== 'intermediate') err('placement: fixtures should suggest intermediate, got ' + expect);
+      if (!$('.place-result')) { err('placement: no result screen'); return; }
+      if ($('.place-result h1').textContent !== STR.en.place_suggest.replace('{level}', STR.en[expect])) err('placement: result title "' + $('.place-result h1').textContent + '"');
+      if ($('#place-use').dataset.level !== expect || !$('#place-use').textContent.includes(STR.en[expect])) err('placement: Use button');
+      if (!$('.place-result .lead').textContent.includes(String(seen.length))) err('placement: score does not show the number of questions');
+      if (T.state().settings || T.state().xp || Object.keys(T.state().langs).length) err('placement: the test saved something: ' + JSON.stringify(T.state()));
+      $('#place-use').click();
+      const L = T.LANGS[code];
+      if (!$('.onboard') || $('.onboard h2').textContent !== (L.script ? STR.en.chooseTrack : STR.en.chooseSpeech)) err('placement: "Use" did not continue to the next step: ' + ($('.onboard h2') && $('.onboard h2').textContent));
+      else {
+        if (L.script) { $$('.choice')[0].click(); $('#ob-next').click(); }
+        $$('.choice')[1].click(); $('#ob-next').click();
+        await waitFor(() => $('.menu'));
+        if (!$('.menu') || !T.state().langs[code] || T.state().langs[code].level !== expect) err('placement: chosen level not saved ' + JSON.stringify(T.state().langs[code]));
+        if (T.state().xp !== 0 || Object.keys(T.state().langs[code].words).length || Object.keys(T.state().langs[code].topics).length) err('placement: XP or word progress changed');
+      }
+      // 2) "Set up a new language", Hebrew, for the other script languages (RTL Arabic, Japanese kana/kanji).
+      await T.setSettings({ uiLang: 'he', lang: code, level: 'beginner', track: 'full', speech: false });
+      for (const nl of ['ar', 'ja', 'es'].filter((c) => c !== code)) {
+        const before = JSON.stringify(T.state());
+        await T.pickLang(nl);
+        if (!$('.onboard') || !$('#place-start')) { err(`placement/${nl}: no test on the new-language set-up`); continue; }
+        $('#place-start').click();
+        await waitFor(() => $('.placement .opt'));
+        // Leave from the first question.
+        $('#place-exit').click();
+        if (!$('.onboard') || !$('#place-start') || T.placement()) err(`placement/${nl}: exit did not return to the level step`);
+        if (html.dir !== 'rtl') err(`placement/${nl}: not right-to-left in Hebrew`);
+        // "I don't know" everywhere: stops after the intermediate block.
+        $('#place-start').click();
+        seen = await placeAnswerAll(nl, 'idk', 'he');
+        checkPlaceOrder(nl, seen, `placement/${nl}/idk`);
+        if (seen.some((q) => q.level === 'advanced')) err(`placement/${nl}: did not stop early after a weak intermediate block`);
+        if (!$('.place-result') || $('#place-use').dataset.level !== 'beginner') err(`placement/${nl}: "I don't know" did not suggest beginner`);
+        else if ($('.place-result h1').textContent !== STR.he.place_suggest.replace('{level}', STR.he.beginner)) err(`placement/${nl}: Hebrew result title`);
+        if (JSON.stringify(T.state()) !== before) err(`placement/${nl}: the test changed the saved state`);
+        $('#place-self').click();
+        if (!$('.onboard') || !$('#place-start') || !$('#ob-next').disabled) err(`placement/${nl}: "Choose myself" did not go back to the level step`);
+        // Beginner right, intermediate 2 of 4: suggests intermediate, then continues like picking it.
+        $('#place-start').click();
+        seen = await placeAnswerAll(nl, (i, q) => (q.level === 'beginner' ? 'right' : q.level === 'intermediate' ? (i % 2 ? 'right' : 'wrong') : 'wrong'), 'he');
+        const inter = seen.filter((q) => q.level === 'intermediate').length;
+        if (inter === 4 && $('#place-use') && $('#place-use').dataset.level !== 'intermediate') err(`placement/${nl}: 4/4 + 2/4 did not suggest intermediate`);
+        const lv = $('#place-use') && $('#place-use').dataset.level;
+        $('#place-use').click();
+        const hasTrack = T.LANGS[nl].script;
+        if (hasTrack && (!$('.onboard h2') || $('.onboard h2').textContent !== STR.he.chooseTrack)) err(`placement/${nl}: "Use" did not go on to the track step`);
+        if (hasTrack) { $$('.choice')[1].click(); $('#ob-next').click(); }
+        await waitFor(() => $('.menu') && T.cur() === nl);
+        if (T.cur() !== nl || !T.state().langs[nl] || T.state().langs[nl].level !== lv) err(`placement/${nl}: new language not set up with level ${lv}`);
+      }
+      T.setPlaceDelay(650);
+    }
+
     /* ---------------- run ---------------- */
     const langs = REAL ? [REAL] : ['fa', 'es', 'ja', 'ar'];
     for (const code of langs) await runLanguage(code);
@@ -1129,6 +1567,10 @@
     await step('themes', checkThemes);
     await step('answers', checkAnswers);
     await step('progress', checkProgress);
+    await step('report', checkReport);
+    await step('transfer', checkTransfer);
+    await step('import safety', checkImportSafety);
+    await step('placement', checkPlacement);
 
     // Every string key exists in both languages, and no t('...') key used was missing.
     Object.keys(STR.en).forEach((k) => { if (STR.he[k] === undefined) err(`string ${k} missing in Hebrew`); });

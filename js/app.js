@@ -340,12 +340,14 @@
     });
     return srs;
   }
+  /** Saved review schedules: {itemId: [step, dueDay]} with both numbers (anything else is dropped). */
   function cleanSrs(srs) {
     const out = {};
+    const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
     Object.keys(srs).forEach((id) => {
       const e = srs[id];
-      if (!Array.isArray(e) || !Number.isFinite(+e[0]) || !Number.isFinite(+e[1])) return;
-      out[id] = [Math.max(0, Math.min(SRS_STEPS.length - 1, Math.round(+e[0]))), Math.round(+e[1])];
+      if (id === '__proto__' || !Array.isArray(e) || !isNum(e[0]) || !isNum(e[1])) return;
+      out[id] = [Math.max(0, Math.min(SRS_STEPS.length - 1, Math.round(e[0]))), Math.round(Math.min(1e7, Math.max(0, e[1])))];
     });
     return out;
   }
@@ -353,46 +355,72 @@
   const freshState = () => ({ v: 2, settings: null, xp: 0, streak: { count: 0, last: null }, langs: {},
     daily: { day: null, xp: 0 }, goalLog: [], badges: {} });
   const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+  /** A finite number clamped to lo..hi (anything else becomes lo). Saved data may come from an imported code, so never trust it. */
+  const num = (x, lo, hi) => { const n = +x; return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
+  /** Keep only the entries of a map whose value is a number, clamped to lo..hi. */
+  function numMap(m, lo, hi) {
+    const out = {};
+    Object.keys(obj(m)).forEach((k) => {
+      const v = m[k];
+      if (k === '__proto__' || (typeof v !== 'number' && typeof v !== 'string') || v === '' || !Number.isFinite(+v)) return;
+      out[k] = num(v, lo, hi);
+    });
+    return out;
+  }
+  /** A local day key as dayKey() writes it ("2026-11-9"). */
+  const isDayKey = (d) => typeof d === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(d);
+  function normStreak(sk) {
+    sk = obj(sk);
+    return { count: Math.floor(num(sk.count, 0, 1e6)), last: isDayKey(sk.last) ? sk.last : null };
+  }
 
+  /** Own keys of a saved map, without '__proto__' (Object.assign would turn it into a prototype). */
+  const ownCopy = (m) => { const out = {}; Object.keys(obj(m)).forEach((k) => { if (k !== '__proto__') out[k] = m[k]; }); return out; };
   /** v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise. */
   function migrateTopics(topics) {
     topics = obj(topics);
+    const out = {};
     Object.keys(topics).forEach((k) => {
+      if (k === '__proto__') return;
       const rec = obj(topics[k]);
-      if (!rec.stages) rec.stages = rec.stars ? { mix: rec.stars } : {};
-      topics[k] = rec;
+      const stages = rec.stages ? rec.stages : rec.stars ? { mix: rec.stars } : {};
+      out[k] = Object.assign(ownCopy(rec), { best: num(rec.best, 0, 100), stages: numMap(stages, 0, 3) });
     });
-    return topics;
+    return out;
   }
   function normLangState(ls) {
     const hadSrs = !!obj(ls).srs && typeof obj(ls).srs === 'object' && !Array.isArray(obj(ls).srs);
-    ls = Object.assign(freshLangState(), obj(ls));
+    ls = Object.assign(freshLangState(), ownCopy(ls));
     ls.topics = migrateTopics(ls.topics);
-    ls.words = obj(ls.words);
+    ls.words = numMap(ls.words, 0, 5);
     ls.srs = hadSrs ? cleanSrs(ls.srs) : seedSrs(ls.words);
-    ls.speedBest = +ls.speedBest || 0;
+    ls.speedBest = Math.floor(num(ls.speedBest, 0, 1e6));
     if (!levelOk(ls.level)) ls.level = null;
     if (ls.track !== 'speak' && ls.track !== 'full') ls.track = null;
     return ls;
   }
+  /** Codes from saved or imported data: only real ones count, never inherited names like 'constructor'. */
+  const isLangCode = (k) => LANG_CODES.includes(k);
+  const isUiLang = (k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(STR, k);
   function normalizeState(st) {
-    st = Object.assign(freshState(), obj(st));
+    st = Object.assign(freshState(), ownCopy(st));
     st.v = 2;
-    st.xp = +st.xp || 0;
-    st.streak = Object.assign({ count: 0, last: null }, obj(st.streak));
-    st.langs = obj(st.langs);
-    Object.keys(st.langs).forEach((k) => { if (LANGS[k]) st.langs[k] = normLangState(st.langs[k]); else delete st.langs[k]; });
+    st.xp = Math.floor(num(st.xp, 0, 1e9));
+    st.streak = normStreak(st.streak);
+    const langs = obj(st.langs);
+    st.langs = {};
+    Object.keys(langs).forEach((k) => { if (isLangCode(k)) st.langs[k] = normLangState(langs[k]); });
     const daily = obj(st.daily);
-    st.daily = { day: typeof daily.day === 'string' ? daily.day : null, xp: Math.max(0, +daily.xp || 0) };
-    st.goalLog = Array.isArray(st.goalLog) ? Array.from(new Set(st.goalLog.filter((d) => typeof d === 'string'))).slice(-GOAL_LOG_MAX) : [];
+    st.daily = { day: isDayKey(daily.day) ? daily.day : null, xp: Math.floor(num(daily.xp, 0, 1e6)) };
+    st.goalLog = Array.isArray(st.goalLog) ? Array.from(new Set(st.goalLog.filter(isDayKey))).slice(-GOAL_LOG_MAX) : [];
     const badges = obj(st.badges);
     st.badges = {};
-    Object.keys(badges).forEach((id) => { if (typeof badges[id] === 'string') st.badges[id] = badges[id]; });
+    Object.keys(badges).forEach((id) => { if (id !== '__proto__' && isDayKey(badges[id])) st.badges[id] = badges[id]; });
     if (st.settings) {
-      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false, goal: GOAL_DEFAULT }, obj(st.settings));
+      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false, goal: GOAL_DEFAULT }, ownCopy(st.settings));
       st.settings.goal = GOALS.includes(+st.settings.goal) ? +st.settings.goal : GOAL_DEFAULT;
-      if (!STR[st.settings.uiLang]) st.settings.uiLang = 'en';
-      if (!LANGS[st.settings.lang]) st.settings.lang = null;
+      if (!isUiLang(st.settings.uiLang)) st.settings.uiLang = 'en';
+      if (!isLangCode(st.settings.lang)) st.settings.lang = null;
       st.settings.speech = !!st.settings.speech;
     }
     return st;
@@ -401,13 +429,13 @@
   function migrateOld(old) {
     old = obj(old);
     const st = freshState();
-    st.xp = +old.xp || 0;
-    st.streak = Object.assign({ count: 0, last: null }, obj(old.streak));
+    st.xp = old.xp;
+    st.streak = old.streak;
     const fa = freshLangState();
     delete fa.srs; // seeded from the word strengths by normalizeState
-    fa.topics = migrateTopics(old.topics);
-    fa.words = obj(old.words);
-    fa.speedBest = +old.speedBest || 0;
+    fa.topics = old.topics;
+    fa.words = old.words;
+    fa.speedBest = old.speedBest;
     if (old.settings) {
       const s = obj(old.settings);
       fa.level = s.level; fa.track = s.track;
@@ -850,8 +878,8 @@
           <span class="caret" aria-hidden="true">▾</span></button>` : ''}
       </div>
       <div class="stats">
-        <span class="stat" title="${esc(t('streak'))}">🔥 ${currentStreak()}</span>
-        <span class="stat" title="XP">⭐ ${S.xp}</span>
+        <span class="stat" title="${esc(t('streak'))}">🔥 ${esc(currentStreak())}</span>
+        <span class="stat" title="XP">⭐ ${esc(S.xp)}</span>
         <button class="icon-btn" data-go="settings" aria-label="${esc(t('settings'))}">⚙️</button>
       </div>
     </header>`;
@@ -903,8 +931,11 @@
   // Enter key presses the main button on screen.
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
+    if ($('.xfer-modal', app)) return; // a dialog is open: never press the screen behind it
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (['BUTTON', 'A', 'TEXTAREA', 'SELECT'].includes(tag)) return; // let focused controls handle Enter themselves (typed answers still use it)
     const btn = $('[data-enter]:not([disabled])', app);
-    if (btn && document.activeElement && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); btn.click(); }
+    if (btn && tag) { e.preventDefault(); btn.click(); }
   });
 
   /* ------------------------------------------------------------------ *
@@ -1040,6 +1071,7 @@
         <h2>${esc(t(titles[key], code))}</h2>
         ${key === 'lang' ? `<p class="muted center sub">${esc(t('chooseLearnSub'))}</p>` : ''}
         ${choices}
+        ${key === 'level' && code ? placeOfferHTML(code, placeFailed === code) : ''}
         <div class="row">
           ${step > 0 || setupOnly ? `<button class="btn ghost" id="ob-back">${esc(t('back'))}</button>` : '<span></span>'}
           <button class="btn primary" id="ob-next" data-enter ${choice[key] === null ? 'disabled' : ''}>
@@ -1065,18 +1097,28 @@
         applyTheme(cur);
         if (cur && DB) renderLangPicker(); else boot();
       });
-      $('#ob-next', app).addEventListener('click', () => {
-        if (key === 'lang' && choice.lang) ensureLoaded(choice.lang); // start fetching its lessons while the learner answers the rest
-        if (step < stepsNow().length - 1) { step++; draw(); return; }
-        if (!S.settings) S.settings = { uiLang: choice.uiLang, lang: choice.lang, speech: !!choice.speech, goal: GOAL_DEFAULT };
-        S.settings.uiLang = choice.uiLang;
-        S.settings.lang = choice.lang;
-        const ls = langState(choice.lang);
-        ls.level = choice.level;
-        ls.track = LANGS[choice.lang].script ? choice.track : 'full';
-        saveState();
-        openLang(choice.lang);
-      });
+      const place = $('#place-start', app);
+      if (place) place.addEventListener('click', () => renderPlacement(code, {
+        onPick: (lv) => { placeFailed = null; choice.level = lv; advance(); },
+        onBack: () => { placeFailed = null; draw(); },
+        onFail: () => { placeFailed = code; draw(); },
+      }));
+      $('#ob-next', app).addEventListener('click', advance);
+    }
+    let placeFailed = null; // the language whose test couldn't load (the note shows only for it)
+    /** Next step, or finish. Also used by the placement test's "Use <level>". */
+    function advance() {
+      const key = stepsNow()[step];
+      if (key === 'lang' && choice.lang) ensureLoaded(choice.lang); // start fetching its lessons while the learner answers the rest
+      if (step < stepsNow().length - 1) { step++; draw(); return; }
+      if (!S.settings) S.settings = { uiLang: choice.uiLang, lang: choice.lang, speech: !!choice.speech, goal: GOAL_DEFAULT };
+      S.settings.uiLang = choice.uiLang;
+      S.settings.lang = choice.lang;
+      const ls = langState(choice.lang);
+      ls.level = choice.level;
+      ls.track = LANGS[choice.lang].script ? choice.track : 'full';
+      saveState();
+      openLang(choice.lang);
     }
     draw();
   }
@@ -1100,7 +1142,7 @@
    * Menu
    * ------------------------------------------------------------------ */
   function stars(n) {
-    return `<span class="stars" aria-label="${n}/3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
+    return `<span class="stars" aria-label="${esc(n)}/3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
   }
   /** Lessons of a group this learner can see (no script lessons in the speaking-only track). */
   const visibleLessons = (g) => (readerMode() ? g.lessons : g.lessons.filter((tp) => tp.kind !== 'alphabet'));
@@ -1266,6 +1308,7 @@
       <label>${esc(t('speechSetting'))}</label>
       ${SR ? seg('speech', [[true, t('on')], [false, t('off')]]) : `<p class="muted">${esc(t('speechUnsupported'))}</p>`}
       ${goalSetting()}
+      ${xferHTML()}
       <div class="row wrap"><button class="btn danger" id="reset-lang">${esc(t('resetLang'))}</button>
       <button class="btn ghost" id="reset">${esc(t('resetProgress'))}</button></div>
       <div class="row"><span></span><button class="btn primary" data-go="menu" data-enter>${esc(t('done'))}</button></div>
@@ -1280,6 +1323,7 @@
       renderSettings();
     })));
     $$('[data-pick]', app).forEach((b) => b.addEventListener('click', () => pickLang(b.dataset.pick)));
+    mountXfer($('.xfer', app));
     $('#reset-lang', app).addEventListener('click', () => {
       if (!confirm(t('confirmResetLang'))) return;
       Object.assign(ls, { topics: {}, words: {}, speedBest: 0, srs: {} });
@@ -1422,6 +1466,7 @@
         <div class="card-wrap"><button class="card" id="card" aria-live="polite">
           <div class="face front">${f.front}</div><div class="face back">${f.back}</div>
         </button></div>
+        <div class="report-row">${reportLink(it, 'learn')}</div>
         <div class="row">
           <button class="btn ghost" id="prev" ${i === 0 ? 'disabled' : ''}>${esc(t('prev'))}</button>
           <button class="btn primary" id="next" data-enter>${esc(i === items.length - 1 ? t('learnDone') + ' 🎉' : t('next'))}</button>
@@ -1602,7 +1647,8 @@
     const title = result === null ? t('skipped') : result ? (note === 'almost' ? t('almost') : themeLine('right')) : themeLine('wrong');
     fb.className = 'feedback ' + cls;
     fb.innerHTML = `${mascot(result === false ? 'sad' : result ? 'cheer' : 'happy', 'mascot-fb')}<div class="fb-text"><strong>${result ? '✓ ' : result === false ? '✗ ' : ''}${esc(title)}</strong>
-      ${correctHTML && (result === false || note === 'almost') ? `<div>${note === 'almost' ? '' : esc(t('correctAnswer')) + ' '}${correctHTML}</div>` : ''}</div>
+      ${correctHTML && (result === false || note === 'almost') ? `<div>${note === 'almost' ? '' : esc(t('correctAnswer')) + ' '}${correctHTML}</div>` : ''}
+      ${q.item ? reportLink(q.item, 'exercise (' + q.type + ')') : ''}</div>
       <button class="btn ${result === false ? 'danger' : 'primary'}" id="continue" data-enter>${esc(t('continue'))}</button>`;
     fb.hidden = false;
     $$('.q-body button, .q-body input', app).forEach((el) => { if (!el.closest('.feedback')) el.disabled = true; });
@@ -2057,7 +2103,7 @@
         ${f === 'all' ? '' : `<span class="dot st-${f}"></span>`}${esc(t('f_' + f))} <span class="count" dir="ltr">${res.counts[f]}</span></button>`).join('');
     const shown = res.rows.slice(0, DICT_MAX);
     list.innerHTML = shown.length
-      ? shown.map(dictRow).join('') + (res.rows.length > DICT_MAX ? `<p class="dict-more muted">${esc(fmt(t('dictMore'), { n: DICT_MAX, total: res.rows.length }))}</p>` : '')
+      ? shown.map(dictEntry).join('') + (res.rows.length > DICT_MAX ? `<p class="dict-more muted">${esc(fmt(t('dictMore'), { n: DICT_MAX, total: res.rows.length }))}</p>` : '')
       : `<div class="dict-empty">${mascotSays(themeLine('empty'), 'sad')}</div>`;
   }
   function renderDictionary() {
@@ -2342,6 +2388,512 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Report a mistake: a mailto: link with everything needed to find and fix one item
+   * ------------------------------------------------------------------ */
+  const REPORT_TO = 'avielraz123@gmail.com';
+  const appUrl = () => String(location.href).split(/[?#]/)[0];
+  /**
+   * mailto: link that reports a mistake in one item (a word, phrase or letter).
+   * context: the screen name ('learn', 'dictionary', ...) or {screen, lang} (lang defaults to the current language).
+   */
+  function reportHref(item, context) {
+    const c = typeof context === 'string' ? { screen: context } : obj(context);
+    const code = LANGS[c.lang] ? c.lang : cur;
+    const db = code === cur && DB ? DB : DBS[code];
+    const it = obj(item);
+    const lesson = db && it.topic ? db.TOPIC_BY_ID[it.topic] : null;
+    const ex = obj(it.ex);
+    const lines = [
+      'Language: ' + (LANGS[code] ? LANGS[code].name.en + ' (' + code + ')' : String(code || '')),
+      'Lesson: ' + (lesson ? ((lesson.title && lesson.title.en) || '') + ' (' + lesson.id + ')' : String(it.topic || '')),
+      'Item: ' + String(it.id || ''),
+      'Target: ' + String(it.tg || ''),
+    ];
+    if (it.kana && it.kana !== it.tg) lines.push('Kana: ' + it.kana);
+    lines.push('Latin: ' + String(it.tr || ''), 'English: ' + String(it.en || ''), 'Hebrew: ' + String(it.he || ''));
+    if (it.isLetter) lines.push('Sound: ' + String(it.sound || ''), 'Example: ' + [ex.tg, ex.tr, ex.en, ex.he].filter(Boolean).join(' / '));
+    lines.push('Screen: ' + String(c.screen || ''), 'App language: ' + ui(), 'App URL: ' + appUrl(), '', 'What is wrong? / מה לא נכון?', '');
+    const subject = BRAND + ' — mistake report (' + (code || '') + ')';
+    return 'mailto:' + REPORT_TO + '?subject=' + encodeURIComponent(subject) + '&body=' + lines.map(encodeURIComponent).join('%0D%0A');
+  }
+  /** The small "🚩 Report a mistake" link under a card or in the answer panel. */
+  const reportLink = (it, screen) => `<a class="report-link" href="${esc(reportHref(it, screen))}"><span aria-hidden="true">🚩</span> ${esc(t('report_link'))}</a>`;
+  /** A dictionary row plus its small report flag (a sibling: links can't sit inside the row's button). */
+  function dictEntry(row) {
+    const it = row.e.it;
+    const word = readerMode() ? it.tg : it.tr;
+    return `<div class="report-entry">${dictRow(row)}<a class="report-flag" href="${esc(reportHref(it, 'dictionary'))}"
+      aria-label="${esc(fmt(t('report_aria'), { word }))}" title="${esc(t('report_link'))}"><span aria-hidden="true">🚩</span></a></div>`;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Move progress to another device (Settings): a copy-paste code or a .json file.
+   *  code: "TLL1." + base64url(gzip(state JSON)), or "TLL0." + base64url(UTF-8 state JSON) without CompressionStream.
+   *  A file holds the state JSON (a pasted code inside a file works too).
+   * ------------------------------------------------------------------ */
+  const XFER_GZ = 'TLL1.';
+  const XFER_RAW = 'TLL0.';
+  function b64urlEncode(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64urlDecode(s) {
+    s = s.replace(/=+$/, '').replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  const streamBytes = (bytes, transform) => new Response(new Blob([bytes]).stream().pipeThrough(transform))
+    .arrayBuffer().then((b) => new Uint8Array(b));
+  /** The progress code for a state (gzip when the browser can, plain otherwise). */
+  async function progressCode(st = S, gzip = true) {
+    const bytes = new TextEncoder().encode(JSON.stringify(st));
+    if (gzip && typeof CompressionStream === 'function') {
+      try { return XFER_GZ + b64urlEncode(await streamBytes(bytes, new CompressionStream('gzip'))); } catch (e) { /* plain code instead */ }
+    }
+    return XFER_RAW + b64urlEncode(bytes);
+  }
+  /** A parsed save as a complete state: a v2 state, or an old single-language (v1) save migrated. null if neither. */
+  function importState(raw) {
+    const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+    if (!isObj(raw)) return null;
+    if (raw.v === 2) return isObj(raw.langs) ? normalizeState(raw) : null;
+    const v1 = raw.v === undefined && !('langs' in raw)
+      && (isObj(raw.topics) || isObj(raw.words) || (isObj(raw.settings) && ('level' in raw.settings || 'track' in raw.settings)));
+    return v1 ? migrateOld(raw) : null;
+  }
+  /** Read a pasted code, or a file's text (JSON or a code). Resolves to a normalized state; rejects with 'empty' | 'nogzip' | 'bad'. */
+  async function readProgress(text) {
+    // Chat and mail apps (Hebrew ones above all) may add invisible direction marks, zero-width spaces or a BOM.
+    let s = String(text == null ? '' : text).replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]+/g, '').trim();
+    if (!s) throw new Error('empty');
+    let json = s;
+    if (s[0] !== '{') {
+      s = s.replace(/\s+/g, '');
+      const head = s.slice(0, 5).toUpperCase();
+      const body = s.slice(5);
+      if ((head !== XFER_GZ && head !== XFER_RAW) || !/^[A-Za-z0-9_-]+=*$/.test(body)) throw new Error('bad');
+      if (head === XFER_GZ && typeof DecompressionStream !== 'function') throw new Error('nogzip');
+      try {
+        let bytes = b64urlDecode(body);
+        if (head === XFER_GZ) bytes = await streamBytes(bytes, new DecompressionStream('gzip'));
+        json = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch (e) { throw new Error('bad'); }
+    }
+    let raw;
+    try { raw = JSON.parse(json); } catch (e) { throw new Error('bad'); }
+    const st = importState(raw);
+    if (!st) throw new Error('bad');
+    return st;
+  }
+  /** Swap in a whole new state at once, then show the right first screen for it. */
+  function replaceProgress(st) {
+    stopSpeed();
+    session = null;
+    S = st;
+    saveState();
+    if (S.settings) pendingUi = S.settings.uiLang;
+    applyUiLang();
+    return boot();
+  }
+  const progressFileName = (d = new Date()) => {
+    const p = (n) => String(n).padStart(2, '0');
+    return `talk-like-a-local-progress-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
+  };
+  function downloadProgress() {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = progressFileName();
+    a.hidden = true;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  /**
+   * Copy to the clipboard; if that's not allowed, show the code selected in its box (and try the old copy command).
+   * src is the text, or a promise of it. Call this right inside the tap: Safari only allows clipboard writes
+   * that start there, so a ready text is written at once, and a promised one goes through a ClipboardItem.
+   */
+  function copyText(src, box) {
+    const textP = Promise.resolve(src);
+    const bySelecting = (text) => {
+      box.value = text;
+      box.hidden = false;
+      box.focus();
+      box.select();
+      try { box.setSelectionRange(0, text.length); } catch (e) { /* ignore */ }
+      try { return document.execCommand('copy'); } catch (e) { return false; }
+    };
+    const clip = navigator.clipboard;
+    let write = null;
+    try {
+      if (clip && clip.writeText && typeof src === 'string') write = clip.writeText(src);
+      else if (clip && clip.write && typeof ClipboardItem === 'function') {
+        write = clip.write([new ClipboardItem({ 'text/plain': textP.then((c) => new Blob([c], { type: 'text/plain' })) })]);
+      } else if (clip && clip.writeText) write = textP.then((c) => clip.writeText(c));
+    } catch (e) { write = null; }
+    if (!write) return textP.then(bySelecting);
+    const late = new Promise((r) => setTimeout(() => r(false), 1500));
+    return Promise.race([Promise.resolve(write).then(() => true, () => false), late])
+      .then((ok) => ok || textP.then(bySelecting));
+  }
+  function xferHTML() {
+    return `<section class="xfer" aria-labelledby="xfer-h">
+      <h2 class="xfer-title" id="xfer-h"><span aria-hidden="true">📦</span> ${esc(t('xfer_title'))}</h2>
+      <p class="muted xfer-sub">${esc(t('xfer_sub'))}</p>
+      <div class="xfer-actions">
+        <button class="btn ghost small" id="xfer-copy"><span aria-hidden="true">📋</span> ${esc(t('xfer_copy'))}</button>
+        <button class="btn ghost small" id="xfer-download"><span aria-hidden="true">💾</span> ${esc(t('xfer_download'))}</button>
+      </div>
+      <textarea class="xfer-code" id="xfer-code" rows="3" dir="ltr" readonly hidden spellcheck="false" aria-label="${esc(t('xfer_codeLabel'))}"></textarea>
+      <p class="xfer-status" id="xfer-status" role="status" aria-live="polite"></p>
+      <h3 class="xfer-subtitle">${esc(t('xfer_loadTitle'))}</h3>
+      <label class="xfer-label" for="xfer-paste">${esc(t('xfer_pasteLabel'))}</label>
+      <textarea class="xfer-code" id="xfer-paste" rows="3" dir="ltr" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="TLL1.…"></textarea>
+      <div class="xfer-actions">
+        <button class="btn primary small" id="xfer-load">${esc(t('xfer_load'))}</button>
+        <button class="btn ghost small" id="xfer-file-btn"><span aria-hidden="true">📂</span> ${esc(t('xfer_openFile'))}</button>
+        <input type="file" id="xfer-file" accept=".json,application/json,text/plain" hidden>
+      </div>
+      <p class="xfer-error" id="xfer-error" role="alert" hidden></p>
+    </section>`;
+  }
+  function mountXfer(root) {
+    if (!root) return;
+    const status = $('#xfer-status', root);
+    const codeBox = $('#xfer-code', root);
+    const errBox = $('#xfer-error', root);
+    const paste = $('#xfer-paste', root);
+    const file = $('#xfer-file', root);
+    const fail = (msg) => { errBox.textContent = msg || ''; errBox.hidden = !msg; };
+    // Make the code ahead of time, so a tap on "Copy" can write it to the clipboard straight away.
+    let ready = null; // { json, code }
+    const prepare = () => {
+      const json = JSON.stringify(S);
+      progressCode(S).then((code) => { if (JSON.stringify(S) === json) ready = { json, code }; }, () => {});
+    };
+    prepare();
+    $('#xfer-copy', root).addEventListener('click', async () => {
+      status.textContent = '';
+      const json = JSON.stringify(S);
+      const codeP = ready && ready.json === json ? ready.code : progressCode(S);
+      const okP = copyText(codeP, codeBox); // synchronously inside the tap
+      const code = await codeP;
+      codeBox.value = code;
+      codeBox.hidden = false;
+      const ok = await okP;
+      status.textContent = ok ? t('xfer_copied') : t('xfer_copyManual');
+      if (!ready || ready.json !== json) ready = { json, code };
+    });
+    $('#xfer-download', root).addEventListener('click', () => {
+      downloadProgress();
+      status.textContent = t('xfer_downloaded');
+    });
+    const tryLoad = async (text, fromFile, back) => {
+      fail('');
+      let st;
+      try { st = await readProgress(text); } catch (e) {
+        const why = e && e.message;
+        fail(why === 'nogzip' ? t('xfer_noGzip') : fromFile ? t('xfer_badFile') : why === 'empty' ? t('xfer_empty') : t('xfer_bad'));
+        return;
+      }
+      if (root.isConnected) confirmReplace(st, back);
+    };
+    $('#xfer-load', root).addEventListener('click', () => tryLoad(paste.value, false, $('#xfer-load', root)));
+    // Enter in these boxes must not press the screen's main button ("Done").
+    [paste, codeBox].forEach((el) => el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.stopPropagation();
+      if (el === paste) { e.preventDefault(); tryLoad(paste.value, false, paste); }
+    }));
+    $('#xfer-file-btn', root).addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      const f = file.files && file.files[0];
+      file.value = '';
+      if (!f) return;
+      if (f.size > 5e6) { fail(t('xfer_badFile')); return; }
+      let text;
+      try { text = await f.text(); } catch (e) { fail(t('xfer_badFile')); return; }
+      tryLoad(text, true, $('#xfer-file-btn', root));
+    });
+  }
+  /** In-app confirmation before replacing this device's progress. */
+  function confirmReplace(st, back) {
+    $$('.xfer-modal', app).forEach((m) => (m.xferShut ? m.xferShut() : m.remove()));
+    const langs = Object.keys(st.langs).filter((c) => LANGS[c]);
+    const what = esc(langs.length ? langs.map(langName).join(', ') : t('xfer_noLangs')) + ` · <bdi class="xfer-xp" dir="ltr">${esc(st.xp)} XP</bdi>`;
+    const box = document.createElement('div');
+    box.className = 'xfer-modal';
+    box.innerHTML = `<div class="xfer-dialog" role="alertdialog" aria-modal="true" aria-labelledby="xfer-c-h" aria-describedby="xfer-c-p">
+      <h2 id="xfer-c-h">${esc(t('xfer_confirmTitle'))}</h2>
+      <p id="xfer-c-p">${esc(t('xfer_confirmText'))}</p>
+      <p class="muted xfer-found">${fmt(esc(t('xfer_found')), { what })}</p>
+      <div class="row"><button class="btn ghost" id="xfer-cancel">${esc(t('xfer_cancel'))}</button>
+      <button class="btn danger" id="xfer-replace">${esc(t('xfer_replace'))}</button></div>
+    </div>`;
+    // Everything behind the dialog is inert (no focus, no clicks, hidden from screen readers) while it is open.
+    const behind = Array.from(app.children).filter((el) => !el.inert);
+    behind.forEach((el) => { el.inert = true; });
+    app.appendChild(box);
+    const cancel = $('#xfer-cancel', box);
+    const replace = $('#xfer-replace', box);
+    // Keys are handled on the whole page, so Escape and Tab still work after a click on the dialog's text.
+    const onKey = (e) => {
+      if (!box.isConnected) { unhook(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === 'Tab') { e.preventDefault(); (document.activeElement === cancel ? replace : cancel).focus(); }
+    };
+    const onFocus = (e) => {
+      if (!box.isConnected) { unhook(); return; }
+      if (!box.contains(e.target)) cancel.focus();
+    };
+    function unhook() {
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('focusin', onFocus, true);
+      behind.forEach((el) => { el.inert = false; });
+    }
+    const shut = () => { unhook(); box.remove(); };
+    box.xferShut = shut;
+    const close = () => { shut(); if (back && back.isConnected) back.focus(); };
+    cancel.addEventListener('click', close);
+    replace.addEventListener('click', () => { shut(); replaceProgress(st); });
+    box.addEventListener('click', (e) => { if (e.target === box) close(); });
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('focusin', onFocus, true);
+    cancel.focus();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Placement test (from the onboarding level step): 4 beginner, then 4 intermediate, then 4 advanced
+   * questions "what does this mean?". Nothing is saved except the level the learner then picks.
+   * ------------------------------------------------------------------ */
+  const PLACE_KINDS = ['vocab', 'phrases', 'grammar'];
+  const PLACE_PER_LEVEL = 4;
+  let placeRun = null;
+  let placeDelay = 650; // how long the right answer stays on screen (ms)
+  const placeMeaning = (it) => it[ui()] || it.en || '';
+  const placeFits = (it) => !it.isLetter && visualLen(it.tg) <= 32 && String(placeMeaning(it)).length <= 60;
+  /** Plain lowercase words of 4+ letters, without accents (rōmaji macrons, ʿ, á ...). */
+  const placeWords = (s, min = 4) => String(s || '').normalize('NFD').replace(/[\p{M}\p{Lm}]/gu, '').toLowerCase()
+    .split(/[^\p{L}]+/u).filter((w) => w.length >= min);
+  /**
+   * A word's consonant skeleton, with common spelling differences between rōmaji/transliteration and English
+   * evened out: "resutoran" and "restaurant" -> rstrn / rstrnt, "doraiyā" and "dryer" -> dr, "imeyl" and "email" -> mr.
+   */
+  const placeSkeleton = (w) => w.replace(/x/g, 'ks').replace(/ph/g, 'f').replace(/[sc]h/g, 's').replace(/ck|q|c/g, 'k').replace(/l/g, 'r')
+    .replace(/v/g, 'b').replace(/z/g, 's').replace(/[aeiouyw']/g, '').replace(/(.)\1+/g, '$1');
+  function placeEdits(a, b) {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      for (let j = 1; j <= b.length; j++) row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = row;
+    }
+    return prev[b.length];
+  }
+  /** Do these two words sound alike (a loanword and its English source)? loose: for katakana words, which are mostly loanwords. */
+  function placeAlike(a, b, loose) {
+    if (a.startsWith(b) || b.startsWith(a)) return true;
+    const x = placeSkeleton(a);
+    const y = placeSkeleton(b);
+    const n = Math.max(x.length, y.length);
+    return Math.min(x.length, y.length) >= (loose ? 1 : 2) && placeEdits(x, y) / n <= (loose ? 0.5 : 0.3);
+  }
+  /** Japanese written only in katakana: nearly always a loanword ("sētā" = sweater, "doa" = door). */
+  const placeKatakana = (it) => /^[゠-ヿ\s・。、！？!?.]+$/.test(it.tg || '');
+  /** True if the answer gives itself away: a loanword or name whose reading is in the meaning ("tatami", "resutoran" = restaurant). */
+  function placeGiveaway(it) {
+    const loose = placeKatakana(it);
+    const words = (s) => (loose ? placeWords(s, 3) : placeWords(s));
+    const said = words((it.tr || '') + ' ' + (it.tg || ''));
+    const meant = words(it.en + ' ' + placeMeaning(it));
+    return said.some((a) => meant.some((b) => placeAlike(a, b, loose)));
+  }
+  const placeAskable = (it) => placeFits(it) && !placeGiveaway(it);
+  /** A meaning without its notes in brackets: "two hundred (200)" -> "two hundred". */
+  const placeBare = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  /** Each separate gloss of a meaning ("money / cash" -> money, cash), lowercased and without notes. */
+  const placeGlosses = (it) => [placeMeaning(it), it.en].flatMap((m) => placeBare(m).split(/\s*[\/;,]\s*/))
+    .map((g) => low(g).replace(/[.?!؟]+$/, '').trim()).filter(Boolean);
+  /** A whole sentence or a short word/phrase? Wrong options get the same shape as the answer, so the shape gives nothing away. */
+  const placeSentence = (it) => {
+    const m = String(placeMeaning(it)).trim();
+    return /[.?!؟]$/.test(m) || placeBare(m).split(/\s+/).length >= 4;
+  };
+  /** Lessons a question may come from: words, phrases and grammar of one level (never letters or stories). */
+  const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind));
+  /**
+   * Four options with different meanings: the answer and three like it, as distractors() picks them:
+   * the same lesson, then the same group, then the whole level, always the same shape (sentence or word) first.
+   */
+  function placeOptions(it, pool, all, lessonOf) {
+    const seen = new Set([low(placeMeaning(it))]);
+    const glosses = new Set(placeGlosses(it)); // a wrong option may not share a meaning with the answer ("money" / "money (colloquial)")
+    const out = [];
+    const shape = placeSentence(it);
+    const same = (p) => p.filter((x) => placeSentence(x) === shape);
+    const tp = lessonOf.get(it);
+    const lesson = pool.filter((x) => lessonOf.get(x) === tp);
+    const group = pool.filter((x) => lessonOf.get(x).group === tp.group);
+    [same(lesson), same(group), same(pool), same(all), pool, all].forEach((p) => shuffle(p).forEach((x) => {
+      if (out.length >= 3 || x === it || sameAnswer(it, x)) return;
+      const k = low(placeMeaning(x));
+      if (seen.has(k) || placeGlosses(x).some((g) => glosses.has(g))) return;
+      seen.add(k);
+      out.push(x);
+    }));
+    return shuffle([it, ...out]).map((x) => ({ item: x, correct: x === it }));
+  }
+  /** The questions, easiest level first. Each level takes its items from as many different lessons and groups as it can. */
+  function placementQuestions(db) {
+    const lessonOf = new Map();
+    LEVELS.forEach((lv) => placeLessons(db, lv).forEach((tp) => tp.items.forEach((x) => lessonOf.set(x, tp))));
+    const all = Array.from(lessonOf.keys()).filter(placeFits);
+    const asked = [];
+    const qs = [];
+    LEVELS.forEach((level) => {
+      const lessons = shuffle(placeLessons(db, level));
+      const pool = lessons.flatMap((tp) => tp.items).filter(placeFits);
+      const firsts = lessons.filter((tp, i) => lessons.findIndex((x) => x.group === tp.group) === i);
+      const order = firsts.concat(lessons.filter((tp) => !firsts.includes(tp)));
+      let n = 0;
+      for (let k = 0; n < PLACE_PER_LEVEL && k < order.length * PLACE_PER_LEVEL; k++) {
+        const tp = order[k % order.length];
+        const it = shuffle(tp.items).find((x) => placeAskable(x)
+          && !asked.some((y) => sameAnswer(x, y) || low(placeMeaning(x)) === low(placeMeaning(y))));
+        if (!it) continue;
+        asked.push(it);
+        n++;
+        qs.push({ level, item: it, options: placeOptions(it, pool, all, lessonOf) });
+      }
+    });
+    return qs;
+  }
+  /** right = correct answers per level (out of 4). */
+  function placementLevel(right) {
+    const r = obj(right);
+    if ((r.intermediate || 0) >= 3 && (r.advanced || 0) >= 3) return 'advanced';
+    if ((r.beginner || 0) >= 3 && (r.intermediate || 0) >= 2) return 'intermediate';
+    return 'beginner';
+  }
+  const placeOfferHTML = (code, failed) => `<div class="place-offer">
+      <button class="btn ghost place-open" id="place-start"><span aria-hidden="true">🧭</span> ${esc(t('place_open', code))}</button>
+      ${failed ? `<p class="place-note" role="status">${esc(t('place_fail', code))}</p>` : ''}
+    </div>`;
+  /**
+   * Run the placement test for a language. cb: {onPick(level), onBack(), onFail()}; exactly one of them is
+   * called, unless the learner leaves some other way.
+   */
+  function renderPlacement(code, cb) {
+    const run = { code, cb, qs: [], i: 0, locked: false,
+      right: { beginner: 0, intermediate: 0, advanced: 0 }, asked: { beginner: 0, intermediate: 0, advanced: 0 } };
+    placeRun = run;
+    const leave = (fn) => { if (placeRun !== run) return; placeRun = null; fn(); };
+    // If files failed to load (e.g. no network), forget that load so the next try fetches them again.
+    const fail = () => {
+      const report = LOAD_REPORT[code];
+      if (placeRun === run && (!report || report.failed.length)) { delete LOADS[code]; delete DBS[code]; }
+      leave(cb.onFail);
+    };
+    const start = () => {
+      if (placeRun !== run) return;
+      let qs = [];
+      try { qs = placementQuestions(dbFor(code)); } catch (e) { qs = []; }
+      if (qs.length < PLACE_PER_LEVEL) { fail(); return; }
+      run.qs = qs;
+      drawPlaceQuestion(run);
+    };
+    // An earlier load that is over and got nothing at all (e.g. while offline): try again now.
+    const prev = LOAD_REPORT[code];
+    if (LOADS[code] && prev && !prev.loaded.length && prev.failed.length >= filesOf(code).length) { delete LOADS[code]; delete DBS[code]; }
+    if (DBS[code] && LOADS[code]) { start(); return; }
+    render(`<main class="center-page loading-page place-loading" aria-busy="true">
+      ${mascot('happy', 'mascot-hero', code)}
+      <h1>${esc(t('loading', code))}</h1>
+      <p class="lead">${esc(t('loadingSub', code))}</p>
+      <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="stack"><button class="btn ghost" id="place-cancel">${esc(t('place_exit', code))}</button></div>
+    </main>`, false);
+    $('#place-cancel', app).addEventListener('click', () => leave(cb.onBack));
+    ensureLoaded(code).then(start, fail);
+  }
+  function drawPlaceQuestion(run) {
+    const { code } = run;
+    const q = run.qs[run.i];
+    const it = q.item;
+    // The track isn't chosen yet, so show the script and the Latin reading (plus kana under kanji).
+    const kana = code === 'ja' && it.kana && KANJI_RE.test(it.tg) ? it.kana : '';
+    const word = `<div class="word lg ${lenCls(it.tg)}">${tgFor(code, it.tg, 'primary')}${kana ? tgFor(code, kana, 'reading') : ''}${it.tr && it.tr !== it.tg ? trS(it.tr, 'secondary') : ''}</div>`;
+    render(`<main class="practice placement">
+      <div class="lesson-head">
+        <button class="icon-btn" id="place-exit" aria-label="${esc(t('place_exit', code))}">✕</button>
+        <div class="progress grow"><i style="width:${(run.i / run.qs.length) * 100}%"></i></div>
+      </div>
+      <div class="place-meta"><span class="place-count">${esc(fmt(t('place_count', code), { n: run.i + 1, total: run.qs.length }))}</span>
+        <em class="level-chip lv-${q.level}">${esc(t(q.level, code))}</em></div>
+      <h2 class="prompt">${esc(t('qMeaning', code))}</h2>
+      <div class="q-body">
+        <div class="stem">${word}</div>
+        <div class="options">${q.options.map((o, k) => `<button class="opt" data-i="${k}">${esc(placeMeaning(o.item))}</button>`).join('')}</div>
+        <div class="row center-row"><button class="btn ghost" id="place-idk">${esc(t('place_dontKnow', code))}</button></div>
+      </div>
+    </main>`, false);
+    $('#place-exit', app).addEventListener('click', () => { if (placeRun !== run) return; placeRun = null; run.cb.onBack(); });
+    const choose = (k) => {
+      if (run.locked || placeRun !== run) return;
+      run.locked = true;
+      const ok = k >= 0 && q.options[k].correct;
+      run.asked[q.level]++;
+      if (ok) run.right[q.level]++;
+      $$('.q-body .opt', app).forEach((b, j) => {
+        b.disabled = true;
+        if (q.options[j].correct) { b.classList.add('right'); b.insertAdjacentText('afterbegin', '✓ '); }
+        else if (j === k) { b.classList.add('wrong'); b.insertAdjacentText('afterbegin', '✗ '); }
+      });
+      $('#place-idk', app).disabled = true;
+      setTimeout(() => {
+        if (placeRun !== run || !$('.placement', app)) return;
+        run.locked = false;
+        run.i++;
+        const next = run.qs[run.i];
+        // Stop after the intermediate block if it was too hard (0-1 of 4 right).
+        const stop = q.level === 'intermediate' && (!next || next.level !== 'intermediate') && run.right.intermediate <= 1;
+        if (!next || stop) drawPlaceResult(run); else drawPlaceQuestion(run);
+      }, placeDelay);
+    };
+    $$('.q-body .opt', app).forEach((b) => b.addEventListener('click', () => choose(+b.dataset.i)));
+    $('#place-idk', app).addEventListener('click', () => choose(-1));
+  }
+  function drawPlaceResult(run) {
+    const { code } = run;
+    const level = placementLevel(run.right);
+    const got = LEVELS.reduce((n, l) => n + run.right[l], 0);
+    const asked = LEVELS.reduce((n, l) => n + run.asked[l], 0);
+    const name = t(level, code);
+    run.result = level;
+    render(`<main class="results place-result">
+      <div class="results-hero">${deco('results', code)}${mascot(level === 'beginner' ? 'happy' : 'cheer', 'mascot-result', code)}</div>
+      <p class="muted place-done">${esc(t('place_done', code))}</p>
+      <h1>${esc(fmt(t('place_suggest', code), { level: name }))}</h1>
+      <p class="lead">${esc(fmt(t('place_score', code), { x: got, y: asked }))}</p>
+      <ul class="place-scores">${LEVELS.filter((l) => run.asked[l]).map((l) => `<li><span>${esc(t(l, code))}</span>
+        <strong dir="ltr">${run.right[l]}/${run.asked[l]}</strong></li>`).join('')}</ul>
+      <p class="muted small">${esc(t('place_note', code))}</p>
+      <div class="stack">
+        <button class="btn primary" id="place-use" data-level="${level}" data-enter>${esc(fmt(t('place_use', code), { level: name }))}</button>
+        <button class="btn ghost" id="place-self">${esc(t('place_self', code))}</button>
+      </div>
+    </main>`, false);
+    $('#place-use', app).addEventListener('click', () => { if (placeRun !== run) return; placeRun = null; run.cb.onPick(level); });
+    $('#place-self', app).addEventListener('click', () => { if (placeRun !== run) return; placeRun = null; run.cb.onBack(); });
+  }
+
+  /* ------------------------------------------------------------------ *
    * Start
    * ------------------------------------------------------------------ */
   /** Show the right first screen for the saved state. Returns a promise that settles when it's on screen. */
@@ -2368,7 +2920,7 @@
     /** Fresh state with one language set up; loads it if needed. */
     setSettings(s) {
       S = freshState();
-      S.settings = { uiLang: s.uiLang || 'en', lang: s.lang || cur || 'fa', speech: !!s.speech };
+      S.settings = { uiLang: s.uiLang || 'en', lang: s.lang || cur || 'fa', speech: !!s.speech, goal: s.goal || GOAL_DEFAULT };
       const ls = langState(S.settings.lang);
       ls.level = s.level || 'beginner';
       ls.track = LANGS[S.settings.lang].script ? s.track || 'full' : 'full';
@@ -2394,5 +2946,10 @@
     // Progress: spaced repetition, daily goal, badges
     srsAnswer, srsDue, startHardReview, renderReviewNone, seedSrs, dayNum, todayNum, todayKey, SRS_STEPS,
     shiftDays(n) { dayShift = n; }, addXP, goalTarget, goalToday, goalCard, checkBadges, badgeStats, renderBadges, BADGES,
+    // Report a mistake / move progress / placement test
+    reportHref, progressCode, readProgress, importState, replaceProgress, progressFileName, confirmReplace,
+    placementQuestions, placementLevel, renderPlacement, dbFor, placeGiveaway, placeSentence,
+    placement: () => placeRun,
+    setPlaceDelay(ms) { placeDelay = ms; },
   };
 })();
