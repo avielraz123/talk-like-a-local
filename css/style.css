@@ -3,6 +3,14 @@
  * The colors below are the built-in fallback theme; each language's css/themes/<lang>.css overrides them
  * under html[data-lang="<lang>"] (see docs/theme-format.md).
  */
+/*
+ * Fredoka draws "ī" (i with macron, in Japanese and Arabic transliteration) as a plain i with the macron
+ * pushed onto the next letter. Only that letter (and the combining macron) comes from a system font instead.
+ */
+@font-face { font-family: "TLAP imacron"; font-weight: 100 549; unicode-range: U+012A-012B, U+0304;
+  src: local("Segoe UI"), local("SegoeUI"), local("Roboto"), local("Roboto-Regular"), local("Helvetica Neue"), local("Arial"), local("ArialMT"); }
+@font-face { font-family: "TLAP imacron"; font-weight: 550 900; unicode-range: U+012A-012B, U+0304;
+  src: local("Segoe UI Bold"), local("SegoeUI-Bold"), local("Roboto Bold"), local("Roboto-Bold"), local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), local("Arial Bold"), local("Arial-BoldMT"); }
 :root {
   --bg: #fff7e8;
   --surface: #ffffff;
@@ -24,7 +32,7 @@
   --bad: #e04848;     --bad-bg: #ffdfe0;
   --neutral-bg: #eef0f6;
   --radius: 22px;
-  --font: "Fredoka", "Rubik", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font: "TLAP imacron", "Fredoka", "Rubik", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   /* Font of the language being learned. Themes set --font-target; these are the per-language defaults. */
   --font-tg-default: "Vazirmatn", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
   /* Background pattern tile, set by themes. */
@@ -267,7 +275,9 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
   padding: 18px; color: #fff; transition: transform .08s;
 }
 .mode strong { font-size: 21px; }
-.mode small { display: block; opacity: .95; font-size: 15px; }
+/* White on the bright mode colours: a little weight and a soft shadow keep the small line readable. */
+.mode strong, .mode small { text-shadow: 0 1px 0 rgba(0, 0, 0, .25); }
+.mode small { display: block; font-size: 15px; font-weight: 600; }
 .mode-icon { font-size: 34px; width: 54px; height: 54px; display: grid; place-items: center; background: rgba(255, 255, 255, .25); border-radius: 16px; flex: none; }
 .mode.review { background: var(--sky); box-shadow: 0 6px 0 var(--sky-d); }
 .mode.speed { background: var(--pink); box-shadow: 0 6px 0 var(--pink-d); }
@@ -691,6 +701,8 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 .badge-toast:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--sun-d); }
 .celebrate > :not(:first-child):not(.cele-close) { padding-inline-end: 12px; }
 .cele-icon { font-size: 30px; line-height: 1; flex: none; }
+.cele-icon.multi { letter-spacing: -.2em; } /* several new badges: the icons overlap a little */
+@media (max-width: 370px) { .cele-icon.multi { font-size: 22px; letter-spacing: -.3em; } }
 .cele-text { display: grid; min-width: 0; line-height: 1.3; }
 .cele-text strong { font-size: 17px; }
 .cele-text small { color: var(--muted); font-size: 14px; font-weight: 600; }

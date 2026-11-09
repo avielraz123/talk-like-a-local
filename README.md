@@ -37,6 +37,9 @@ A free, playful web app for learning languages, for English and Hebrew speakers.
 - **Speed round:** how many can you answer in 60 seconds?
 - **Dialogues & stories:** short chats where you pick the right reply, and short stories with comprehension questions.
 - **Progress is saved in your browser:** stars, XP points and a daily streak.
+- **Move your progress to another device:** in Settings, copy a progress code or save a file, then load it on the other device.
+- **Report a mistake:** a link on word cards, answers, dialogue lines and the dictionary opens an email with the word and lesson filled in.
+- **Placement test:** when choosing your level at the start, a short quiz can suggest one.
 
 ## Running it on your computer
 

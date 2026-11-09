@@ -4,7 +4,7 @@ TLAP_ADD("fa", {
   "lessons": [
     {"id": "st_teahouse", "kind": "dialogue", "level": "beginner", "icon": "🫖",
      "title": {"en": "At the teahouse", "he": "בבית התה"},
-     "intro": {"en": "You walk into a traditional teahouse (châykhâne) in Isfahan, right by the big Naqsh-e Jahan square. Time for tea!", "he": "אתה נכנס לבית תה מסורתי (châykhâne) באספהאן, ממש ליד כיכר נקש-א-ג'האן הגדולה. הגיע הזמן לתה!"},
+     "intro": {"en": "You walk into a traditional teahouse (châykhâne) in Isfahan, right by the big Naqsh-e Jahan square. Time for tea!", "he": "אתם נכנסים לבית תה מסורתי (châykhâne) באספהאן, ממש ליד כיכר נקש-א-ג'האן הגדולה. הגיע הזמן לתה!"},
      "cast": {"a": {"en": "Waiter", "he": "מלצר", "icon": "🫖"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["سلام، خوش آمدید! بفرمایید بنشینید.", "salâm, khosh âmadid! befarmâyid beneshinid.", "Hello, welcome! Please, have a seat.", "שלום, ברוך הבא! בבקשה, שב."]},
@@ -45,7 +45,7 @@ TLAP_ADD("fa", {
 
     {"id": "st_new_friend", "kind": "dialogue", "level": "beginner", "icon": "🏜️",
      "title": {"en": "A new friend in Yazd", "he": "חבר חדש ביזד"},
-     "intro": {"en": "You're sitting in the courtyard of an old guesthouse in Yazd, the desert city of wind towers. A young woman at the next table says hello.", "he": "אתה יושב בחצר של בית הארחה עתיק ביזד, עיר המדבר של מגדלי הרוח. בחורה צעירה בשולחן ליד אומרת לך שלום."},
+     "intro": {"en": "You're sitting in the courtyard of an old guesthouse in Yazd, the desert city of wind towers. A young woman at the next table says hello.", "he": "אתם יושבים בחצר של בית הארחה עתיק ביזד, עיר המדבר של מגדלי הרוח. בחורה צעירה בשולחן ליד אומרת לכם שלום."},
      "cast": {"a": {"en": "Maryam", "he": "מרים", "icon": "🌸"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["سلام! شما ایرانی نیستید، درست است؟", "salâm! shomâ irâni nistid, dorost ast?", "Hi! You're not Iranian, right?", "היי! אתה לא איראני, נכון?"]},
@@ -168,7 +168,7 @@ TLAP_ADD("fa", {
 
     {"id": "st_taxi_shiraz", "kind": "dialogue", "level": "intermediate", "icon": "🚕",
      "title": {"en": "A taxi in Shiraz", "he": "מונית בשיראז"},
-     "intro": {"en": "You take a taxi in Shiraz to Hafezieh, the garden where the poet Hafez rests. The driver loves to chat, and at the end, watch out for ta'ârof!", "he": "אתה לוקח מונית בשיראז לחאפזיה, הגן שבו קבור המשורר חאפז. הנהג אוהב לפטפט, ובסוף, שים לב לתעארוף!"},
+     "intro": {"en": "You take a taxi in Shiraz to Hafezieh, the garden where the poet Hafez rests. The driver loves to chat, and at the end, watch out for ta'ârof!", "he": "אתם לוקחים מונית בשיראז לחאפזיה, הגן שבו קבור המשורר חאפז. הנהג אוהב לפטפט, ובסוף, שימו לב לתעארוף!"},
      "cast": {"a": {"en": "Driver", "he": "נהג", "icon": "🚕"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["سلام، بفرمایید. کجا تشریف می‌برید؟", "salâm, befarmâyid. kojâ tashrif mibarid?", "Hello, get in. Where are you headed?", "שלום, בבקשה. לאן אתה נוסע?"]},
@@ -210,7 +210,7 @@ TLAP_ADD("fa", {
 
     {"id": "st_saffron_bazaar", "kind": "dialogue", "level": "intermediate", "icon": "🌸",
      "title": {"en": "Saffron at the bazaar", "he": "זעפרן בשוק"},
-     "intro": {"en": "You're at the Tajrish bazaar in north Tehran, buying saffron to take home. Saffron is sold by the mesghâl (about 4.6 grams), and bargaining is part of the fun!", "he": "אתה בשוק תג'ריש בצפון טהרן, וקונה זעפרן לקחת הביתה. זעפרן נמכר לפי מסקאל (בערך 4.6 גרם), והמיקוח הוא חלק מהכיף!"},
+     "intro": {"en": "You're at the Tajrish bazaar in north Tehran, buying saffron to take home. Saffron is sold by the mesghâl (about 4.6 grams), and bargaining is part of the fun!", "he": "אתם בשוק תג'ריש בצפון טהרן, וקונים זעפרן לקחת הביתה. זעפרן נמכר לפי מסקאל (בערך 4.6 גרם), והמיקוח הוא חלק מהכיף!"},
      "cast": {"a": {"en": "Seller", "he": "מוכר", "icon": "🧺"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["بفرمایید! زعفران تازه داریم، پسته‌ی تازه داریم!", "befarmâyid! za'farân-e tâze dârim, peste-ye tâze dârim!", "Come on in! We've got fresh saffron, fresh pistachios!", "בבקשה! יש לנו זעפרן טרי, פיסטוקים טריים!"]},
@@ -291,7 +291,7 @@ TLAP_ADD("fa", {
 
     {"id": "st_family_dinner", "kind": "dialogue", "level": "advanced", "icon": "🍲",
      "title": {"en": "Dinner with Reza's family", "he": "ארוחת ערב אצל המשפחה של רזא"},
-     "intro": {"en": "Your friend Reza invited you to dinner with his family in Tehran. Get ready for ta'ârof: his mom will never let you leave hungry! This is spoken Tehrani Farsi; the written form is shown under each line.", "he": "החבר שלך רזא הזמין אותך לארוחת ערב עם המשפחה שלו בטהרן. תתכונן לתעארוף: אמא שלו לא תיתן לך ללכת רעב! זו פרסית מדוברת של טהרן; הצורה הכתובה מופיעה מתחת לכל שורה."},
+     "intro": {"en": "Your friend Reza invited you to dinner with his family in Tehran. Get ready for ta'ârof: his mom will never let you leave hungry! This is spoken Tehrani Farsi; the written form is shown under each line.", "he": "החבר שלכם רזא הזמין אתכם לארוחת ערב עם המשפחה שלו בטהרן. תתכוננו לתעארוף: אמא שלו לא תיתן לכם ללכת רעבים! זו פרסית מדוברת של טהרן; הצורה הכתובה מופיעה מתחת לכל שורה."},
      "cast": {"a": {"en": "Reza's mom", "he": "אמא של רזא", "icon": "🍲"}, "b": {"en": "Reza", "he": "רזא", "icon": "⚽"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["خوش اومدی عزیزم! بفرما تو، چرا دم در وایسادی؟", "khosh umadi azizam! befarmâ tu, cherâ dam-e dar vâysâdi?", "Welcome, dear! Come in, why are you standing at the door?", "ברוך הבא, יקירי! תיכנס, למה אתה עומד בדלת?", {"form": ["خوش آمدی عزیزم! بفرما داخل، چرا دم در ایستاده‌ای؟", "khosh âmadi azizam! befarmâ dâkhel, cherâ dam-e dar istâde'i?"]}]},

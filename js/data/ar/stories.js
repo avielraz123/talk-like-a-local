@@ -4,7 +4,7 @@ TLAP_ADD("ar", {
   "lessons": [
     {"id": "st_falafel", "kind": "dialogue", "level": "beginner", "icon": "🧆",
      "title": {"en": "Falafel for breakfast", "he": "פלאפל לארוחת בוקר"},
-     "intro": {"en": "It's early morning in the old city, and you stop for breakfast at a busy falafel and hummus stand.", "he": "בוקר מוקדם בעיר העתיקה, ואתה עוצר לארוחת בוקר בדוכן פלאפל וחומוס הומה אדם."},
+     "intro": {"en": "It's early morning in the old city, and you stop for breakfast at a busy falafel and hummus stand.", "he": "בוקר מוקדם בעיר העתיקה, ואתם עוצרים לארוחת בוקר בדוכן פלאפל וחומוס הומה אדם."},
      "cast": {"a": {"en": "Falafel seller", "he": "מוכר הפלאפל", "icon": "🧆"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["صباح الخير! شو بتؤمر؟", "sabāḥ il-khēr! shū bti'mur?", "Good morning! What can I get you?", "בוקר טוב! מה אפשר להביא לך?"]},
@@ -144,7 +144,7 @@ TLAP_ADD("ar", {
      ]},
     {"id": "st_servees", "kind": "dialogue", "level": "intermediate", "icon": "🚐",
      "title": {"en": "In the shared taxi", "he": "במונית השירות"},
-     "intro": {"en": "You take a servīs (shared taxi) across town. Older men are politely called 3ammo (uncle), and passengers pass the fare forward from hand to hand.", "he": "אתה נוסע במונית שירות (servīs) לצד השני של העיר. לגבר מבוגר פונים בנימוס 3ammo (דוד), והנוסעים מעבירים את התשלום קדימה מיד ליד."},
+     "intro": {"en": "You take a servīs (shared taxi) across town. Older men are politely called 3ammo (uncle), and passengers pass the fare forward from hand to hand.", "he": "אתם נוסעים במונית שירות (servīs) לצד השני של העיר. לגבר מבוגר פונים בנימוס 3ammo (דוד), והנוסעים מעבירים את התשלום קדימה מיד ליד."},
      "cast": {"a": {"en": "Driver", "he": "הנהג", "icon": "🚐"}, "b": {"en": "Older passenger", "he": "נוסע מבוגר", "icon": "📰"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["يلا، عالجامعة! عالجامعة!", "yalla, 3aj-jām3a! 3aj-jām3a!", "Come on, to the university! University!", "יאללה, לאוניברסיטה! לאוניברסיטה!"]},
@@ -186,7 +186,7 @@ TLAP_ADD("ar", {
      ]},
     {"id": "st_teta_phone", "kind": "dialogue", "level": "intermediate", "icon": "📞",
      "title": {"en": "A call from Grandma", "he": "שיחה מסבתא"},
-     "intro": {"en": "Your grandma (tēta) is calling. Get ready for lots of love, and lots of questions about food!", "he": "סבתא שלך (tēta) מתקשרת. תתכונן להרבה אהבה, ולהרבה שאלות על אוכל!"},
+     "intro": {"en": "Your grandma (tēta) is calling. Get ready for lots of love, and lots of questions about food!", "he": "סבתא שלכם (tēta) מתקשרת. תתכוננו להרבה אהבה, ולהרבה שאלות על אוכל!"},
      "cast": {"a": {"en": "Grandma", "he": "סבתא", "icon": "☎️"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["ألو؟ ألو؟ حبيبي، هاد إنت؟", "alo? alo? ḥabībi, hād inta?", "Hello? Hello? Sweetheart, is that you?", "הלו? הלו? מותק, זה אתה?"]},
@@ -260,7 +260,7 @@ TLAP_ADD("ar", {
      ]},
     {"id": "st_bargain", "kind": "dialogue", "level": "advanced", "icon": "🏺",
      "title": {"en": "Bargaining in the souq", "he": "מיקוח בשוק"},
-     "intro": {"en": "In the old-city souq you fall in love with a hand-painted plate. The first price is only the opening move, so bargain with a smile.", "he": "בשוק של העיר העתיקה אתה מתאהב בצלחת מצוירת ביד. המחיר הראשון הוא רק מהלך הפתיחה, אז תתמקח עם חיוך."},
+     "intro": {"en": "In the old-city souq you fall in love with a hand-painted plate. The first price is only the opening move, so bargain with a smile.", "he": "בשוק של העיר העתיקה אתם מתאהבים בצלחת מצוירת ביד. המחיר הראשון הוא רק מהלך הפתיחה, אז תתמקחו עם חיוך."},
      "cast": {"a": {"en": "Shopkeeper", "he": "בעל החנות", "icon": "🏺"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["يا هلا، تفضل تفضل! الفرجة ببلاش!", "ya hala, tfaddal tfaddal! il-furje b-balāsh!", "Welcome, come in, come in! Looking is free!", "ברוך הבא, תיכנס, תיכנס! להסתכל זה בחינם!"]},
@@ -301,7 +301,7 @@ TLAP_ADD("ar", {
      ]},
     {"id": "st_visit", "kind": "story", "level": "advanced", "icon": "☕",
      "title": {"en": "Visiting Nadim's aunt", "he": "ביקור אצל הדודה של נדים"},
-     "intro": {"en": "Your friend Nadim takes you to visit his aunt in Amman. A story about Levantine hospitality, told by you, where one \"I'm full\" is never enough.", "he": "החבר שלך נדים לוקח אותך לבקר את הדודה שלו בעמאן. סיפור על הכנסת אורחים לבנטינית, שאתה מספר, ושבו \"אני שבע\" אחד אף פעם לא מספיק."},
+     "intro": {"en": "Your friend Nadim takes you to visit his aunt in Amman. A story about Levantine hospitality, told by you, where one \"I'm full\" is never enough.", "he": "החבר שלכם נדים לוקח אתכם לבקר את הדודה שלו בעמאן. סיפור על הכנסת אורחים לבנטינית, שאתם מספרים, ושבו \"אני שבע\" אחד אף פעם לא מספיק."},
      "lines": [
        {"say": ["مبارح رحت مع صاحبي نديم نزور خالته بعمان.", "mbāriḥ ruḥt ma3 sāḥbi nadīm nzūr khāltu b-3ammān.", "Yesterday I went with my friend Nadim to visit his aunt in Amman.", "אתמול הלכתי עם החבר שלי נדים לבקר את הדודה שלו בעמאן."]},
        {"say": ["أول ما فتحت الباب، صاحت: \"يا هلا يا هلا! نورتوا! البيت بيتكم!\"", "awwal ma fatḥat il-bāb, sāḥat: \"ya hala ya hala! nawwartu! il-bēt bētkum!\"", "The moment she opened the door, she cried: \"Welcome, welcome! So good to have you! Make yourselves at home!\"", "ברגע שהיא פתחה את הדלת, היא קראה: \"ברוכים הבאים! איזה כיף שבאתם! תרגישו בבית!\""]},
@@ -315,9 +315,9 @@ TLAP_ADD("ar", {
        {"say": ["ورجعت عالبيت مش قادر أتحرك من كتر الأكل.", "w-rji3t 3al-bēt mish 'ādir atḥarrak min kutr il-akl.", "And I went home barely able to move from all the food.", "וחזרתי הביתה בקושי מסוגל לזוז מרוב אוכל."]}
      ],
      "questions": [
-       {"q": {"en": "Who did you visit with Nadim?", "he": "את מי ביקרת עם נדים?"}, "options": [{"en": "Nadim's aunt", "he": "את הדודה של נדים"}, {"en": "Your own grandma", "he": "את סבתא שלך"}, {"en": "A shopkeeper in the souq", "he": "מוכר בשוק"}], "answer": 0},
+       {"q": {"en": "Who did you visit with Nadim?", "he": "את מי ביקרתם עם נדים?"}, "options": [{"en": "Nadim's aunt", "he": "את הדודה של נדים"}, {"en": "Your own grandma", "he": "את סבתא שלך"}, {"en": "A shopkeeper in the souq", "he": "מוכר בשוק"}], "answer": 0},
        {"q": {"en": "Why didn't the aunt accept \"I'm full\"?", "he": "למה הדודה לא קיבלה את ה\"אני שבע\"?"}, "options": [{"en": "She was upset that you came late", "he": "היא כעסה שאיחרת"}, {"en": "She thought you had hardly eaten anything", "he": "היא חשבה שכמעט לא אכלת כלום"}, {"en": "She wanted you to taste her coffee first", "he": "היא רצתה שקודם תטעם את הקפה שלה"}], "answer": 1},
-       {"q": {"en": "What did Nadim whisper to you?", "he": "מה נדים לחש לך?"}, "options": [{"en": "Let's go home", "he": "בוא נלך הביתה"}, {"en": "The knafeh isn't good", "he": "הכנאפה לא טובה"}, {"en": "There's no escape", "he": "אין מנוס"}], "answer": 2},
+       {"q": {"en": "What did Nadim whisper to you?", "he": "מה נדים לחש לכם?"}, "options": [{"en": "Let's go home", "he": "בוא נלך הביתה"}, {"en": "The knafeh isn't good", "he": "הכנאפה לא טובה"}, {"en": "There's no escape", "he": "אין מנוס"}], "answer": 2},
        {"q": {"en": "What did shaking the cup tell the aunt?", "he": "מה ניעור הספל אמר לדודה?"}, "options": [{"en": "That you wanted more coffee", "he": "שאתה רוצה עוד קפה"}, {"en": "That you'd had enough coffee", "he": "שהקפה הספיק לך"}, {"en": "That the coffee was cold", "he": "שהקפה היה קר"}], "answer": 1}
      ],
      "items": [

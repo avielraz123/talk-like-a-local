@@ -4,7 +4,7 @@ TLAP_ADD("ja", {
   "lessons": [
     {"id": "st_konbini", "kind": "dialogue", "level": "beginner", "icon": "🏪",
      "title": {"en": "At the konbini", "he": "בקונביני"},
-     "intro": {"en": "You're buying dinner at a convenience store (konbini) in Tokyo. The staff speak fast and very politely, but they always ask the same few questions.", "he": "אתה קונה ארוחת ערב בחנות נוחות (קונביני) בטוקיו. העובדים מדברים מהר ובנימוס רב, אבל הם תמיד שואלים את אותן שאלות."},
+     "intro": {"en": "You're buying dinner at a convenience store (konbini) in Tokyo. The staff speak fast and very politely, but they always ask the same few questions.", "he": "אתם קונים ארוחת ערב בחנות נוחות (קונביני) בטוקיו. העובדים מדברים מהר ובנימוס רב, אבל הם תמיד שואלים את אותן שאלות."},
      "cast": {"a": {"en": "Clerk", "he": "קופאי", "icon": "🏪"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["いらっしゃいませ！", "irasshaimase!", "Welcome!", "ברוך הבא!"]},
@@ -44,7 +44,7 @@ TLAP_ADD("ja", {
 
     {"id": "st_station", "kind": "dialogue", "level": "beginner", "icon": "🚉",
      "title": {"en": "At the station", "he": "בתחנת הרכבת"},
-     "intro": {"en": "You're lost in a big Tokyo station and want to get to Shibuya. A station attendant comes over to help.", "he": "הלכת לאיבוד בתחנה גדולה בטוקיו ואתה רוצה להגיע לשיבויה. עובד התחנה ניגש לעזור."},
+     "intro": {"en": "You're lost in a big Tokyo station and want to get to Shibuya. A station attendant comes over to help.", "he": "הלכתם לאיבוד בתחנה גדולה בטוקיו ואתם רוצים להגיע לשיבויה. עובד התחנה ניגש לעזור."},
      "cast": {"a": {"en": "Station attendant", "he": "עובד התחנה", "icon": "🚉"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["どうしましたか？", "dō shimashita ka?", "Is something wrong?", "קרה משהו?"]},
@@ -166,7 +166,7 @@ TLAP_ADD("ja", {
 
     {"id": "st_ramen", "kind": "dialogue", "level": "intermediate", "icon": "🍜",
      "title": {"en": "At the ramen shop", "he": "במסעדת ראמן"},
-     "intro": {"en": "You walk into a small ramen shop in Tokyo. Many ramen shops have a ticket machine: you pay first, then hand the ticket to the staff.", "he": "אתה נכנס למסעדת ראמן קטנה בטוקיו. בהרבה מסעדות ראמן יש מכונת כרטיסים: משלמים קודם, ואז מוסרים את הכרטיס לעובד."},
+     "intro": {"en": "You walk into a small ramen shop in Tokyo. Many ramen shops have a ticket machine: you pay first, then hand the ticket to the staff.", "he": "אתם נכנסים למסעדת ראמן קטנה בטוקיו. בהרבה מסעדות ראמן יש מכונת כרטיסים: משלמים קודם, ואז מוסרים את הכרטיס לעובד."},
      "cast": {"a": {"en": "Ramen shop staff", "he": "עובד המסעדה", "icon": "🍜"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["いらっしゃいませ！何名様ですか？", "irasshaimase! nanmeisama desu ka?", "Welcome! How many people?", "ברוך הבא! כמה אתם?", {"kana": "いらっしゃいませなんめいさまですか"}]},
@@ -207,7 +207,7 @@ TLAP_ADD("ja", {
 
     {"id": "st_ryokan", "kind": "dialogue", "level": "intermediate", "icon": "♨️",
      "title": {"en": "Checking in at a ryokan", "he": "צ'ק-אין בריוקן"},
-     "intro": {"en": "You arrive at a traditional Japanese inn (ryokan) in Kyoto. The okami, the woman who runs it, greets you in very polite Japanese.", "he": "הגעת לפונדק יפני מסורתי (ריוקן) בקיוטו. האוקאמי, האישה שמנהלת אותו, מקבלת את פניך ביפנית מנומסת מאוד."},
+     "intro": {"en": "You arrive at a traditional Japanese inn (ryokan) in Kyoto. The okami, the woman who runs it, greets you in very polite Japanese.", "he": "הגעתם לפונדק יפני מסורתי (ריוקן) בקיוטו. האוקאמי, האישה שמנהלת אותו, מקבלת את פניכם ביפנית מנומסת מאוד."},
      "cast": {"a": {"en": "Innkeeper", "he": "בעלת הריוקן", "icon": "🏮"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["いらっしゃいませ。遠いところ、ようこそお越しくださいました。", "irasshaimase. tōi tokoro, yōkoso okoshi kudasaimashita.", "Welcome. Thank you for coming all this way.", "ברוך הבא. תודה שבאת מרחוק כל כך.", {"kana": "いらっしゃいませとおいところようこそおこしくださいました"}]},
@@ -288,7 +288,7 @@ TLAP_ADD("ja", {
 
     {"id": "st_last_train", "kind": "dialogue", "level": "advanced", "icon": "🚃",
      "title": {"en": "Missing the last train", "he": "פספסנו את הרכבת האחרונה"},
-     "intro": {"en": "It's midnight in Shinjuku, and you've just come out of karaoke with your friend Ryō. Friends talk casually, so there's no です or ます here.", "he": "חצות בשינג'וקו, ואתה בדיוק יוצא מקריוקי עם החבר שלך ריו. חברים מדברים בסגנון יומיומי, אז אין כאן です או ます."},
+     "intro": {"en": "It's midnight in Shinjuku, and you've just come out of karaoke with your friend Ryō. Friends talk casually, so there's no です or ます here.", "he": "חצות בשינג'וקו, ואתם בדיוק יוצאים מקריוקי עם החבר שלכם ריו. חברים מדברים בסגנון יומיומי, אז אין כאן です או ます."},
      "cast": {"a": {"en": "Ryō (your friend)", "he": "ריו (החבר שלך)", "icon": "🎤"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["やばい、もう十二時じゃん！終電って何時だっけ？", "yabai, mō jūniji jan! shūden tte nanji dakke?", "Oh no, it's already midnight! What time's the last train again?", "אוי לא, כבר חצות! מתי יוצאת הרכבת האחרונה? שכחתי.", {"kana": "やばいもうじゅうにじじゃんしゅうでんってなんじだっけ"}]},

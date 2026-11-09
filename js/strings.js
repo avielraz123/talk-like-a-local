@@ -29,7 +29,7 @@ window.TLAP_STRINGS = {
     speechOn: "Yes, include them", speechOff: "No thanks",
     next: "Next", back: "Back", start: "Let's start!",
     menuTitle: "What would you like to learn today?",
-    review: "Review", reviewDesc: "Practice the words you find hardest",
+    review: "Review", reviewDesc: "Words to review today, just before you forget them",
     reviewEmpty: "Finish a lesson first, then come back here to review.",
     speed: "Speed round", speedDesc: "How many can you get right in 60 seconds?",
     best: "Best",
@@ -154,6 +154,8 @@ window.TLAP_STRINGS = {
     srsNoneText: "No words are waiting for review today. Come back tomorrow, or practice anyway!",
     srsHardest: "Practice your hardest words",
     srsLeftOne: "1 word still due today", srsLeftN: "{n} words still due today",
+    srsNextOne: "Review the last one", srsNextN: "Review the next {n}",
+    srsNotYet: "Nothing is scheduled for review yet: words join it as you answer them in lessons.",
     goalTitle: "Daily goal", goalProgress: "{n} today", goalRingLabel: "{x} of {y} XP today",
     goalReached: "Goal reached! 🎉", goalDone: "Goal reached!", goalReachedMsg: "You hit your daily goal of {y}. Great work!",
     goalSetting: "Daily goal", goalCasual: "Casual", goalRegular: "Regular", goalSerious: "Serious",
@@ -189,6 +191,7 @@ window.TLAP_STRINGS = {
     xfer_empty: "Paste a code first.",
     xfer_bad: "That doesn't look like a progress code. Check that you copied all of it and try again.",
     xfer_badFile: "This file isn't a Talk like a local progress file.",
+    xfer_saveFail: "This device couldn't save that progress (its storage may be full), so nothing was changed.",
     xfer_noGzip: "This browser can't open this code. Try the file instead, or another browser.",
     xfer_confirmTitle: "Replace your progress?",
     xfer_confirmText: "This replaces the progress on this device.",
@@ -220,7 +223,10 @@ window.TLAP_STRINGS = {
     storyTryAgain: "That doesn't fit here. Try another answer.",
     storyToQuestions: "On to the questions",
     storyQCount: "Question {n} of {total}",
-    storyReadAgain: "Read the story again"
+    storyReadAgain: "Read the story again",
+    storyPick: "Pick a chat or a story",
+    storyPickSub: "They get harder further down",
+    storyPickBubble: "Short scenes from everyday life. Pick one!"
   },
   he: {
     tagline: "ללמוד שפה חדשה כמו שהמקומיים באמת מדברים",
@@ -245,7 +251,7 @@ window.TLAP_STRINGS = {
     speechOn: "כן, לכלול", speechOff: "לא תודה",
     next: "הבא", back: "חזרה", start: "בואו נתחיל!",
     menuTitle: "מה תרצו ללמוד היום?",
-    review: "חזרה", reviewDesc: "תרגול המילים שהכי קשות לכם",
+    review: "חזרה", reviewDesc: "המילים שהגיע הזמן לחזור עליהן היום",
     reviewEmpty: "קודם סיימו שיעור, ואז חזרו לכאן לחזרה.",
     speed: "סבב מהיר", speedDesc: "כמה תשובות נכונות תספיקו ב-60 שניות?",
     best: "שיא",
@@ -370,6 +376,8 @@ window.TLAP_STRINGS = {
     srsNoneText: "אין מילים שמחכות לחזרה היום. אפשר לחזור מחר, או לתרגל בכל זאת!",
     srsHardest: "תרגול המילים שהכי קשות לכם",
     srsLeftOne: "עוד מילה אחת לחזרה היום", srsLeftN: "עוד {n} מילים לחזרה היום",
+    srsNextOne: "לחזור על המילה האחרונה", srsNextN: "לחזור על {n} המילים הבאות",
+    srsNotYet: "עדיין אין מילים שמתוזמנות לחזרה: הן מצטרפות כשעונים עליהן בשיעורים.",
     goalTitle: "יעד יומי", goalProgress: "{n} היום", goalRingLabel: "{x} מתוך {y} XP היום",
     goalReached: "עמדתם ביעד! 🎉", goalDone: "עמדתם ביעד!", goalReachedMsg: "השלמתם את היעד היומי של {y}. כל הכבוד!",
     goalSetting: "יעד יומי", goalCasual: "רגוע", goalRegular: "רגיל", goalSerious: "רציני",
@@ -405,6 +413,7 @@ window.TLAP_STRINGS = {
     xfer_empty: "קודם צריך להדביק קוד.",
     xfer_bad: "זה לא נראה כמו קוד התקדמות. כדאי לבדוק שהקוד הועתק במלואו ולנסות שוב.",
     xfer_badFile: "הקובץ הזה אינו קובץ התקדמות של Talk like a local.",
+    xfer_saveFail: "המכשיר לא הצליח לשמור את ההתקדמות הזאת (ייתכן שהאחסון מלא), ולכן שום דבר לא השתנה.",
     xfer_noGzip: "הדפדפן הזה לא יכול לפתוח את הקוד. אפשר לנסות עם הקובץ, או בדפדפן אחר.",
     xfer_confirmTitle: "להחליף את ההתקדמות?",
     xfer_confirmText: "הפעולה תחליף את ההתקדמות במכשיר הזה.",
@@ -436,6 +445,9 @@ window.TLAP_STRINGS = {
     storyTryAgain: "זה לא מתאים כאן. נסו תשובה אחרת.",
     storyToQuestions: "לשאלות",
     storyQCount: "שאלה {n} מתוך {total}",
-    storyReadAgain: "לקרוא שוב את הסיפור"
+    storyReadAgain: "לקרוא שוב את הסיפור",
+    storyPick: "בחרו שיחה או סיפור",
+    storyPickSub: "ככל שיורדים ברשימה, הם נעשים קשים יותר",
+    storyPickBubble: "סצנות קצרות מחיי היומיום. בחרו אחת!"
   }
 };

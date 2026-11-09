@@ -4,7 +4,7 @@ TLAP_ADD("es", {
   "lessons": [
     {"id": "st_tacos", "kind": "dialogue", "level": "beginner", "icon": "🌮",
      "title": {"en": "At the taco stand", "he": "בדוכן הטאקו"},
-     "intro": {"en": "You're hungry on a street corner in Mexico City, and the taquero is waiting for your order. Taqueros often call every customer joven (young man), whatever their age!", "he": "אתה רעב בפינת רחוב במקסיקו סיטי, והטאקרו מחכה להזמנה שלך. מוכרי טאקו קוראים לכל לקוח joven (בחור צעיר), לא משנה בן כמה הוא!"},
+     "intro": {"en": "You're hungry on a street corner in Mexico City, and the taquero is waiting for your order. Taqueros often call every customer joven (young man), whatever their age!", "he": "אתם רעבים בפינת רחוב במקסיקו סיטי, והטאקרו מחכה להזמנה שלכם. מוכרי טאקו קוראים לכל לקוח joven (בחור צעיר), לא משנה בן כמה הוא!"},
      "cast": {"a": {"en": "Taquero (taco seller)", "he": "טאקרו (מוכר טאקו)", "icon": "🌮"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["¡Buenas, joven! ¿Qué le damos?", "¡BUE-nas, JO-ven! ¿QUÉ le DA-mos?", "Hi there, young man! What can we get you?", "שלום, בחור! מה לתת לך?"]},
@@ -46,7 +46,7 @@ TLAP_ADD("es", {
 
     {"id": "st_hostel", "kind": "dialogue", "level": "beginner", "icon": "🌴",
      "title": {"en": "A new friend", "he": "חברה חדשה"},
-     "intro": {"en": "It's your first evening at a hostel in Cartagena, Colombia, and a girl sits down next to you on the terrace.", "he": "זה הערב הראשון שלך בהוסטל בקרטחנה שבקולומביה, ובחורה מתיישבת לידך במרפסת."},
+     "intro": {"en": "It's your first evening at a hostel in Cartagena, Colombia, and a girl sits down next to you on the terrace.", "he": "זה הערב הראשון שלכם בהוסטל בקרטחנה שבקולומביה, ובחורה מתיישבת לידכם במרפסת."},
      "cast": {"a": {"en": "Valentina", "he": "ולנטינה", "icon": "🌺"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["¡Hola! ¿Cómo te llamas?", "¡HO-la! ¿CÓ-mo te LLA-mas?", "Hi! What's your name?", "היי! איך קוראים לך?"]},
@@ -171,7 +171,7 @@ TLAP_ADD("es", {
 
     {"id": "st_combi", "kind": "dialogue", "level": "intermediate", "icon": "🚌",
      "title": {"en": "On the combi", "he": "בקומבי"},
-     "intro": {"en": "In Lima, minibuses called combis race through the city while the cobrador (fare collector) shouts the stops from the door. You want to get to Miraflores. To get off, just call out ¡Bajo!", "he": "בלימה, מיניבוסים שנקראים קומבי דוהרים ברחבי העיר, והכרטיסן (cobrador) צועק את התחנות מהדלת. אתה רוצה להגיע למירפלורס. כדי לרדת, פשוט צועקים ¡Bajo!"},
+     "intro": {"en": "In Lima, minibuses called combis race through the city while the cobrador (fare collector) shouts the stops from the door. You want to get to Miraflores. To get off, just call out ¡Bajo!", "he": "בלימה, מיניבוסים שנקראים קומבי דוהרים ברחבי העיר, והכרטיסן (cobrador) צועק את התחנות מהדלת. אתם רוצים להגיע למירפלורס. כדי לרדת, פשוט צועקים ¡Bajo!"},
      "cast": {"a": {"en": "Cobrador (fare collector)", "he": "כרטיסן", "icon": "🎫"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["¡Miraflores, Larco! ¡Sube, sube, al fondo hay sitio!", "¡mi-ra-FLO-res, LAR-co! ¡SU-be, SU-be, al FON-do HAY SI-tio!", "Miraflores, Larco! Get on, get on, there's room at the back!", "מירפלורס, לרקו! תעלה, תעלה, יש מקום מאחור!"]},
@@ -213,7 +213,7 @@ TLAP_ADD("es", {
 
     {"id": "st_quince", "kind": "dialogue", "level": "intermediate", "icon": "🎂",
      "title": {"en": "An invitation by phone", "he": "הזמנה בטלפון"},
-     "intro": {"en": "Your friend Mariana calls you in Guadalajara: her little sister is turning fifteen, and in Mexico that means a huge party, los quince años, with the birthday girl (la quinceañera) as the star. Mexicans answer the phone with ¿Bueno?", "he": "החברה שלך מריאנה מתקשרת אליך בגוודלחרה: אחותה הקטנה חוגגת חמש־עשרה, ובמקסיקו זה אומר מסיבה ענקית, los quince años, וכלת השמחה (la quinceañera) היא הכוכבת. במקסיקו עונים לטלפון ב-¿Bueno?"},
+     "intro": {"en": "Your friend Mariana calls you in Guadalajara: her little sister is turning fifteen, and in Mexico that means a huge party, los quince años, with the birthday girl (la quinceañera) as the star. Mexicans answer the phone with ¿Bueno?", "he": "החברה שלכם מריאנה מתקשרת אליכם בגוודלחרה: אחותה הקטנה חוגגת חמש־עשרה, ובמקסיקו זה אומר מסיבה ענקית, los quince años, וכלת השמחה (la quinceañera) היא הכוכבת. במקסיקו עונים לטלפון ב-¿Bueno?"},
      "cast": {"a": {"en": "Mariana", "he": "מריאנה", "icon": "📱"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "me", "say": ["¿Bueno?", "¿BUE-no?", "Hello?", "הלו?"],
@@ -297,7 +297,7 @@ TLAP_ADD("es", {
 
     {"id": "st_asado", "kind": "dialogue", "level": "advanced", "icon": "🥩",
      "title": {"en": "Asado in Buenos Aires", "he": "אסאדו בבואנוס איירס"},
-     "intro": {"en": "Your friend Nico has invited you to an asado (barbecue) at his place in Buenos Aires. Get ready for vos, mate and a lot of meat. Tip: when you hand back the mate, gracias means \"no more for me\".", "he": "החבר שלך ניקו הזמין אותך לאסאדו (על האש) אצלו בבואנוס איירס. תתכונן ל-vos, למאטה ולהרבה בשר. טיפ: כשמחזירים את המאטה, gracias אומר \"לא עוד, תודה\"."},
+     "intro": {"en": "Your friend Nico has invited you to an asado (barbecue) at his place in Buenos Aires. Get ready for vos, mate and a lot of meat. Tip: when you hand back the mate, gracias means \"no more for me\".", "he": "החבר שלכם ניקו הזמין אתכם לאסאדו (על האש) אצלו בבואנוס איירס. תתכוננו ל-vos, למאטה ולהרבה בשר. טיפ: כשמחזירים את המאטה, gracias אומר \"לא עוד, תודה\"."},
      "cast": {"a": {"en": "Nico", "he": "ניקו", "icon": "🧉"}, "b": {"en": "Uncle Rubén", "he": "הדוד רובן", "icon": "🔥"}, "me": {"en": "You", "he": "אתה"}},
      "lines": [
        {"who": "a", "say": ["¡Che, llegaste! Pasá, pasá. ¿Querés un mate?", "¡CHE, lle-GAS-te! pa-SÁ, pa-SÁ. ¿que-RÉS un MA-te?", "Hey, you made it! Come in, come in. Want some mate?", "היי, הגעת! תיכנס, תיכנס. רוצה מאטה?"]},

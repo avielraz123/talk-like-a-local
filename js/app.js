@@ -63,7 +63,7 @@
   let cur = null;
   let L = null;
   let DB = null;
-  let GROUPS = [], GROUP_BY_ID = {}, TOPICS = [], TOPIC_BY_ID = {}, ITEM_BY_ID = {}, ALL_LETTERS = [], ALL_WORDS = [];
+  let GROUPS = [], GROUP_BY_ID = Object.create(null), TOPICS = [], TOPIC_BY_ID = Object.create(null), ITEM_BY_ID = Object.create(null), ALL_LETTERS = [], ALL_WORDS = [];
 
   /* ------------------------------------------------------------------ *
    * Text normalization per language
@@ -264,7 +264,8 @@
     // Files load in parallel; put the groups back in manifest order.
     const ord = (g) => (g && typeof g._order === 'number' ? g._order : -1);
     const rawGroups = (Array.isArray(raw.groups) ? raw.groups : []).slice().sort((a, b) => ord(a) - ord(b));
-    const db = { code, GROUPS: [], GROUP_BY_ID: {}, TOPICS: [], TOPIC_BY_ID: {}, ITEM_BY_ID: {}, dict: null };
+    // Lookup maps without a prototype: a saved id like 'constructor' must never find a built-in function.
+    const db = { code, GROUPS: [], GROUP_BY_ID: Object.create(null), TOPICS: [], TOPIC_BY_ID: Object.create(null), ITEM_BY_ID: Object.create(null), dict: null };
     rawGroups.forEach((g) => {
       if (!g || !g.id || db.GROUP_BY_ID[g.id] || !g.title) return;
       const lessons = (Array.isArray(g.lessons) ? g.lessons : []).map((id) => pool[id]).filter((tp) => tp && tp.group === g.id);
@@ -287,7 +288,7 @@
   function useDB(db) {
     DB = db;
     ({ GROUPS, GROUP_BY_ID, TOPICS, TOPIC_BY_ID, ITEM_BY_ID, ALL_LETTERS, ALL_WORDS } = db || {
-      GROUPS: [], GROUP_BY_ID: {}, TOPICS: [], TOPIC_BY_ID: {}, ITEM_BY_ID: {}, ALL_LETTERS: [], ALL_WORDS: [],
+      GROUPS: [], GROUP_BY_ID: Object.create(null), TOPICS: [], TOPIC_BY_ID: Object.create(null), ITEM_BY_ID: Object.create(null), ALL_LETTERS: [], ALL_WORDS: [],
     });
   }
   const groupOf = (tp) => GROUP_BY_ID[tp.group];
@@ -387,20 +388,25 @@
     const srs = {};
     const today = todayNum();
     Object.keys(words).forEach((id) => {
+      if (!isItemId(id)) return;
       const st = +words[id] || 0;
       if (st >= 5) srs[id] = [2, today + 1 + (hashId(id) % 7)];
       else if (st >= 3) srs[id] = [1, today + 1 + (hashId(id) % 3)];
-      else if (st >= 1) srs[id] = [0, today];
+      else srs[id] = [0, today]; // 0-2: the weakest words, due today (srsDue puts the weakest first)
     });
     return srs;
   }
+  /** Map keys from saved data: never '__proto__' or a built-in name like 'constructor'. */
+  const safeKey = (k) => typeof k === 'string' && k !== '' && k !== '__proto__' && !(k in Object.prototype);
+  /** An item id as buildLesson writes it: "<lessonId>:<index>". */
+  const isItemId = (k) => safeKey(k) && /^\S+:\d+$/.test(k);
   /** Saved review schedules: {itemId: [step, dueDay]} with both numbers (anything else is dropped). */
   function cleanSrs(srs) {
     const out = {};
     const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
     Object.keys(srs).forEach((id) => {
       const e = srs[id];
-      if (id === '__proto__' || !Array.isArray(e) || !isNum(e[0]) || !isNum(e[1])) return;
+      if (!isItemId(id) || !Array.isArray(e) || !isNum(e[0]) || !isNum(e[1])) return;
       out[id] = [Math.max(0, Math.min(SRS_STEPS.length - 1, Math.round(e[0]))), Math.round(Math.min(1e7, Math.max(0, e[1])))];
     });
     return out;
@@ -412,72 +418,84 @@
   /** A finite number clamped to lo..hi (anything else becomes lo). Saved data may come from an imported code, so never trust it. */
   const num = (x, lo, hi) => { const n = +x; return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
   /** Keep only the entries of a map whose value is a number, clamped to lo..hi. */
-  function numMap(m, lo, hi) {
+  function numMap(m, lo, hi, keyOk = safeKey) {
     const out = {};
     Object.keys(obj(m)).forEach((k) => {
       const v = m[k];
-      if (k === '__proto__' || (typeof v !== 'number' && typeof v !== 'string') || v === '' || !Number.isFinite(+v)) return;
+      if (!keyOk(k) || (typeof v !== 'number' && typeof v !== 'string') || v === '' || !Number.isFinite(+v)) return;
       out[k] = num(v, lo, hi);
     });
     return out;
   }
   /** A local day key as dayKey() writes it ("2026-11-9"). */
-  const isDayKey = (d) => typeof d === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(d);
+  /** A real local day as dayKey() writes it ("2026-11-9"), no later than tomorrow. */
+  function isDayKey(d) {
+    const m = typeof d === 'string' && /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(d);
+    if (!m) return false;
+    const y = +m[1], mo = +m[2], da = +m[3];
+    const dt = new Date(y, mo - 1, da);
+    if (y < 2000 || dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== da) return false;
+    return dayNum(dt) <= todayNum() + 1;
+  }
   function normStreak(sk) {
     sk = obj(sk);
     return { count: Math.floor(num(sk.count, 0, 1e6)), last: isDayKey(sk.last) ? sk.last : null };
   }
 
-  /** Own keys of a saved map, without '__proto__' (Object.assign would turn it into a prototype). */
-  const ownCopy = (m) => { const out = {}; Object.keys(obj(m)).forEach((k) => { if (k !== '__proto__') out[k] = m[k]; }); return out; };
   /** v1 saved one star rating per topic; it now belongs to the "Mix of everything" exercise. */
   function migrateTopics(topics) {
     topics = obj(topics);
     const out = {};
     Object.keys(topics).forEach((k) => {
-      if (k === '__proto__') return;
+      if (!safeKey(k)) return;
       const rec = obj(topics[k]);
       const stages = rec.stages ? rec.stages : rec.stars ? { mix: rec.stars } : {};
-      out[k] = Object.assign(ownCopy(rec), { best: num(rec.best, 0, 100), stages: numMap(stages, 0, 3) });
+      out[k] = { best: num(rec.best, 0, 100), stages: numMap(stages, 0, 3) };
     });
     return out;
   }
+  /** One language's progress, rebuilt from its known fields only (saved data may come from an imported code). */
   function normLangState(ls) {
-    const hadSrs = !!obj(ls).srs && typeof obj(ls).srs === 'object' && !Array.isArray(obj(ls).srs);
-    ls = Object.assign(freshLangState(), ownCopy(ls));
-    ls.topics = migrateTopics(ls.topics);
-    ls.words = numMap(ls.words, 0, 5);
-    ls.srs = hadSrs ? cleanSrs(ls.srs) : seedSrs(ls.words);
-    ls.speedBest = Math.floor(num(ls.speedBest, 0, 1e6));
-    if (!levelOk(ls.level)) ls.level = null;
-    if (ls.track !== 'speak' && ls.track !== 'full') ls.track = null;
-    return ls;
+    ls = obj(ls);
+    const hadSrs = !!ls.srs && typeof ls.srs === 'object' && !Array.isArray(ls.srs);
+    const out = freshLangState();
+    out.topics = migrateTopics(ls.topics);
+    out.words = numMap(ls.words, 0, 5, isItemId);
+    out.srs = hadSrs ? cleanSrs(ls.srs) : seedSrs(out.words);
+    out.speedBest = Math.floor(num(ls.speedBest, 0, 1e6));
+    out.level = levelOk(ls.level) ? ls.level : null;
+    out.track = ls.track === 'speak' || ls.track === 'full' ? ls.track : null;
+    return out;
   }
   /** Codes from saved or imported data: only real ones count, never inherited names like 'constructor'. */
   const isLangCode = (k) => LANG_CODES.includes(k);
   const isUiLang = (k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(STR, k);
+  /** Badge ids (BADGES itself is declared further down, after the state has been loaded). */
+  const BADGE_IDS = ['first', 'streak3', 'streak7', 'streak30', 'goal1', 'goal7', 'words50', 'words200', 'words500',
+    'perfect', 'speed15', 'group', 'story', 'polyglot', 'xp1000', 'xp5000'];
+  /** The whole saved state, rebuilt from known fields only: unknown keys are dropped, every value is checked. */
   function normalizeState(st) {
-    st = Object.assign(freshState(), ownCopy(st));
-    st.v = 2;
-    st.xp = Math.floor(num(st.xp, 0, 1e9));
-    st.streak = normStreak(st.streak);
+    st = obj(st);
+    const out = freshState();
+    out.xp = Math.floor(num(st.xp, 0, 1e9));
+    out.streak = normStreak(st.streak);
     const langs = obj(st.langs);
-    st.langs = {};
-    Object.keys(langs).forEach((k) => { if (isLangCode(k)) st.langs[k] = normLangState(langs[k]); });
+    Object.keys(langs).forEach((k) => { if (isLangCode(k)) out.langs[k] = normLangState(langs[k]); });
     const daily = obj(st.daily);
-    st.daily = { day: isDayKey(daily.day) ? daily.day : null, xp: Math.floor(num(daily.xp, 0, 1e6)) };
-    st.goalLog = Array.isArray(st.goalLog) ? Array.from(new Set(st.goalLog.filter(isDayKey))).slice(-GOAL_LOG_MAX) : [];
+    out.daily = { day: isDayKey(daily.day) ? daily.day : null, xp: Math.floor(num(daily.xp, 0, 1e6)) };
+    out.goalLog = Array.isArray(st.goalLog) ? Array.from(new Set(st.goalLog.filter(isDayKey))).slice(-GOAL_LOG_MAX) : [];
     const badges = obj(st.badges);
-    st.badges = {};
-    Object.keys(badges).forEach((id) => { if (id !== '__proto__' && isDayKey(badges[id])) st.badges[id] = badges[id]; });
-    if (st.settings) {
-      st.settings = Object.assign({ uiLang: 'en', lang: null, speech: false, goal: GOAL_DEFAULT }, ownCopy(st.settings));
-      st.settings.goal = GOALS.includes(+st.settings.goal) ? +st.settings.goal : GOAL_DEFAULT;
-      if (!isUiLang(st.settings.uiLang)) st.settings.uiLang = 'en';
-      if (!isLangCode(st.settings.lang)) st.settings.lang = null;
-      st.settings.speech = !!st.settings.speech;
+    BADGE_IDS.forEach((id) => { if (Object.prototype.hasOwnProperty.call(badges, id) && isDayKey(badges[id])) out.badges[id] = badges[id]; });
+    if (st.settings && typeof st.settings === 'object') {
+      const s = obj(st.settings);
+      out.settings = {
+        uiLang: isUiLang(s.uiLang) ? s.uiLang : 'en',
+        lang: isLangCode(s.lang) ? s.lang : null,
+        speech: !!s.speech,
+        goal: GOALS.includes(+s.goal) ? +s.goal : GOAL_DEFAULT,
+      };
     }
-    return st;
+    return out;
   }
   /** The old single-language (Farsi) save: {settings:{uiLang, level, track, speech}, topics, words, xp, streak, speedBest}. */
   function migrateOld(old) {
@@ -511,8 +529,9 @@
     } catch (e) { /* storage unavailable or corrupt: start fresh */ }
     return freshState();
   }
+  /** Save the state; false when the browser refused (storage full or blocked). */
   function saveState() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); return true; } catch (e) { return false; }
   }
   let S = loadState();
 
@@ -1292,7 +1311,7 @@
       ${celebrationHTML(newBadges, true)}
       ${goalCard(goalCele)}
       <div class="modes">
-        <button class="mode review" id="m-review"><span class="mode-icon">🔁${due ? `<em class="srs-count" aria-hidden="true">${due > 99 ? '99+' : due}</em>` : ''}</span>
+        <button class="mode review" id="m-review"><span class="mode-icon">🔁${due ? `<em class="srs-count" dir="ltr" aria-hidden="true">${due > 99 ? '99+' : due}</em>` : ''}</span>
           <span><strong>${esc(t('review'))}</strong><small class="srs-due">${esc(due ? countText(due, 'srsDue') : srsAny ? t('srsCaughtUp') : t('reviewDesc'))}</small></span></button>
         <button class="mode speed" id="m-speed"><span class="mode-icon">⚡</span>
           <span><strong>${esc(t('speed'))}</strong><small>${esc(t('speedDesc'))}${best ? ` · ${esc(t('best'))}: ${best}` : ''}</small></span></button>
@@ -1320,17 +1339,19 @@
   function renderGroup(g) {
     if (!g) return renderMenu();
     const lessons = visibleLessons(g);
-    const p = groupProgress(g);
+    const isStories = g.id === STORY_GROUP;
+    // Dialogues & stories count the ones played (their chat or reading done), not every exercise of every lesson.
+    const p = isStories ? { done: lessons.filter(storyPlayed).length, total: lessons.length } : groupProgress(g);
     render(`<main class="group-page">
       <div class="lesson-head">
         <button class="icon-btn back-btn" data-go="menu" aria-label="${esc(t('menu'))}">${backArrow()}</button>
         <h1><span class="title-icon">${iconHTML(g.icon)}</span><span class="title-text">${mixed(tx(g.title))}</span></h1>
       </div>
-      ${mascotSays(themeLine('group'))}
+      ${mascotSays(isStories ? t('storyPickBubble') : themeLine('group'))}
       <div class="topic-progress"><div class="progress grow"><i style="width:${pctOf(p)}%"></i></div>
         <span dir="ltr">${p.done}/${p.total}</span></div>
-      <h2 class="section-title">${esc(t('chooseLesson'))} <small>${esc(t('chooseLessonSub'))}</small></h2>
-      ${g.id === STORY_GROUP ? storyLessonList(lessons) : `<div class="topics lessons">${lessons.map(lessonCard).join('')}</div>`}
+      <h2 class="section-title">${esc(t(isStories ? 'storyPick' : 'chooseLesson'))} <small>${esc(t(isStories ? 'storyPickSub' : 'chooseLessonSub'))}</small></h2>
+      ${isStories ? storyLessonList(lessons) : `<div class="topics lessons">${lessons.map(lessonCard).join('')}</div>`}
     </main>`);
     $$('[data-topic]', app).forEach((b) => b.addEventListener('click', () => renderTopic(TOPIC_BY_ID[b.dataset.topic])));
     if (g.id === STORY_GROUP) scrollToMyLevel();
@@ -1378,7 +1399,12 @@
       if (name === 'goal') v = GOALS.includes(+v) ? +v : GOAL_DEFAULT;
       if (name === 'level' || name === 'track') ls[name] = v; else st[name] = v;
       saveState();
+      // Redraw in place: stay where the learner was on this long page, with focus on the new choice.
+      const y = window.scrollY;
       renderSettings();
+      window.scrollTo(0, y);
+      const sel = $(`.seg[data-name="${name}"] button.selected`, app);
+      if (sel) sel.focus({ preventScroll: true });
     })));
     $$('[data-pick]', app).forEach((b) => b.addEventListener('click', () => pickLang(b.dataset.pick)));
     mountXfer($('.xfer', app));
@@ -1655,7 +1681,7 @@
     const hardOk = hardIds().length >= 4;
     render(`<main class="center-page srs-none">${mascot(known ? 'cheer' : 'happy', 'mascot-hero')}
       ${known ? `<h1>${esc(t('srsNoneTitle'))}</h1><p class="lead">${esc(t('srsNoneText'))}</p>`
-        : `<p class="lead">${esc(t('reviewEmpty'))}</p>`}
+        : `<p class="lead">${esc(t(hardOk ? 'srsNotYet' : 'reviewEmpty'))}</p>`}
       <div class="stack">
         ${hardOk ? `<button class="btn primary" id="srs-hardest" data-enter>💪 ${esc(t('srsHardest'))}</button>` : ''}
         <button class="btn ${hardOk ? 'ghost' : 'primary'}" data-go="menu" ${hardOk ? '' : 'data-enter'}>${esc(t('menu'))}</button>
@@ -2062,7 +2088,7 @@
       <div class="result-stars">${stars(starCount)}</div>
       <div class="result-grid">
         <div><strong>${pct}%</strong><small>${esc(t('score'))}</small></div>
-        <div><strong>+${xp}</strong><small>${esc(t('xpEarned'))}</small></div>
+        <div><strong dir="ltr">+${xp}</strong><small>${esc(t('xpEarned'))}</small></div>
         <div><strong>🔥 ${currentStreak()}</strong><small>${esc(t('streak'))}</small></div>
       </div>
       ${srsLeft ? `<p class="muted srs-left">🔁 ${esc(countText(srsLeft, 'srsLeft'))}</p>` : ''}
@@ -2070,7 +2096,7 @@
       <div class="stack">
         ${nextStage ? `<button class="btn primary" id="next-stage" data-next="${nextStage}" data-enter>${esc(t('nextStage'))}: ${stageIcon(nextStage, done.topic)} ${esc(stageName(nextStage, done.topic))}</button>` : ''}
         ${nextLesson ? `<button class="btn primary" id="next-lesson" data-next="${esc(nextLesson.id)}" data-enter>${esc(t('nextLesson'))}: <span class="nowrap">${iconHTML(nextLesson.icon)}</span> ${mixed(tx(nextLesson.title))}</button>` : ''}
-        <button class="btn ${nextStage || nextLesson ? 'ghost' : 'primary'}" id="again" ${nextStage || nextLesson ? '' : 'data-enter'}>${esc(t('again'))}</button>
+        <button class="btn ${nextStage || nextLesson ? 'ghost' : 'primary'}" id="again" ${nextStage || nextLesson ? '' : 'data-enter'}>${esc(srsLeft ? countText(Math.min(srsLeft, SRS_SESSION_MAX), 'srsNext') : t('again'))}</button>
         ${done.mode === 'topic' ? `<button class="btn ghost" id="to-topic">${esc(t('backToTopic'))}</button>` : ''}
         ${done.mode === 'topic' && groupOf(done.topic)
           ? `<button class="btn ghost" id="to-group">${iconHTML(groupOf(done.topic).icon)} ${mixed(tx(groupOf(done.topic).title))}</button>`
@@ -2216,6 +2242,8 @@
   /* ------------------------------------------------------------------ *
    * Dialogues & stories: the menu button, the group page, and the two players (stage "story")
    * ------------------------------------------------------------------ */
+  /** A dialogue/story whose chat or reading has been played to the end at least once. */
+  const storyPlayed = (tp) => { const rec = LS().topics[tp.id]; return !!(rec && rec.stages && rec.stages.story > 0); };
   /** The big "Dialogues & stories" button on the main menu (only when the language has them). */
   function storyModeButton() {
     const g = GROUP_BY_ID[STORY_GROUP];
@@ -2332,10 +2360,10 @@
     });
     return { all: () => all };
   }
-  /** Feedback strip (same look as the exercises'): ok | bad, a title, more HTML, and an optional button. */
-  function storyFeedback(ok, title, more, btnHTML) {
+  /** Feedback strip (same look as the exercises'): ok | bad, a title, more HTML, an optional button and report link. */
+  function storyFeedback(ok, title, more, btnHTML, reportHTML) {
     return `<div class="feedback ${ok ? 'ok' : 'bad'}" id="story-fb">${mascot(ok ? 'cheer' : 'sad', 'mascot-fb')}
-      <div class="fb-text"><strong>${ok ? '✓ ' : '✗ '}${esc(title)}</strong>${more ? `<div>${more}</div>` : ''}</div>${btnHTML || ''}</div>`;
+      <div class="fb-text"><strong>${ok ? '✓ ' : '✗ '}${esc(title)}</strong>${more ? `<div>${more}</div>` : ''}${reportHTML || ''}</div>${btnHTML || ''}</div>`;
   }
   const scrollToEnd = () => { try { window.scrollTo({ top: document.documentElement.scrollHeight }); } catch (e) { /* ignore */ } };
   /** Show (or with no html, remove) the feedback strip. It goes straight into <main>, like the exercises',
@@ -2352,6 +2380,8 @@
   let storyTapHold = 0; // taps are ignored until this time (ms)
   let storyTapHooked = false;
   function storyTapGuard(ms = 350) {
+    // Lay the new buttons out first, so on a slow phone the layout does not eat into the window.
+    void app.offsetHeight;
     storyTapHold = Date.now() + ms;
     if (storyTapHooked) return;
     storyTapHooked = true;
@@ -2428,7 +2458,8 @@
           b.disabled = true;
           const said = readerMode() || !o.say.tr ? tgS(o.say.tg) : trS(o.say.tr);
           const means = fmt(esc(t('storyMeans')), { say: said, meaning: esc(meaning(o.say)) });
-          showStoryFb(storyFeedback(false, themeLine('wrong'), `${means}<br>${esc(t('storyTryAgain'))}`));
+          const rep = reportLink(Object.assign({}, o.say, { id: topic.id + ' line ' + (i + 1) + ' (wrong reply)', topic: topic.id }), 'dialogue reply');
+          showStoryFb(storyFeedback(false, themeLine('wrong'), `${means}<br>${esc(t('storyTryAgain'))}`, '', rep));
           scrollToEnd(); // the strip and the remaining replies both in view
           return;
         }
@@ -2504,9 +2535,13 @@
       $$('.story-answers .opt', app).forEach((x, n) => { x.disabled = true; if (opts[n].correct) x.classList.add('right'); });
       if (!o.correct) b.classList.add('wrong');
       const last = k >= qs.length - 1;
+      // The questions and answer keys are written content too: offer the report link here as well.
+      const rq = obj(q.q), ra = obj(right.o);
+      const rep = reportLink({ id: topic.id + ' question ' + (k + 1), topic: topic.id, tg: '', tr: '',
+        en: (rq.en || '') + ' → ' + (ra.en || ''), he: (rq.he || '') + ' ← ' + (ra.he || '') }, 'story question');
       showStoryFb(storyFeedback(o.correct, themeLine(o.correct ? 'right' : 'wrong'),
         o.correct ? '' : `${esc(t('correctAnswer'))} ${mixed(tx(right.o))}`,
-        `<button class="btn ${o.correct ? 'primary' : 'danger'}" id="continue" data-enter>${esc(t('continue'))}</button>`));
+        `<button class="btn ${o.correct ? 'primary' : 'danger'}" id="continue" data-enter>${esc(t('continue'))}</button>`, rep));
       $('#continue', app).addEventListener('click', () => (last ? storyFinish() : renderStoryQuestion(topic, k + 1)));
       focusBtn('#continue');
     }));
@@ -2555,7 +2590,7 @@
         <div class="result-grid">
           <div><strong>${score}</strong><small>${esc(t('speedScore'))}</small></div>
           <div><strong>${ls.speedBest}</strong><small>${esc(t('best'))}</small></div>
-          <div><strong>+${score * 2}</strong><small>${esc(t('xpEarned'))}</small></div>
+          <div><strong dir="ltr">+${score * 2}</strong><small>${esc(t('xpEarned'))}</small></div>
         </div>
         ${cele}
         <div class="stack"><button class="btn primary" id="again" data-enter>${esc(t('play'))}</button>
@@ -2707,7 +2742,7 @@
     }
     const list = fresh || [];
     if (combined && list.length > 1) {
-      parts.push(`<button class="badge-toast" data-go="badges"><span class="cele-icon" aria-hidden="true">${list.slice(0, 3).map((b) => b.icon).join('')}</span>
+      parts.push(`<button class="badge-toast" data-go="badges"><span class="cele-icon multi" aria-hidden="true">${list.slice(0, 3).map((b) => b.icon).join('')}</span>
         <span class="cele-text"><strong>${esc(fmt(t('badgeNewN'), { n: list.length }))}</strong><small>${list.map((b) => esc(t('badge_' + b.id))).join(' · ')}</small></span></button>`);
     } else {
       list.forEach((b) => parts.push(`<button class="badge-toast" data-go="badges"><span class="cele-icon" aria-hidden="true">${b.icon}</span>
@@ -2808,8 +2843,26 @@
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
+  const XFER_MAX = 5e6; // the largest progress we read (bytes), the same for files and codes
   const streamBytes = (bytes, transform) => new Response(new Blob([bytes]).stream().pipeThrough(transform))
     .arrayBuffer().then((b) => new Uint8Array(b));
+  /** Un-gzip, but stop with 'bad' once the output passes max bytes (a short code must not unpack to gigabytes). */
+  async function gunzipCapped(bytes, max) {
+    const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')).getReader();
+    const parts = [];
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > max) { try { reader.cancel(); } catch (e) { /* ignore */ } throw new Error('bad'); }
+      parts.push(value);
+    }
+    const out = new Uint8Array(size);
+    let at = 0;
+    parts.forEach((p) => { out.set(p, at); at += p.length; });
+    return out;
+  }
   /** The progress code for a state (gzip when the browser can, plain otherwise). */
   async function progressCode(st = S, gzip = true) {
     const bytes = new TextEncoder().encode(JSON.stringify(st));
@@ -2830,20 +2883,34 @@
   /** Read a pasted code, or a file's text (JSON or a code). Resolves to a normalized state; rejects with 'empty' | 'nogzip' | 'bad'. */
   async function readProgress(text) {
     // Chat and mail apps (Hebrew ones above all) may add invisible direction marks, zero-width spaces or a BOM.
-    let s = String(text == null ? '' : text).replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]+/g, '').trim();
+    // Soft hyphens and the Mongolian vowel separator can sneak in too.
+    let s = String(text == null ? '' : text).replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]+/g, '').trim();
     if (!s) throw new Error('empty');
     let json = s;
     if (s[0] !== '{') {
-      s = s.replace(/\s+/g, '');
-      const head = s.slice(0, 5).toUpperCase();
-      const body = s.slice(5);
-      if ((head !== XFER_GZ && head !== XFER_RAW) || !/^[A-Za-z0-9_-]+=*$/.test(body)) throw new Error('bad');
+      // The code may come with words, quotes or a full stop around it ("my code: TLL1.… thanks!"): pick it out.
+      // A long code is often wrapped over lines, so the pieces after it are joined back on, longest first,
+      // until one decodes (a word after the code would otherwise stick to its end).
+      const at = s.search(/TLL[01]\./i);
+      if (at < 0) throw new Error('bad');
+      const pieces = s.slice(at).split(/\s+/).slice(0, 400);
+      const head = pieces[0].slice(0, 5).toUpperCase();
       if (head === XFER_GZ && typeof DecompressionStream !== 'function') throw new Error('nogzip');
-      try {
+      const decode = async (body) => {
         let bytes = b64urlDecode(body);
-        if (head === XFER_GZ) bytes = await streamBytes(bytes, new DecompressionStream('gzip'));
-        json = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-      } catch (e) { throw new Error('bad'); }
+        if (head === XFER_GZ) bytes = await gunzipCapped(bytes, XFER_MAX);
+        if (bytes.length > XFER_MAX) throw new Error('bad');
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      };
+      json = null;
+      const tried = new Set();
+      for (let n = pieces.length; n >= 1 && json === null; n--) {
+        const m = pieces.slice(0, n).join('').slice(5).match(/^[A-Za-z0-9_-]+/);
+        if (!m || tried.has(m[0])) continue;
+        tried.add(m[0]);
+        try { const j = await decode(m[0]); JSON.parse(j); json = j; } catch (e) { /* try a shorter piece */ }
+      }
+      if (json === null) throw new Error('bad');
     }
     let raw;
     try { raw = JSON.parse(json); } catch (e) { throw new Error('bad'); }
@@ -2853,10 +2920,15 @@
   }
   /** Swap in a whole new state at once, then show the right first screen for it. */
   function replaceProgress(st) {
+    // Save first: if this device cannot store it, keep the current progress and say so (no false "it worked").
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(st)); } catch (e) {
+      const eb = $('#xfer-error', app);
+      if (eb) { eb.textContent = t('xfer_saveFail'); eb.hidden = false; }
+      return false;
+    }
     stopSpeed();
     session = null;
     S = st;
-    saveState();
     if (S.settings) pendingUi = S.settings.uiLang;
     applyUiLang();
     return boot();
@@ -2978,7 +3050,7 @@
       const f = file.files && file.files[0];
       file.value = '';
       if (!f) return;
-      if (f.size > 5e6) { fail(t('xfer_badFile')); return; }
+      if (f.size > XFER_MAX) { fail(t('xfer_badFile')); return; }
       let text;
       try { text = await f.text(); } catch (e) { fail(t('xfer_badFile')); return; }
       tryLoad(text, true, $('#xfer-file-btn', root));
@@ -3076,7 +3148,17 @@
     const meant = words(it.en + ' ' + placeMeaning(it));
     return said.some((a) => meant.some((b) => placeAlike(a, b, loose)));
   }
-  const placeAskable = (it) => placeFits(it) && !placeGiveaway(it);
+  /**
+   * A name (a place, a festival, a weekday): every word of the English meaning capitalised, as in "Japan",
+   * "Golden Week" or "Tel Aviv". Knowing one says little about the learner's level, so the test skips them.
+   */
+  function placeName(it) {
+    const m = placeBare(it.en);
+    if (!m || /[.?!]$/.test(m) || /^I\b|^I'/.test(m)) return false;
+    const ws = m.split(/[\s-]+/).filter(Boolean);
+    return ws.length <= 3 && ws.every((w) => /^[\p{Lu}\d]/u.test(w) || /^(of|the|de|del|la|el|al|and|&)$/i.test(w));
+  }
+  const placeAskable = (it) => placeFits(it) && !placeGiveaway(it) && !placeName(it);
   /** A meaning without its notes in brackets: "two hundred (200)" -> "two hundred". */
   const placeBare = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
   /** Each separate gloss of a meaning ("money / cash" -> money, cash), lowercased and without notes. */
@@ -3091,7 +3173,9 @@
     return /[.?!؟]$/.test(m) || placeBare(m).split(/\s+/).length >= 4;
   };
   /** Lessons a question may come from: words, phrases and grammar of one level (never letters or stories). */
-  const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind) && tp.group !== STORY_GROUP);
+  // Lessons that are mostly names (cities, festivals) are left out as a whole, so their names are not the wrong options either.
+  const placeLessons = (db, level) => db.TOPICS.filter((tp) => tp.level === level && PLACE_KINDS.includes(tp.kind) && tp.group !== STORY_GROUP
+    && tp.items.filter(placeName).length * 3 < tp.items.length);
   /**
    * Four options with different meanings: the answer and three like it, as distractors() picks them:
    * the same lesson, then the same group, then the whole level, always the same shape (sentence or word) first.
@@ -3270,6 +3354,18 @@
     return openLang(code);
   }
   const booted = boot();
+
+  // Another tab saved (an exercise, an import, a reset): take its state, so our next save does not undo it.
+  // Redraw only on a resting screen (the menu); an exercise in progress keeps going on the new state.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORE_KEY && e.key !== null) return;
+    S = loadState();
+    if (session || $('.xfer-modal', app)) return;
+    if (document.documentElement.getAttribute('data-screen') === 'menu') {
+      if (S.settings) pendingUi = S.settings.uiLang;
+      boot();
+    }
+  });
 
   // Small hook used by the automated test page (tests/smoke.html) and screenshot pages.
   window.__TLAP_TEST__ = {

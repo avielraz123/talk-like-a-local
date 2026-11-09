@@ -298,6 +298,17 @@
      * opts.wrongTurns / opts.wrongQs: indexes of the learner's turns / questions to answer wrong first.
      * Returns {turns, firstWrong, questions} as counted on screen.
      */
+    /**
+     * The second tap of a double tap (a real tap: detail 1) on a screen that just appeared. Returns false when
+     * the app set no guard for it. The guard is held open while tapping, so a busy machine cannot let it run out first.
+     */
+    function quickTap(el) {
+      const set = T.storyTapHold() > 0;
+      T.storyTapHold(Date.now() + 5000);
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+      T.storyTapHold(0);
+      return set;
+    }
     function playStory(where, topic, c, opts = {}) {
       const code = T.cur();
       sessions++; storyPlays++;
@@ -321,7 +332,7 @@
             if (right.length !== 1) { err(`${where}: ${right.length} right replies on turn ${res.turns}`); return res; }
             // A real tap (detail 1) right after the replies appear is the second tap of a double tap: ignored.
             storyChecks++;
-            right[0].dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+            if (!quickTap(right[0])) err(`${where}: the replies set no guard against a double tap`);
             if ($$('.chat-row').length !== shown || !$('.story-replies')) { err(`${where}: a quick second tap picked a reply`); return res; }
             // Japanese replies with kanji show their kana reading, like the bubbles (reading mode only).
             [line.say, ...line.wrong].forEach((say) => {
@@ -388,7 +399,7 @@
           const bad = optsQ.find((b) => b !== right);
           if (!right) { err(`${where}: question ${k}: right option "${want}" missing`); return; }
           if (!$('.story-again') || $$('.story-again .story-line').length !== topic.lines.length) err(`${where}: "read the story again" missing lines`);
-          right.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+          if (!quickTap(right)) err(`${where}: question ${k} set no guard against a double tap`);
           if (right.disabled || $('#story-fb')) err(`${where}: a quick second tap answered question ${k}`);
           storyChecks++;
           (wrongQs.has(k) ? bad : right).click();
@@ -503,7 +514,7 @@
         T.storyTapHold(0); // end the guard of the last reply, so the check below sees Done's own guard
         if ($('#story-next')) $('#story-next').click();
         if (!$('.results')) { err(`${where}: chat did not end on the results`); return; }
-        if (!(T.storyTapHold() > Date.now())) err(`${where}: Done did not hold back a second tap`);
+        if (!(T.storyTapHold() > 0)) err(`${where}: Done did not hold back a second tap`);
         const turns = dlg.lines.filter((x) => x.who === 'me' && x.wrong.length).length;
         if (res.turns !== turns) err(`${where}: played ${res.turns} turns of ${turns}`);
         const pct = Math.round(((turns - 1) / turns) * 100);
@@ -519,7 +530,7 @@
         const saved = JSON.parse(localStorage.getItem(T.STORE_KEY));
         if (!saved.langs[code].topics[dlg.id] || saved.langs[code].topics[dlg.id].stages.story !== starsWant) err(`${where}: chat stars not saved`);
         // The second tap of a double tap on "Done" does not land on "Practice again".
-        $('#again').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+        quickTap($('#again'));
         if (!$('.results')) err(`${where}: a quick second tap on Done left the results screen`);
         storyChecks++;
         // "Practice again" restarts the chat; quitting goes back to the lesson.
@@ -1153,7 +1164,7 @@
       if (!same(srs['a:0'], [0, today]) || !same(srs['a:1'], [0, today])) err('progress: strength 1-2 not due today ' + JSON.stringify(srs));
       ['a:2', 'a:3'].forEach((id) => { const e = srs[id]; if (!e || e[0] !== 1 || e[1] < today + 1 || e[1] > today + 3) err(`progress: ${id} seeded ${JSON.stringify(e)}`); });
       if (!srs['a:4'] || srs['a:4'][0] !== 2 || srs['a:4'][1] < today + 1 || srs['a:4'][1] > today + 7) err('progress: strength 5 seeded ' + JSON.stringify(srs['a:4']));
-      if ('a:5' in srs) err('progress: strength 0 seeded');
+      if (!same(srs['a:5'], [0, today])) err('progress: strength 0 (last answers wrong) not due today ' + JSON.stringify(srs['a:5']));
       if (!same(m.langs[code].words, oldWords)) err('progress: migration changed the words');
       if (!same(T.normalizeState(old()).langs[code].srs, srs)) err('progress: seeding is not deterministic');
       if (m.settings.goal !== 50 || !same(m.daily, { day: null, xp: 0 }) || !same(m.goalLog, []) || !same(m.badges, {})) err('progress: new defaults ' + JSON.stringify([m.settings, m.daily, m.goalLog, m.badges]));
@@ -1163,11 +1174,27 @@
       if (!same(m2.langs[code].srs, { 'a:0': [3, 123], 'b:1': [5, 5] })) err('progress: saved srs not kept/cleaned ' + JSON.stringify(m2.langs[code].srs));
       if (m2.settings.goal !== 100 || m2.daily.xp !== 12 || !same(m2.goalLog, ['2026-1-2', '2026-1-3']) || !same(m2.badges, { first: '2026-1-1' })) err('progress: saved fields not normalized');
       if (T.normalizeState({ settings: { uiLang: 'en', goal: 77 } }).settings.goal !== 50) err('progress: bad goal not reset to 50');
+      // Built-in names as ids, unknown keys and impossible days are all dropped.
+      const m3 = T.normalizeState({ v: 2, top: { a: 1 }, settings: { uiLang: 'en', lang: code, extra: 1 },
+        streak: { count: 1, last: '2026-99-99' }, daily: { day: '0000-0-0', xp: 1 },
+        goalLog: ['2026-13-40', '2026-2-31', '9999-1-1', '2026-11-9x', window.__TODAY],
+        badges: { first: '2026-2-31', bogus: '2026-1-1', constructor: '2026-1-1', story: window.__TODAY },
+        langs: { [code]: { set: 'x', srs: { constructor: [0, 0], toString: [0, 0], valueOf: [3, 0], hasOwnProperty: [0, 0], 'a:0': [0, 0] },
+          words: { constructor: 1, toString: 0, valueOf: 2, 'a:0': 1 },
+          topics: { constructor: { best: 1 }, t1: { best: 5, rec: 'y', stages: { mix: 2, toString: 1 } } } } } });
+      const l3 = m3.langs[code];
+      if (!same(Object.keys(l3.srs), ['a:0']) || !same(Object.keys(l3.words), ['a:0'])) err('progress: built-in names kept as ids ' + JSON.stringify([l3.srs, l3.words]));
+      if ('top' in m3 || 'extra' in m3.settings || 'set' in l3 || !same(Object.keys(l3.topics), ['t1']) || !same(l3.topics.t1, { best: 5, stages: { mix: 2 } })) err('progress: unknown keys kept ' + JSON.stringify(m3));
+      if (m3.streak.last !== null || m3.daily.day !== null || !same(m3.goalLog, [window.__TODAY]) || !same(m3.badges, { story: window.__TODAY })) err('progress: impossible days / unknown badges kept ' + JSON.stringify([m3.streak, m3.daily, m3.goalLog, m3.badges]));
+      if (!same(T.BADGES.map((b) => b.id), Object.keys(T.normalizeState({ badges: Object.fromEntries(T.BADGES.map((b) => [b.id, window.__TODAY])) }).badges))) err('progress: BADGE_IDS out of step with BADGES');
 
       // Spaced repetition steps.
       const ls = S.langs[code];
       const words = T.ALL_WORDS;
       const it = words[0];
+      // Even if built-in names get into memory, the item lookup must not find functions.
+      ls.srs = { constructor: [0, 0], toString: [0, 0], valueOf: [0, 0] }; ls.words = { constructor: 1, toString: 0, hasOwnProperty: 0, valueOf: 1 };
+      if (T.srsDue().length) err('progress: built-in names came back as due items');
       ls.srs = {}; ls.words = {};
       T.srsAnswer(it, true);
       if (!same(ls.srs[it.id], [0, today + 1])) err('progress: new right answer not due tomorrow ' + JSON.stringify(ls.srs[it.id]));
@@ -1507,6 +1534,30 @@
         try { if (JSON.stringify(await T.readProgress(text)) !== snapshot) err('xfer: a code with invisible marks changed the state'); }
         catch (e) { err(`xfer: a code with invisible marks rejected (${e.message}): ${Array.from(text.slice(0, 3)).map((c) => c.charCodeAt(0).toString(16))}`); }
       }
+      // Soft hyphens, the Mongolian vowel separator, quotes, a full stop or words around the code: still the same code.
+      const mangled = [gz.slice(0, 15) + ch(0xAD) + gz.slice(15), gz.slice(0, 9) + ch(0x180E) + gz.slice(9), '"' + gz + '"', gz + '.',
+        'my code: ' + gz + ' thanks!', ch(0xAB) + plain + ch(0xBB), 'tll1.' + gz.slice(5)];
+      for (const text of mangled) {
+        try { if (JSON.stringify(await T.readProgress(text)) !== snapshot) err('xfer: a mangled code changed the state'); }
+        catch (e) { err(`xfer: a mangled code rejected (${e.message}): ${text.slice(0, 12)}`); }
+      }
+      // A short code must not unpack to more than a file may hold (5 MB).
+      const huge = await T.progressCode(Object.assign(JSON.parse(snapshot), { pad: 'x'.repeat(6e6) }));
+      if (huge.length > 100000) err('xfer: test code for the size cap is not short ' + huge.length);
+      try { await T.readProgress(huge); err('xfer: a code that unpacks to 6 MB was accepted'); } catch (e) { if (e.message !== 'bad') err('xfer: size cap error ' + e.message); }
+      // When this device cannot save the imported progress, nothing changes and the learner is told.
+      {
+        T.renderSettings();
+        const st2 = T.normalizeState(Object.assign(JSON.parse(snapshot), { xp: 999 }));
+        const before = JSON.stringify(T.state());
+        const stored = localStorage.getItem(T.STORE_KEY);
+        const realSet = Storage.prototype.setItem;
+        Storage.prototype.setItem = function () { throw new DOMException('full', 'QuotaExceededError'); };
+        let res;
+        try { res = await T.replaceProgress(st2); } finally { Storage.prototype.setItem = realSet; }
+        if (res !== false || JSON.stringify(T.state()) !== before || localStorage.getItem(T.STORE_KEY) !== stored) err('xfer: a failed save still replaced the progress');
+        if (!$('.settings') || !$('#xfer-error') || $('#xfer-error').hidden || !$('#xfer-error').textContent) err('xfer: a failed save showed no error');
+      }
       // Only real language codes count: inherited names ('constructor', 'toString', '__proto__') are dropped, never saved.
       const protoJSON = `{"v":2,"settings":{"uiLang":"constructor","lang":"constructor","speech":false},"langs":{"constructor":{"level":"beginner"},"toString":{},"__proto__":{"level":"beginner"},"${code}":{"level":"beginner","topics":{"__proto__":{"best":5}},"words":{}}}}`;
       try {
@@ -1629,9 +1680,9 @@
       if (ls.words[tp.items[0].id] !== undefined || ls.words[tp.items[1].id] !== 4 || (tp.items[2] && ls.words[tp.items[2].id] !== 5)) err('safety: word strengths not cleaned ' + JSON.stringify(ls.words));
       if (/Infinity|NaN/.test($('.topbar').textContent)) err('safety: top bar shows ' + $('.topbar').textContent);
       // A good old save keeps its values.
-      const good = T.normalizeState({ v: 2, xp: 50, streak: { count: 3, last: window.__TODAY }, langs: { [code]: { level: 'beginner', topics: { [tp.id]: { best: 75, stages: { learn: 3 } } }, words: { a: 2 }, speedBest: 6 } } });
+      const good = T.normalizeState({ v: 2, xp: 50, streak: { count: 3, last: window.__TODAY }, langs: { [code]: { level: 'beginner', topics: { [tp.id]: { best: 75, stages: { learn: 3 } } }, words: { 'a:0': 2 }, speedBest: 6 } } });
       if (good.xp !== 50 || good.streak.count !== 3 || good.streak.last !== window.__TODAY || good.langs[code].topics[tp.id].best !== 75
-        || good.langs[code].topics[tp.id].stages.learn !== 3 || good.langs[code].words.a !== 2 || good.langs[code].speedBest !== 6) err('safety: a normal save lost values ' + JSON.stringify(good));
+        || good.langs[code].topics[tp.id].stages.learn !== 3 || good.langs[code].words['a:0'] !== 2 || good.langs[code].speedBest !== 6) err('safety: a normal save lost values ' + JSON.stringify(good));
 
       // Enter on a focused report link opens the link, it does not move the lesson on.
       const enter = (el) => { const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
@@ -1883,10 +1934,10 @@
         if (!same(back.langs[code].topics, snap.langs[code].topics)) err('integ: round trip changed topics / story stages');
       }
       const odd = T.normalizeState({ v: 2, settings: { uiLang: 'he', lang: code, goal: 7 }, goalLog: Array.from({ length: 450 }, (_, i) => { const d = new Date(2024, 0, 1 + i); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }),
-        langs: { [code]: { topics: { [sto.id]: { stages: { story: '2', learn: 'x', mix: 9 } } }, srs: { a: [1, 2], b: ['1', 2], c: [1] } } } });
+        langs: { [code]: { topics: { [sto.id]: { stages: { story: '2', learn: 'x', mix: 9 } } }, srs: { 'a:1': [1, 2], 'b:1': ['1', 2], 'c:1': [1], a: [1, 2] } } } });
       if (odd.settings.goal !== 50 || odd.goalLog.length !== 400) err('integ: goal / goalLog not cleaned');
       if (!same(odd.langs[code].topics[sto.id].stages, { story: 2, mix: 3 })) err('integ: story stage not cleaned ' + JSON.stringify(odd.langs[code].topics[sto.id].stages));
-      if (!same(odd.langs[code].srs, { a: [1, 2] })) err('integ: srs not cleaned ' + JSON.stringify(odd.langs[code].srs));
+      if (!same(odd.langs[code].srs, { 'a:1': [1, 2] })) err('integ: srs not cleaned ' + JSON.stringify(odd.langs[code].srs));
 
       // Report a mistake from the story player: the tapped line, with its lesson.
       T.startStory(sto);
@@ -1940,6 +1991,11 @@
           const ans = String(q.item.en).replace(/\([^)]*\)/g, ' ').trim().toLowerCase();
           if (notes.includes(ans)) err(`integ: placement option "${o.item.en}" gives away "${q.item.en}"`);
         }));
+        // Names (places, festivals, weekdays: "Japan", "Golden Week") say little about the level: never asked.
+        T.placementQuestions(db).forEach((q) => {
+          const m = String(q.item.en).replace(/\([^)]*\)/g, ' ').trim();
+          if (!/^I\b|^I'|[.?!]$/.test(m) && m.split(/[\s-]+/).every((w) => /^[A-Z0-9]/.test(w) || /^(of|the|de|del|la|el|al|and|&)$/i.test(w))) err(`integ: placement asks the name "${q.item.en}"`);
+        });
       }
 
       // Tapping the background world never fires through the new UI (goal card, badges, settings, dialog, stories page).
