@@ -16,6 +16,10 @@ html[data-lang="es"] {
   --sky: #0e9690;    --sky-d: #0a7671;     /* turquoise */
   --grape: #9b4dca;  --grape-d: #7633a6;   /* bougainvillea purple */
   --pink: #ec2f8f;   --pink-d: #c01a6f;    /* fiesta pink */
+  /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give review 3.6, speed 3.9, stories 3.9): deeper shades, edge stays darker */
+  --mode-review: #0c837e; --mode-review-d: #096662;
+  --mode-speed: #e1157c; --mode-speed-d: #af1865;
+  --mode-stories: #d7385c; --mode-stories-d: #b02044;
   --orange: #e66a00; --orange-d: #c25700;  /* marigold orange */
   --ok: #1a7733; --ok-bg: #dcf7dc; --bad: #c02a36; --bad-bg: #ffe2e4; --neutral-bg: #f7ebe6;
   --font-target: "Fredoka", sans-serif;
@@ -34,6 +38,11 @@ html[data-lang="es"] {
     --sky: #0f9993;    --sky-d: #0c807a;     /* turquoise */
     --grape: #a55bd8;  --grape-d: #7e3bb0;   /* bougainvillea purple */
     --pink: #ec2f8f;   --pink-d: #b8186a;    /* fiesta pink */
+    /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give review 3.5, speed 3.9, dict 4.1, stories 3.9): deeper shades, edge stays darker */
+    --mode-review: #0d837e; --mode-review-d: #0a6d68;
+    --mode-speed: #e1157c; --mode-speed-d: #a81661;
+    --mode-dict: #9b56cb; --mode-dict-d: #7637a5;
+    --mode-stories: #d7385c; --mode-stories-d: #a82144;
     --orange: #e66a00; --orange-d: #c25700;  /* marigold orange */
     --ok: #6fe08a; --ok-bg: #183a26; --bad: #ff8a96; --bad-bg: #461f2b; --neutral-bg: #352846;
     --theme-pattern-opacity: .06;

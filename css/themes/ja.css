@@ -16,6 +16,9 @@ html[data-lang="ja"] {
   --sky: #34489a;    --sky-d: #222f6e;     /* indigo */
   --grape: #8564b8;  --grape-d: #634592;   /* wisteria */
   --pink: #c84d81;   --pink-d: #9c3460;    /* sakura (deep) */
+  /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give speed 4.3, stories 4.4): deeper shades, edge stays darker */
+  --mode-speed: #c24b7d; --mode-speed-d: #97325d;
+  --mode-stories: #d54027; --mode-stories-d: #a42f1a;
   --orange: #c8601d; --orange-d: #984711;  /* persimmon */
 
   --ok: #357228;     --ok-bg: #e4f3d6;
@@ -51,6 +54,10 @@ html[data-lang="ja"] {
     --sky: #5a6fd0;    --sky-d: #3d50ac;
     --grape: #8a6ccb;  --grape-d: #664aa6;
     --pink: #c4527f;   --pink-d: #943a60;
+    /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give speed 4.3, dict 4.1, stories 4.2): deeper shades, edge stays darker */
+    --mode-speed: #be4f7b; --mode-speed-d: #8f385d;
+    --mode-dict: #8266c0; --mode-dict-d: #60459c;
+    --mode-stories: #c74f37; --mode-stories-d: #9b331e;
     --orange: #c4652a; --orange-d: #8c4a14;
 
     --ok: #93db6c;     --ok-bg: #1d3a23;

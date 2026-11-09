@@ -45,6 +45,11 @@ html[data-lang="ar"] {
     --sky: #3a88c2;     --sky-d: #3076aa;     /* sky-d is also the results "correct" number on surface: 3.2:1 (large text) */
     --grape: #cf4c66;   --grape-d: #93283f;
     --pink: #c9557a;    --pink-d: #973a59;
+    /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give review 3.8, speed 4.1, dict 4.3, stories 4.1): deeper shades, edge stays darker */
+    --mode-review: #357bb0; --mode-review-d: #2b6a99;
+    --mode-speed: #be5073; --mode-speed-d: #8e3653;
+    --mode-dict: #c84963; --mode-dict-d: #8d263d;
+    --mode-stories: #bd573e; --mode-stories-d: #8a3c27;
     --orange: #c77a2a;  --orange-d: #a9621f;  /* darker 3D edge; also the results XP number: 3.3:1 (large text) */
 
     --ok: #9bd85a;      --ok-bg: #26361a;

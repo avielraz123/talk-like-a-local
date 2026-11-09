@@ -100,20 +100,20 @@ TLAP_THEME("ar", {
         "Tamām (great), you're back! Let's keep going."
       ],
       he: [
-        "אהלן וסהלן (ברוך הבא)! תמזוג לעצמך קפה ותבחר נושא.",
-        "יאללה, יאללה! כמה דקות ביום ותתחיל לדבר בלי לשים לב.",
+        "אהלן וסהלן (ברוכים הבאים)! מזגו לעצמכם קפה ובחרו נושא.",
+        "יאללה, יאללה! כמה דקות ביום ותתחילו לדבר בלי לשים לב.",
         "שוי שוי (לאט לאט). כל מילה חשובה!",
-        "מרחבא! כתר הנוצות שלי זקוף, אז אתה יודע שאני מתרגש. מה לומדים היום?",
-        "תמאם (מעולה), חזרת! בוא נמשיך."
+        "מרחבא! כתר הנוצות שלי זקוף, אז אתם יודעים שאני מתרגש. מה לומדים היום?",
+        "תמאם (מעולה), חזרתם! בואו נמשיך."
       ]
     },
     group: {
       en: "Pick a sub-topic. Shwayy shwayy, one small lesson at a time!",
-      he: "בחר תת-נושא. שוי שוי, שיעור קטן אחד בכל פעם!"
+      he: "בחרו תת-נושא. שוי שוי, שיעור קטן אחד בכל פעם!"
     },
     topic: {
       en: "Choose an exercise. Yalla, let's practice!",
-      he: "בחר תרגיל. יאללה, בוא נתרגל!"
+      he: "בחרו תרגיל. יאללה, בואו נתרגל!"
     },
     right: {
       en: ["Brāvo! (well done)", "Ya salām! (wow!)", "Tamām! Perfect.", "Shātir! (clever!)", "Brāvo 3aleik! My crest is dancing!"],
@@ -121,7 +121,7 @@ TLAP_THEME("ar", {
     },
     wrong: {
       en: ["Wala yhimmak (never mind). Try again!", "Ma3lesh (it's okay), you'll get it next time.", "Almost! Kamān marra (one more time)?", "Shwayy shwayy. Every mistake teaches us something."],
-      he: ["ולא יהמך (לא נורא). נסה שוב!", "מעלש (זה בסדר), בפעם הבאה תצליח.", "כמעט! כמאן מרה (עוד פעם)?", "שוי שוי. כל טעות מלמדת אותנו משהו."]
+      he: ["ולא יהמך (לא נורא). נסו שוב!", "מעלש (זה בסדר), בפעם הבאה תצליחו.", "כמעט! כמאן מרה (עוד פעם)?", "שוי שוי. כל טעות מלמדת אותנו משהו."]
     },
     empty: {
       en: "Wala yhimmak! I couldn't find that word. Maybe try another spelling?",

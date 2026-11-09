@@ -279,9 +279,9 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 .mode strong, .mode small { text-shadow: 0 1px 0 rgba(0, 0, 0, .25); }
 .mode small { display: block; font-size: 15px; font-weight: 600; }
 .mode-icon { font-size: 34px; width: 54px; height: 54px; display: grid; place-items: center; background: rgba(255, 255, 255, .25); border-radius: 16px; flex: none; }
-.mode.review { background: var(--sky); box-shadow: 0 6px 0 var(--sky-d); }
-.mode.speed { background: var(--pink); box-shadow: 0 6px 0 var(--pink-d); }
-.mode.dict { background: var(--grape); box-shadow: 0 6px 0 var(--grape-d); }
+.mode.review { background: var(--mode-review, var(--sky)); box-shadow: 0 6px 0 var(--mode-review-d, var(--sky-d)); }
+.mode.speed { background: var(--mode-speed, var(--pink)); box-shadow: 0 6px 0 var(--mode-speed-d, var(--pink-d)); }
+.mode.dict { background: var(--mode-dict, var(--grape)); box-shadow: 0 6px 0 var(--mode-dict-d, var(--grape-d)); }
 .mode:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .2); }
 .section {
   background: var(--surface); border: 3px solid var(--line); border-radius: 26px; margin-bottom: 16px;
@@ -838,7 +838,7 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
  * Dialogues & stories (feature "story"): menu button, group page, story stage card,
  * the chat player (dialogue) and the reading player (story).
  * ========================================================================== */
-.mode.stories { grid-column: 1 / -1; background: var(--coral); box-shadow: 0 6px 0 var(--coral-d); }
+.mode.stories { grid-column: 1 / -1; background: var(--mode-stories, var(--coral)); box-shadow: 0 6px 0 var(--mode-stories-d, var(--coral-d)); }
 .mode.stories .story-menu-count { display: block; margin-top: 2px; font-weight: 700; } /* the lesson count on its own line */
 
 /* group page: one block per level, the learner's level marked */

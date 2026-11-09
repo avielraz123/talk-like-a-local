@@ -47,7 +47,8 @@ Rules for these extras:
 - **Contrast:**
   - body text on `--bg` and `--surface` must be at least 4.5:1, in light and dark mode;
   - white button text on `--green` should be at least 3:1, and as high as the palette allows;
-  - dark `#2b2d42` text on `--sun` must be at least 4.5:1.
+  - dark `#2b2d42` text on `--sun` must be at least 4.5:1;
+  - the main-menu mode buttons (Review on `--sky`, Speed on `--pink`, Dictionary on `--grape`, Dialogues & stories on `--coral`) carry a small white subtitle, which needs 4.5:1. If an accent is too light for that, set the optional `--mode-review`, `--mode-speed`, `--mode-dict` or `--mode-stories` (face) with `--mode-review-d` etc. (its darker 3D edge) to a deeper shade of the same hue, in light and/or dark mode; the accents themselves stay as they are everywhere else.
 - No external images: everything is inline SVG (data URIs or markup from the JS file).
 
 **Fonts.** index.html loads these Google Fonts for every language:

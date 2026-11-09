@@ -44,6 +44,9 @@ html[data-lang="fa"] {
     --sky: #1597a6;    --sky-d: #117f8c;     /* sky-d is also number text on surface: 3.2:1 (large) */
     --grape: #5f80dc;  --grape-d: #3f60c0;   /* also heading text: 4.6:1 on bg; white text 3.7:1 */
     --pink: #c2457a;   --pink-d: #932f5a;
+    /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give review 3.5, dict 3.7): deeper shades, edge stays darker */
+    --mode-review: #12828e; --mode-review-d: #0f6c78;
+    --mode-dict: #5572c5; --mode-dict-d: #3855ab;
     --orange: #d0701e; --orange-d: #b25a10;  /* 5.0:1 on bg */
 
     --ok: #7fe0a0;     --ok-bg: #15372a;     /* 8.1:1 */

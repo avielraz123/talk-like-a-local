@@ -403,19 +403,19 @@
           "¡Qué gusto verte! (So good to see you!) Every new word is a little fiesta."
         ],
         he: [
-          es("¡Hola, amigo!") + " (שלום, חבר!) מוכן לתרגל?",
-          es("¡Vamos!") + " (יאללה!) בחר נושא ובוא נדבר.",
+          es("¡Hola, amigo!") + " (שלום, חבר!) מוכנים לתרגל?",
+          es("¡Vamos!") + " (יאללה!) בחרו נושא ובואו נדבר.",
           es("¿Qué tal?") + " (מה נשמע?) כמה דקות ביום עושות פלאים.",
-          es("¡Qué gusto verte!") + " (כמה כיף לראות אותך!) כל מילה חדשה היא פיאסטה קטנה."
+          es("¡Qué gusto verte!") + " (כמה כיף לראות אתכם!) כל מילה חדשה היא פיאסטה קטנה."
         ]
       },
       group: {
         en: "Pick a sub-topic. Poco a poco (little by little), you'll get there!",
-        he: "בחר תת-נושא. " + es("Poco a poco") + " (לאט לאט), תגיע לשם!"
+        he: "בחרו תת-נושא. " + es("Poco a poco") + " (לאט לאט), תגיעו לשם!"
       },
       topic: {
         en: "Choose an exercise. ¡Tú puedes! (You can do it!)",
-        he: "בחר תרגיל. " + es("¡Tú puedes!") + " (אתה יכול!)"
+        he: "בחרו תרגיל. " + es("¡Tú puedes!") + " (אתם יכולים!)"
       },
       right: {
         en: ["¡Muy bien! (Very good!)", "¡Excelente! (Excellent!)", "¡Eso es! (That's it!)", "¡Qué bien! (Great!)", "¡Perfecto! (Perfect!)"],
@@ -430,14 +430,14 @@
         ],
         he: [
           es("¡Ánimo!") + " (ראש למעלה!) בפעם הבאה זה יצליח.",
-          es("¡Casi!") + " (כמעט!) נסה עוד פעם.",
+          es("¡Casi!") + " (כמעט!) נסו עוד פעם.",
           es("No pasa nada.") + " (לא נורא.) ממשיכים.",
           es("Tranquilo.") + " (בלי לחץ.) טעויות עוזרות ללמוד."
         ]
       },
       empty: {
         en: "¡Nada! (Nothing!) Try a different word.",
-        he: es("¡Nada!") + " (כלום!) נסה מילה אחרת."
+        he: es("¡Nada!") + " (כלום!) נסו מילה אחרת."
       }
     },
     decorations: {

@@ -98,7 +98,7 @@ TLAP_THEME("ja", {
   lines: {
     intro: {
       en: "Konnichiwa (hello)! I'm Hana the shiba inu. Hana (花) means \"flower\" in Japanese. Let's learn together, one petal at a time!",
-      he: "קוניצ'יווה (שלום)! אני האנה, כלבת שיבה. \"האנה\" (花) ביפנית זה פרח. בוא נלמד יפנית ביחד, צעד אחרי צעד!"
+      he: "קוניצ'יווה (שלום)! אני האנה, כלבת שיבה. \"האנה\" (花) ביפנית זה פרח. בואו נלמד יפנית ביחד, צעד אחרי צעד!"
     },
     greet: {
       en: [
@@ -109,20 +109,20 @@ TLAP_THEME("ja", {
         "Mainichi (every day) a little practice, and soon you'll talk like a local!"
       ],
       he: [
-        "קוניצ'יווה! מוכן ללמוד? גאנבטה (אתה יכול)!",
+        "קוניצ'יווה! מוכנים ללמוד? גאנבטה (אתם יכולים)!",
         "וואן וואן! ככה אומרים \"הב הב\" ביפנית. איזה נושא היום?",
-        "יוקוסו (ברוך הבא)! כמה מילים ביום, והסאקורה תפרח.",
-        "איקימאשו (יאללה, בוא נצא לדרך)! בחר נושא ונתחיל.",
-        "מאיניצ'י (כל יום) קצת תרגול, ובקרוב תדבר כמו מקומי!"
+        "יוקוסו (ברוכים הבאים)! כמה מילים ביום, והסאקורה תפרח.",
+        "איקימאשו (יאללה, בואו נצא לדרך)! בחרו נושא ונתחיל.",
+        "מאיניצ'י (כל יום) קצת תרגול, ובקרוב תדברו כמו מקומיים!"
       ]
     },
     group: {
       en: "Pick a sub-topic. Ippo zutsu (one step at a time)!",
-      he: "בחר תת-נושא. איפו זוצו (צעד אחרי צעד)!"
+      he: "בחרו תת-נושא. איפו זוצו (צעד אחרי צעד)!"
     },
     topic: {
       en: "Choose an exercise. Ganbatte (do your best)!",
-      he: "בחר תרגיל. גאנבטה (תן את המיטב)!"
+      he: "בחרו תרגיל. גאנבטה (תנו את המיטב)!"
     },
     right: {
       en: ["Sugoi (amazing)!", "Yatta (yay, we did it)!", "Subarashii (wonderful)!", "Kanpeki (perfect)!", "Yoku dekimashita (well done)!", "Ii ne (nice one)!"],
@@ -130,7 +130,7 @@ TLAP_THEME("ja", {
     },
     wrong: {
       en: ["Daijōbu (it's okay)! Let's try again.", "Almost! Mō ichido (one more time)!", "No worries, every sakura blooms in its own time.", "Ganbatte! You'll get it next time."],
-      he: ["דאיג'ובו (זה בסדר)! ננסה שוב.", "כמעט! מו איצ'ידו (עוד פעם אחת)!", "לא נורא, כל סאקורה פורחת בזמן שלה.", "גאנבטה! בפעם הבאה תצליח."]
+      he: ["דאיג'ובו (זה בסדר)! ננסה שוב.", "כמעט! מו איצ'ידו (עוד פעם אחת)!", "לא נורא, כל סאקורה פורחת בזמן שלה.", "גאנבטה! בפעם הבאה תצליחו."]
     },
     empty: {
       en: "I sniffed everywhere, but found nothing. Gomen ne (sorry)! Try another word?",
