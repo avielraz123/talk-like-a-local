@@ -1126,6 +1126,9 @@
       const code = choice.lang;
       const last = step === steps.length - 1;
       const tag = code && theme(code) && theme(code).tagline;
+      // the line under the brand translates the target-language tagline above it. In English that translation is the
+      // brand title itself ("Talk like a local!"), so it is left out there instead of repeating the title.
+      const heroSub = code && tag ? (ui() === 'en' ? '' : tx(tag) || t('tagline')) : t('tagline');
       const hello = LANG_CODES.map((c) => tgFor(c, LANGS[c].hello, `font-${c}`)).join('<span class="sep"> · </span>');
       const bubble = key === 'uiLang' ? `${esc(t('m_intro'))}<br>${esc(t('welcome'))} ${esc(t('welcomeSub'))}`
         : key === 'level' && code ? esc(themeLine('intro', code)) : '';
@@ -1138,7 +1141,7 @@
           ${mascot(last ? 'cheer' : 'happy', 'mascot-hero', code)}
           <div class="hero-tg">${code && tag && tag.target ? tgFor(code, tag.target) : hello}</div>
           <h1>${esc(BRAND)}</h1>
-          <p class="muted">${esc(code && tag ? tx(tag) || t('tagline') : t('tagline'))}</p>
+          ${heroSub ? `<p class="muted">${esc(heroSub)}</p>` : ''}
         </div>
         ${bubble ? `<div class="bubble wide">${bubble}</div>` : ''}
         <div class="dots">${steps.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>
@@ -1342,7 +1345,7 @@
     const isStories = g.id === STORY_GROUP;
     // Dialogues & stories count the ones played (their chat or reading done), not every exercise of every lesson.
     const p = isStories ? { done: lessons.filter(storyPlayed).length, total: lessons.length } : groupProgress(g);
-    render(`<main class="group-page">
+    render(`<main class="group-page${isStories ? ' story-group' : ''}">
       <div class="lesson-head">
         <button class="icon-btn back-btn" data-go="menu" aria-label="${esc(t('menu'))}">${backArrow()}</button>
         <h1><span class="title-icon">${iconHTML(g.icon)}</span><span class="title-text">${mixed(tx(g.title))}</span></h1>
@@ -1571,7 +1574,7 @@
         bumpStreak();
         const fresh = checkBadges();
         saveState();
-        renderTopic(topic, celebrationHTML(fresh, fresh.length >= 3));
+        renderTopic(topic, celebrationHTML(fresh, fresh.length >= 2));
         confetti();
       });
     }
@@ -2075,7 +2078,7 @@
       if (!nextStage) nextLesson = nextLessonAfter(done.topic);
     }
     const newBadges = checkBadges({ finished: true, pct });
-    const cele = celebrationHTML(newBadges, newBadges.length >= 3);
+    const cele = celebrationHTML(newBadges, newBadges.length >= 2);
     saveState();
     const msg = pct === 100 ? t('perfect') : pct >= 70 ? t('great') : t('keepGoing');
     const title = done.mode === 'review' ? t('reviewDone') : `${stageIcon(done.stage, done.topic)} ${stageName(done.stage, done.topic)}`;
@@ -2208,7 +2211,7 @@
       <div class="dict-search">
         <span aria-hidden="true">🔎</span>
         <input type="search" id="dict-q" dir="auto" autocomplete="off" autocapitalize="off" spellcheck="false"
-          placeholder="${esc(t('dictSearch'))}" aria-label="${esc(t('dictSearch'))}" value="${esc(dict.q)}">
+          placeholder="${esc(t(window.matchMedia && matchMedia('(max-width: 520px)').matches ? 'dictHint' : 'dictSearch'))}" aria-label="${esc(t('dictSearch'))}" value="${esc(dict.q)}">
       </div>
       <div class="dict-tools">
         <div class="chips" id="dict-filters" role="group"></div>
@@ -2581,7 +2584,7 @@
       addXP(score * 2);
       if (score > 0) bumpStreak();
       const newBadges = checkBadges({ finished: score > 0, speed: score });
-      const cele = celebrationHTML(newBadges, newBadges.length >= 3);
+      const cele = celebrationHTML(newBadges, newBadges.length >= 2);
       saveState();
       render(`<main class="results">
         ${resultsHero(record && score > 0 ? 'cheer' : 'happy')}
@@ -2731,7 +2734,8 @@
   }
   /**
    * Banners for the daily goal (reached for the first time today) and new badges.
-   * combined: several badges become one "You earned N badges" banner (used on the menu).
+   * combined: several badges become one "You earned N badges" banner (callers pass it for 2 or more).
+   * With more than one banner they sit in a tray and the single ✕ (which closes them all) sits in the tray, not on a banner.
    */
   function celebrationHTML(fresh, combined) {
     const parts = [];
@@ -2748,7 +2752,7 @@
       list.forEach((b) => parts.push(`<button class="badge-toast" data-go="badges"><span class="cele-icon" aria-hidden="true">${b.icon}</span>
         <span class="cele-text"><small>${esc(t('badgeNew'))}</small><strong>${esc(t('badge_' + b.id))}</strong></span></button>`));
     }
-    return parts.length ? `<div class="celebrate" role="status">${parts.join('')}
+    return parts.length ? `<div class="celebrate${parts.length > 1 ? ' multi' : ''}" role="status">${parts.join('')}
       <button class="icon-btn cele-close" aria-label="${esc(t('badgeClose'))}">✕</button></div>` : '';
   }
   function bindCelebration() {
@@ -2779,7 +2783,7 @@
       </div>
       <div class="badge-summary"><span>${esc(fmt(t('badgeCount'), { x: got, y: BADGES.length }))}</span>
         <div class="progress grow"><i style="width:${(got / BADGES.length) * 100}%"></i></div></div>
-      <ul class="badge-grid">${BADGES.map((b) => badgeCard(b, st)).join('')}</ul>
+      <ul class="badge-grid">${[...BADGES.filter((b) => S.badges[b.id]), ...BADGES.filter((b) => !S.badges[b.id])].map((b) => badgeCard(b, st)).join('')}</ul>
       <p class="muted badge-note">${esc(t('badgeWordsNote'))}</p>
     </main>`);
   }

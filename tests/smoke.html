@@ -1389,7 +1389,7 @@
       T.startStage(tp, 'truefalse');
       playSession('progress many badges');
       const many = Object.keys(S.badges).length;
-      if (many >= 3 && ($$('.results .badge-toast').length !== 1 || !$('.results .badge-toast').textContent.includes(E.badgeNewN.replace('{n}', many)))) err(`progress: ${$$('.results .badge-toast').length} banners for ${many} badges on results`);
+      if (many >= 2 && ($$('.results .badge-toast').length !== 1 || !$('.results .badge-toast').textContent.includes(E.badgeNewN.replace('{n}', many)))) err(`progress: ${$$('.results .badge-toast').length} banners for ${many} badges on results`);
       S.badges = Object.assign(keepBadges, S.badges);
       const bs = T.badgeStats;
       if (!bs({ pct: 100 }).perfect || bs({ speed: 15 }).speed < 15 || !bs({ finished: true }).exercises) err('progress: event badges');

@@ -48,7 +48,7 @@ html[data-lang="ar"] {
     /* main-menu mode buttons (small white subtitle >= 4.5:1; base accents give review 3.8, speed 4.1, dict 4.3, stories 4.1): deeper shades, edge stays darker */
     --mode-review: #357bb0; --mode-review-d: #2b6a99;
     --mode-speed: #be5073; --mode-speed-d: #8e3653;
-    --mode-dict: #c84963; --mode-dict-d: #8d263d;
+    --mode-dict: #922b47; --mode-dict-d: #5f1a2d;   /* deep wine, clearly apart from the rose speed card beside it; white text 7.9:1 */
     --mode-stories: #bd573e; --mode-stories-d: #8a3c27;
     --orange: #c77a2a;  --orange-d: #a9621f;  /* darker 3D edge; also the results XP number: 3.3:1 (large text) */
 
@@ -58,6 +58,7 @@ html[data-lang="ar"] {
 
     --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23e9c46a' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M60 34L67.6 41.6L78.4 41.6L78.4 52.4L86 60L78.4 67.6L78.4 78.4L67.6 78.4L60 86L52.4 78.4L41.6 78.4L41.6 67.6L34 60L41.6 52.4L41.6 41.6L52.4 41.6Z'/%3E%3Cpath d='M0 -26L7.6 -18.4L18.4 -18.4L18.4 -7.6L26 0L18.4 7.6L18.4 18.4L7.6 18.4L0 26L-7.6 18.4L-18.4 18.4L-18.4 7.6L-26 0L-18.4 -7.6L-18.4 -18.4L-7.6 -18.4Z'/%3E%3Cpath d='M120 -26L127.6 -18.4L138.4 -18.4L138.4 -7.6L146 0L138.4 7.6L138.4 18.4L127.6 18.4L120 26L112.4 18.4L101.6 18.4L101.6 7.6L94 0L101.6 -7.6L101.6 -18.4L112.4 -18.4Z'/%3E%3Cpath d='M0 94L7.6 101.6L18.4 101.6L18.4 112.4L26 120L18.4 127.6L18.4 138.4L7.6 138.4L0 146L-7.6 138.4L-18.4 138.4L-18.4 127.6L-26 120L-18.4 112.4L-18.4 101.6L-7.6 101.6Z'/%3E%3Cpath d='M120 94L127.6 101.6L138.4 101.6L138.4 112.4L146 120L138.4 127.6L138.4 138.4L127.6 138.4L120 146L112.4 138.4L101.6 138.4L101.6 127.6L94 120L101.6 112.4L101.6 101.6L112.4 101.6Z'/%3E%3Cpath d='M20 20L40 40M100 20L80 40M20 100L40 80M100 100L80 80'/%3E%3C/g%3E%3Cg fill='none' stroke='%23e07a5f' stroke-width='1.8'%3E%3Cpath d='M70.2 64.2L64.2 70.2L55.8 70.2L49.8 64.2L49.8 55.8L55.8 49.8L64.2 49.8L70.2 55.8Z'/%3E%3Cpath d='M10.2 4.2L4.2 10.2L-4.2 10.2L-10.2 4.2L-10.2 -4.2L-4.2 -10.2L4.2 -10.2L10.2 -4.2Z'/%3E%3Cpath d='M130.2 4.2L124.2 10.2L115.8 10.2L109.8 4.2L109.8 -4.2L115.8 -10.2L124.2 -10.2L130.2 -4.2Z'/%3E%3Cpath d='M10.2 124.2L4.2 130.2L-4.2 130.2L-10.2 124.2L-10.2 115.8L-4.2 109.8L4.2 109.8L10.2 115.8Z'/%3E%3Cpath d='M130.2 124.2L124.2 130.2L115.8 130.2L109.8 124.2L109.8 115.8L115.8 109.8L124.2 109.8L130.2 115.8Z'/%3E%3C/g%3E%3Cg fill='%239bbf5a'%3E%3Cpath d='M60 -8L65 0L60 8L55 0Z'/%3E%3Cpath d='M0 52L5 60L0 68L-5 60Z'/%3E%3Cpath d='M120 52L125 60L120 68L115 60Z'/%3E%3Cpath d='M60 112L65 120L60 128L55 120Z'/%3E%3Ccircle cx='60' cy='60' r='3.2'/%3E%3Ccircle cx='0' cy='0' r='3.2'/%3E%3Ccircle cx='120' cy='0' r='3.2'/%3E%3Ccircle cx='0' cy='120' r='3.2'/%3E%3Ccircle cx='120' cy='120' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
     --theme-pattern-opacity: .05;
+    --res-1: #4994cc; --res-2: #d86c81; --res-3: #d07826;   /* results stat numbers (score, XP, streak): >= 4.7:1 on the card */
   }
 }
 
@@ -101,6 +102,11 @@ html[data-lang="ar"] .ar-cl1 { left: 4vw; top: 20vh; width: clamp(96px, 13vw, 19
 html[data-lang="ar"] .ar-cl2 { left: 40vw; top: 3vh; width: clamp(70px, 8vw, 120px); animation-duration: 58s; animation-delay: -20s; }
 html[data-lang="ar"] .ar-cl3 { right: min(15vw, max(2vw, calc(50vw - 540px))); top: 23vh; width: clamp(80px, 10vw, 150px); animation-duration: 52s; animation-delay: -34s; }
 html[data-lang="ar"] .ar-cl2, html[data-lang="ar"] .ar-cl3 { opacity: .8; }
+/* wide screens: the small cloud leaves the header band (it sat behind the language button and swallowed its taps)
+   and floats just outside the 728px content column, beside the sun. Where that margin is too narrow it stays hidden.
+   Phones keep the rule above (it sits between the header pills there). */
+@media (min-width: 1000px) { html[data-lang="ar"] .ar-cl2 { left: calc(50vw + 390px); } }
+@media (min-width: 701px) and (max-width: 999px) { html[data-lang="ar"] .ar-cl2 { display: none; } }
 @keyframes ar-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
 /* sky (night): a full moon and stars */
 html[data-lang="ar"] .ar-moon, html[data-lang="ar"] .ar-stars, html[data-lang="ar"] .ar-tw { display: none; }
@@ -191,6 +197,8 @@ html[data-lang="ar"] .ar-o-tile { right: clamp(10px, 3vw, 60px); top: 68vh; widt
   /* group and dictionary: a ka'ak ring in that same free spot of the header row */
   html[data-lang="ar"][data-screen="group-page"] .ar-o-kaak, html[data-lang="ar"][data-screen="dictionary"] .ar-o-kaak { display: block; top: 82px; right: 60px; width: 44px; }
   html[data-lang="ar"][dir="rtl"][data-screen="group-page"] .ar-o-kaak, html[data-lang="ar"][dir="rtl"][data-screen="dictionary"] .ar-o-kaak { right: auto; left: 60px; }
+  /* the long "Dialogues & stories" title runs into that spot: no ka'ak on that page */
+  html[data-lang="ar"]:has(main.story-group) .ar-o-kaak { display: none; }
   /* results: coffee to celebrate, the dallah and cups beside the stars */
   html[data-lang="ar"][data-screen="results"] .ar-o-dallah { display: block; top: 342px; left: 16px; width: 58px; }
   /* the sun and moon peek in from the right edge below the settings button */

@@ -46,6 +46,7 @@ html[data-lang="es"] {
     --orange: #e66a00; --orange-d: #c25700;  /* marigold orange */
     --ok: #6fe08a; --ok-bg: #183a26; --bad: #ff8a96; --bad-bg: #461f2b; --neutral-bg: #352846;
     --theme-pattern-opacity: .06;
+    --res-1: #0f9e97; --res-2: #b374de; --res-3: #e86800;   /* results stat numbers (score, XP, streak): >= 4.7:1 on the card */
   }
 }
 

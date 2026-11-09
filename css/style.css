@@ -627,9 +627,10 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
   background: var(--surface); border: 3px solid var(--line-strong); border-radius: 20px; padding: 14px 6px; display: grid;
   box-shadow: 0 5px 0 var(--line-strong);
 }
-.result-grid div:nth-child(1) strong { color: var(--sky-d); }
-.result-grid div:nth-child(2) strong { color: var(--grape); }
-.result-grid div:nth-child(3) strong { color: var(--orange-d); }
+/* themes may set --res-1/2/3 (dark mode: lighter shades so the big numbers stay >= 4.5:1 on the card) */
+.result-grid div:nth-child(1) strong { color: var(--res-1, var(--sky-d)); }
+.result-grid div:nth-child(2) strong { color: var(--res-2, var(--grape)); }
+.result-grid div:nth-child(3) strong { color: var(--res-3, var(--orange-d)); }
 .result-grid strong { font-size: 26px; }
 .result-grid small { color: var(--muted); }
 
@@ -707,6 +708,10 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
 .cele-text strong { font-size: 17px; }
 .cele-text small { color: var(--muted); font-size: 14px; font-weight: 600; }
 .cele-close { position: absolute; top: 8px; inset-inline-end: 8px; width: 34px; height: 34px; font-size: 14px; border-radius: 12px; }
+/* goal + badge together: a tray holds both banners and the one ✕ that closes them, so it does not look like it closes only the first */
+.celebrate.multi { padding: 8px; padding-inline-end: 50px; border: 2px solid var(--line-strong); border-radius: 24px; background: color-mix(in srgb, var(--surface) 75%, transparent); }
+.celebrate.multi > .goal-toast, .celebrate.multi > .badge-toast { padding-inline-end: 12px; }
+.celebrate.multi > .cele-close { top: 8px; inset-inline-end: 8px; }
 
 /* Badges page */
 .badge-summary { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font-weight: 600; }

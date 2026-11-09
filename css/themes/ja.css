@@ -71,6 +71,7 @@ html[data-lang="ja"] {
     --ja-cap: #c9a24a;
     --ja-petal: #f7b3ca;
     --ja-petal-d: #e88aae;
+    --res-1: #808ed2; --res-2: #9d84d4; --res-3: #df7620;   /* results stat numbers (score, XP, streak): >= 4.7:1 on the card */
   }
 }
 

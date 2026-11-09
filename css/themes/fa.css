@@ -55,6 +55,7 @@ html[data-lang="fa"] {
 
     --theme-pattern: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><path d='M44.0 30.0L39.9 34.1L39.9 39.9L34.1 39.9L30.0 44.0L25.9 39.9L20.1 39.9L20.1 34.1L16.0 30.0L20.1 25.9L20.1 20.1L25.9 20.1L30.0 16.0L34.1 20.1L39.9 20.1L39.9 25.9zM14.0 0.0L9.9 4.1L9.9 9.9L4.1 9.9L0.0 14.0L-4.1 9.9L-9.9 9.9L-9.9 4.1L-14.0 0.0L-9.9 -4.1L-9.9 -9.9L-4.1 -9.9L-0.0 -14.0L4.1 -9.9L9.9 -9.9L9.9 -4.1zM74.0 0.0L69.9 4.1L69.9 9.9L64.1 9.9L60.0 14.0L55.9 9.9L50.1 9.9L50.1 4.1L46.0 0.0L50.1 -4.1L50.1 -9.9L55.9 -9.9L60.0 -14.0L64.1 -9.9L69.9 -9.9L69.9 -4.1zM14.0 60.0L9.9 64.1L9.9 69.9L4.1 69.9L0.0 74.0L-4.1 69.9L-9.9 69.9L-9.9 64.1L-14.0 60.0L-9.9 55.9L-9.9 50.1L-4.1 50.1L-0.0 46.0L4.1 50.1L9.9 50.1L9.9 55.9zM74.0 60.0L69.9 64.1L69.9 69.9L64.1 69.9L60.0 74.0L55.9 69.9L50.1 69.9L50.1 64.1L46.0 60.0L50.1 55.9L50.1 50.1L55.9 50.1L60.0 46.0L64.1 50.1L69.9 50.1L69.9 55.9z' fill='%232a5bc4' stroke='%235fd3dd' stroke-width='1.6' stroke-linejoin='round'/><path d='M39.9 39.9L50.1 50.1M39.9 20.1L50.1 9.9M20.1 39.9L9.9 50.1M20.1 20.1L9.9 9.9M44 30H60M16 30H0M30 44V60M30 16V0M60 14V46M0 14V46M14 0H46M14 60H46' fill='none' stroke='%235fd3dd' stroke-width='1.6'/><g fill='%23f5b82e'><circle cx='30' cy='30' r='3.5'/><circle cx='0' cy='0' r='3.5'/><circle cx='60' cy='0' r='3.5'/><circle cx='0' cy='60' r='3.5'/><circle cx='60' cy='60' r='3.5'/><path d='M60 26l4 4-4 4-4-4zM0 26l4 4-4 4-4-4zM30 56l4 4-4 4-4-4zM30-4l4 4-4 4-4-4z'/></g></svg>");
     --theme-pattern-opacity: .09;
+    --res-1: #159eae; --res-2: #708de0; --res-3: #e17214;   /* results stat numbers (score, XP, streak): >= 4.7:1 on the card */
   }
 }
 
@@ -210,6 +211,8 @@ html[data-lang="fa"] .fa-o-sabzeh { display: none; bottom: var(--fa-bank); right
   html[data-lang="fa"] .fa-o-pom { top: 66px; inset-inline-end: 10px; width: 40px; height: 40px; overflow: visible; transform: scaleX(-1); }
   html[data-lang="fa"] .fa-o-bolbol { top: 222px; inset-inline-end: -6px; width: 50px; height: 50px; }
   html[dir="rtl"][data-lang="fa"] .fa-o-pom, html[dir="rtl"][data-lang="fa"] .fa-o-bolbol { transform: none; }
+  /* group pages put their progress count, and the placement result its big title, right where the bolbol sits: it stays away there */
+  html[data-lang="fa"][data-screen="group-page"] .fa-o-bolbol, html[data-lang="fa"]:has(main.place-result) .fa-o-bolbol { display: none; }
   /* on the menu it is hidden behind the banner, so taps on the banner must not swing it unseen */
   html[data-lang="fa"][data-screen="menu"] #theme-layer .fa-o-pom { pointer-events: none; }
 }

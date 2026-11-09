@@ -49,6 +49,7 @@ Rules for these extras:
   - white button text on `--green` should be at least 3:1, and as high as the palette allows;
   - dark `#2b2d42` text on `--sun` must be at least 4.5:1;
   - the main-menu mode buttons (Review on `--sky`, Speed on `--pink`, Dictionary on `--grape`, Dialogues & stories on `--coral`) carry a small white subtitle, which needs 4.5:1. If an accent is too light for that, set the optional `--mode-review`, `--mode-speed`, `--mode-dict` or `--mode-stories` (face) with `--mode-review-d` etc. (its darker 3D edge) to a deeper shade of the same hue, in light and/or dark mode; the accents themselves stay as they are everywhere else.
+  - the three big numbers on the results screens (score, XP, streak) use `--sky-d`, `--grape` and `--orange-d` on `--surface`. Where those fall under 4.5:1 (usually in dark mode), set the optional `--res-1`, `--res-2`, `--res-3` to lighter shades of the same hues.
 - No external images: everything is inline SVG (data URIs or markup from the JS file).
 
 **Fonts.** index.html loads these Google Fonts for every language:
