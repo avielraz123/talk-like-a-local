@@ -206,7 +206,21 @@ window.TLAP_STRINGS = {
     place_score: "You got {x} of {y} right",
     place_note: "You can change your level any time in Settings.",
     place_use: "Use {level}", place_self: "Choose myself",
-    place_fail: "The test couldn't load. Please choose a level yourself."
+    place_fail: "The test couldn't load. Please choose a level yourself.",
+    // Dialogues & stories
+    storyMenu: "Dialogues & stories", storyMenuDesc: "Short chats and stories from everyday life", storyLessonsDone: "{done}/{total} lessons done",
+    storyStChat: "Chat", storyStChatD: "Take part in the conversation",
+    storyStRead: "Read the story", storyStReadD: "Read it, then answer questions",
+    storyKindDialogue: "Dialogue", storyKindStory: "Story",
+    storyTapHint: "Tap a line to see what it means.",
+    storyShowMeaning: "Show the translation",
+    storyShowAll: "Show all translations",
+    storyYourTurn: "Your turn! What do you say?",
+    storyMeans: "{say} means “{meaning}”",
+    storyTryAgain: "That doesn't fit here. Try another answer.",
+    storyToQuestions: "On to the questions",
+    storyQCount: "Question {n} of {total}",
+    storyReadAgain: "Read the story again"
   },
   he: {
     tagline: "ללמוד שפה חדשה כמו שהמקומיים באמת מדברים",
@@ -408,6 +422,20 @@ window.TLAP_STRINGS = {
     place_score: "עניתם נכון על {x} מתוך {y}",
     place_note: "אפשר לשנות את הרמה בכל זמן בהגדרות.",
     place_use: "בחירה ברמה: {level}", place_self: "אבחר לבד",
-    place_fail: "לא הצלחנו לטעון את המבחן. אפשר לבחור רמה בעצמכם."
+    place_fail: "לא הצלחנו לטעון את המבחן. אפשר לבחור רמה בעצמכם.",
+    // שיחות וסיפורים
+    storyMenu: "שיחות וסיפורים", storyMenuDesc: "שיחות קצרות וסיפורים מחיי היומיום", storyLessonsDone: "{done}/{total} שיעורים הושלמו",
+    storyStChat: "שיחה", storyStChatD: "משתתפים בשיחה",
+    storyStRead: "קריאת הסיפור", storyStReadD: "קוראים ואז עונים על שאלות",
+    storyKindDialogue: "שיחה", storyKindStory: "סיפור",
+    storyTapHint: "הקישו על שורה כדי לראות מה פירושה.",
+    storyShowMeaning: "הצגת התרגום",
+    storyShowAll: "הצגת כל התרגומים",
+    storyYourTurn: "תורכם! מה עונים?",
+    storyMeans: "{say} פירושו: \"{meaning}\"",
+    storyTryAgain: "זה לא מתאים כאן. נסו תשובה אחרת.",
+    storyToQuestions: "לשאלות",
+    storyQCount: "שאלה {n} מתוך {total}",
+    storyReadAgain: "לקרוא שוב את הסיפור"
   }
 };

@@ -822,3 +822,111 @@ h1, h2 { font-weight: 700; letter-spacing: .2px; }
   background: var(--surface); border: 3px solid var(--line-strong); border-radius: 16px; box-shadow: 0 3px 0 var(--line-strong);
 }
 .place-scores strong { font-size: 19px; }
+/* ==========================================================================
+ * Dialogues & stories (feature "story"): menu button, group page, story stage card,
+ * the chat player (dialogue) and the reading player (story).
+ * ========================================================================== */
+.mode.stories { grid-column: 1 / -1; background: var(--coral); box-shadow: 0 6px 0 var(--coral-d); }
+
+/* group page: one block per level, the learner's level marked */
+.story-level {
+  background: var(--surface); border: 3px solid var(--line); border-radius: 24px; padding: 6px 14px 16px;
+  margin-bottom: 16px; box-shadow: 0 5px 0 var(--line); scroll-margin-top: 12px;
+}
+.story-level.mine { border-color: var(--sun); box-shadow: 0 5px 0 var(--sun-d), 0 0 0 4px color-mix(in srgb, var(--sun) 22%, transparent); }
+.story-level-title { display: flex; align-items: center; gap: 10px; font-size: 20px; margin: 8px 2px 12px; }
+.story-kind {
+  justify-self: start; font-style: normal; font-size: 12px; font-weight: 600; line-height: 1.4; border-radius: 999px;
+  padding: 1px 9px; background: var(--surface-2); color: var(--text); border: 2px solid var(--line-strong);
+}
+
+/* topic page: the story stage is a wide card on top */
+.stage.story-first { grid-column: 1 / -1; flex-direction: row; text-align: start; gap: 14px; padding: 14px 18px; }
+.stage.story-first .stage-icon { margin: 0; flex: none; }
+.stage.story-first .stage-text { flex: 1; min-width: 0; align-items: flex-start; overflow-wrap: anywhere; }
+.stage.story-first small { min-height: 0; }
+.stage.story-first .stars { flex: none; }
+@media (max-width: 420px) {
+  .stage.story-first { gap: 10px; padding: 12px; }
+  .stage.story-first .stage-icon { width: 54px; height: 54px; font-size: 28px; }
+}
+
+/* players */
+.story-title { display: flex; align-items: center; gap: 10px; font-size: 22px; margin: 4px 0 12px; line-height: 1.25; }
+.story-title .title-icon { width: 40px; height: 40px; font-size: 22px; }
+.story-scene { font-weight: 500; }
+.story-cast { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 12px; }
+.story-cast-chip {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 2px solid var(--line-strong);
+  border-radius: 999px; padding: 3px 12px; font-size: 15px; font-weight: 600;
+}
+.story-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 14px; }
+.story-tools .chip-btn.selected::before { content: "✓"; }
+
+/* a tappable line (chat bubble or story line) */
+.story-line {
+  position: relative; display: grid; gap: 2px; max-width: 100%; min-width: 0; text-align: start;
+  background: var(--surface); border: 3px solid var(--line-strong); border-radius: 20px; padding: 10px 16px 10px 14px;
+  box-shadow: 0 4px 0 var(--line-strong); transition: border-color .15s;
+}
+.story-line:hover { border-color: var(--sky); }
+.story-say { display: grid; gap: 1px; min-width: 0; }
+.story-say > * { display: block; overflow-wrap: anywhere; }
+.story-say .primary { font-size: 22px; font-weight: 700; line-height: 1.5; }
+.story-say .tr.primary { font-size: 19px; line-height: 1.35; }
+.story-say .secondary, .story-say .reading { color: var(--muted); font-size: 15px; line-height: 1.4; }
+.story-say .tg.secondary, .story-say .reading { font-size: 17px; }
+.story-meaning {
+  display: block; margin-top: 6px; padding-top: 6px; border-top: 2px dashed var(--line-strong);
+  font-size: 16px; font-weight: 500; overflow-wrap: anywhere;
+}
+.story-meaning[hidden] { display: none; }
+.story-eye {
+  position: absolute; top: -11px; inset-inline-end: -9px; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 14px; background: var(--surface); border: 2px solid var(--line-strong);
+}
+.story-line.open .story-eye { background: var(--sun); border-color: var(--sun-d); }
+
+/* chat */
+.chat { display: grid; gap: 14px; margin: 4px 0 8px; }
+.chat-row { display: flex; align-items: flex-end; gap: 8px; animation: pop .25s; }
+.chat-row.me { justify-content: flex-end; }
+.chat-col { display: grid; gap: 3px; justify-items: start; max-width: 84%; min-width: 0; }
+.chat-row.me .chat-col { justify-items: end; }
+.chat-name { font-size: 13px; font-weight: 700; color: var(--muted); padding-inline-start: 8px; }
+.chat-avatar {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: 22px;
+  background: var(--surface-2); border: 2px solid var(--line-strong); margin-bottom: 4px;
+}
+.chat-row.them .story-line { border-end-start-radius: 6px; }
+.chat-row.who-b .chat-avatar { background: color-mix(in srgb, var(--grape) 18%, var(--surface)); }
+.chat-row.me .story-line {
+  border-end-end-radius: 6px; background: color-mix(in srgb, var(--sky) 16%, var(--surface));
+  border-color: color-mix(in srgb, var(--sky) 60%, var(--line-strong)); box-shadow: 0 4px 0 color-mix(in srgb, var(--sky) 60%, var(--line-strong));
+}
+
+/* controls under the chat / story */
+.story-controls { margin-top: 8px; }
+.story-row { margin-top: 12px; }
+.story-turn { font-weight: 700; font-size: 19px; margin: 14px 0 10px; }
+.story-replies .opt { flex-direction: column; gap: 2px; text-align: center; }
+.story-replies .opt-main { font-size: 20px; }
+.story-replies .opt-sub { font-size: 15px; }
+.story-replies .opt-sub.reading { font-size: 14px; }
+/* no double-tap zoom on the players (with the JS tap guard, a quick double tap never answers) */
+.story-player button { touch-action: manipulation; }
+
+/* story reading */
+.story-read { display: grid; gap: 12px; }
+.story-read .story-line { width: 100%; animation: pop .25s; }
+.story-again {
+  margin-top: 20px; background: var(--surface); border: 3px solid var(--line); border-radius: 20px; padding: 0 14px;
+}
+.story-again summary { cursor: pointer; font-weight: 700; padding: 12px 0; }
+.story-again[open] { padding-bottom: 14px; }
+.story-questions .stem .meaning.big { font-size: 24px; }
+@media (max-width: 420px) {
+  .story-say .primary { font-size: 20px; }
+  .story-title { font-size: 20px; }
+  .chat-col { max-width: 86%; }
+}
