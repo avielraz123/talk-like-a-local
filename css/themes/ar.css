@@ -1,8 +1,9 @@
 /* Arabic (Levantine) theme: olive groves, terracotta roofs, warm sand, the deep Mediterranean,
-   pomegranates, brass coffee pots and mosaic star tiles. Mascot: Hudhud the hoopoe. */
+   pomegranates, brass coffee pots and mosaic star tiles. Mascot: Hudhud the hoopoe.
+   The world: a stone hill village among terraced olive groves, the sea on one side. */
 html[data-lang="ar"] {
   --bg: #ebedd4;          /* olive and sand */
-  --theme-wash: linear-gradient(180deg, #dce6c3 0%, #ebedd4 50%, #f6e7cf 100%); /* olive groves to warm sand */
+  --theme-wash: linear-gradient(180deg, #dfe9dc 0%, #e8edd5 40%, #f5e8cf 100%); /* a pale morning sky over olive groves and warm sand */
   --surface: #fffaf0;
   --surface-2: #f2e4c7;
   --text: #2f2a22;
@@ -25,11 +26,11 @@ html[data-lang="ar"] {
   --font-target: "Baloo Bhaijaan 2", "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
   --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%231f6aa0' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M60 34L67.6 41.6L78.4 41.6L78.4 52.4L86 60L78.4 67.6L78.4 78.4L67.6 78.4L60 86L52.4 78.4L41.6 78.4L41.6 67.6L34 60L41.6 52.4L41.6 41.6L52.4 41.6Z'/%3E%3Cpath d='M0 -26L7.6 -18.4L18.4 -18.4L18.4 -7.6L26 0L18.4 7.6L18.4 18.4L7.6 18.4L0 26L-7.6 18.4L-18.4 18.4L-18.4 7.6L-26 0L-18.4 -7.6L-18.4 -18.4L-7.6 -18.4Z'/%3E%3Cpath d='M120 -26L127.6 -18.4L138.4 -18.4L138.4 -7.6L146 0L138.4 7.6L138.4 18.4L127.6 18.4L120 26L112.4 18.4L101.6 18.4L101.6 7.6L94 0L101.6 -7.6L101.6 -18.4L112.4 -18.4Z'/%3E%3Cpath d='M0 94L7.6 101.6L18.4 101.6L18.4 112.4L26 120L18.4 127.6L18.4 138.4L7.6 138.4L0 146L-7.6 138.4L-18.4 138.4L-18.4 127.6L-26 120L-18.4 112.4L-18.4 101.6L-7.6 101.6Z'/%3E%3Cpath d='M120 94L127.6 101.6L138.4 101.6L138.4 112.4L146 120L138.4 127.6L138.4 138.4L127.6 138.4L120 146L112.4 138.4L101.6 138.4L101.6 127.6L94 120L101.6 112.4L101.6 101.6L112.4 101.6Z'/%3E%3Cpath d='M20 20L40 40M100 20L80 40M20 100L40 80M100 100L80 80'/%3E%3C/g%3E%3Cg fill='none' stroke='%23c4553a' stroke-width='1.8'%3E%3Cpath d='M70.2 64.2L64.2 70.2L55.8 70.2L49.8 64.2L49.8 55.8L55.8 49.8L64.2 49.8L70.2 55.8Z'/%3E%3Cpath d='M10.2 4.2L4.2 10.2L-4.2 10.2L-10.2 4.2L-10.2 -4.2L-4.2 -10.2L4.2 -10.2L10.2 -4.2Z'/%3E%3Cpath d='M130.2 4.2L124.2 10.2L115.8 10.2L109.8 4.2L109.8 -4.2L115.8 -10.2L124.2 -10.2L130.2 -4.2Z'/%3E%3Cpath d='M10.2 124.2L4.2 130.2L-4.2 130.2L-10.2 124.2L-10.2 115.8L-4.2 109.8L4.2 109.8L10.2 115.8Z'/%3E%3Cpath d='M130.2 124.2L124.2 130.2L115.8 130.2L109.8 124.2L109.8 115.8L115.8 109.8L124.2 109.8L130.2 115.8Z'/%3E%3C/g%3E%3Cg fill='%235b7a1e'%3E%3Cpath d='M60 -8L65 0L60 8L55 0Z'/%3E%3Cpath d='M0 52L5 60L0 68L-5 60Z'/%3E%3Cpath d='M120 52L125 60L120 68L115 60Z'/%3E%3Cpath d='M60 112L65 120L60 128L55 120Z'/%3E%3Ccircle cx='60' cy='60' r='3.2'/%3E%3Ccircle cx='0' cy='0' r='3.2'/%3E%3Ccircle cx='120' cy='0' r='3.2'/%3E%3Ccircle cx='0' cy='120' r='3.2'/%3E%3Ccircle cx='120' cy='120' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
   --theme-pattern-size: 120px;
-  --theme-pattern-opacity: .18;
+  --theme-pattern-opacity: .12;
 }
 @media (prefers-color-scheme: dark) {
   html[data-lang="ar"] {
-    --theme-wash: none;
+    --theme-wash: linear-gradient(180deg, #151925 0%, #191a1b 45%, #1a1915 100%); /* a deep night sky over the old city */
     --bg: #1a1915;        /* night in the old city */
     --surface: #26241e;
     --surface-2: #312e26;
@@ -51,7 +52,7 @@ html[data-lang="ar"] {
     --neutral-bg: #312e26;
 
     --theme-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23e9c46a' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M60 34L67.6 41.6L78.4 41.6L78.4 52.4L86 60L78.4 67.6L78.4 78.4L67.6 78.4L60 86L52.4 78.4L41.6 78.4L41.6 67.6L34 60L41.6 52.4L41.6 41.6L52.4 41.6Z'/%3E%3Cpath d='M0 -26L7.6 -18.4L18.4 -18.4L18.4 -7.6L26 0L18.4 7.6L18.4 18.4L7.6 18.4L0 26L-7.6 18.4L-18.4 18.4L-18.4 7.6L-26 0L-18.4 -7.6L-18.4 -18.4L-7.6 -18.4Z'/%3E%3Cpath d='M120 -26L127.6 -18.4L138.4 -18.4L138.4 -7.6L146 0L138.4 7.6L138.4 18.4L127.6 18.4L120 26L112.4 18.4L101.6 18.4L101.6 7.6L94 0L101.6 -7.6L101.6 -18.4L112.4 -18.4Z'/%3E%3Cpath d='M0 94L7.6 101.6L18.4 101.6L18.4 112.4L26 120L18.4 127.6L18.4 138.4L7.6 138.4L0 146L-7.6 138.4L-18.4 138.4L-18.4 127.6L-26 120L-18.4 112.4L-18.4 101.6L-7.6 101.6Z'/%3E%3Cpath d='M120 94L127.6 101.6L138.4 101.6L138.4 112.4L146 120L138.4 127.6L138.4 138.4L127.6 138.4L120 146L112.4 138.4L101.6 138.4L101.6 127.6L94 120L101.6 112.4L101.6 101.6L112.4 101.6Z'/%3E%3Cpath d='M20 20L40 40M100 20L80 40M20 100L40 80M100 100L80 80'/%3E%3C/g%3E%3Cg fill='none' stroke='%23e07a5f' stroke-width='1.8'%3E%3Cpath d='M70.2 64.2L64.2 70.2L55.8 70.2L49.8 64.2L49.8 55.8L55.8 49.8L64.2 49.8L70.2 55.8Z'/%3E%3Cpath d='M10.2 4.2L4.2 10.2L-4.2 10.2L-10.2 4.2L-10.2 -4.2L-4.2 -10.2L4.2 -10.2L10.2 -4.2Z'/%3E%3Cpath d='M130.2 4.2L124.2 10.2L115.8 10.2L109.8 4.2L109.8 -4.2L115.8 -10.2L124.2 -10.2L130.2 -4.2Z'/%3E%3Cpath d='M10.2 124.2L4.2 130.2L-4.2 130.2L-10.2 124.2L-10.2 115.8L-4.2 109.8L4.2 109.8L10.2 115.8Z'/%3E%3Cpath d='M130.2 124.2L124.2 130.2L115.8 130.2L109.8 124.2L109.8 115.8L115.8 109.8L124.2 109.8L130.2 115.8Z'/%3E%3C/g%3E%3Cg fill='%239bbf5a'%3E%3Cpath d='M60 -8L65 0L60 8L55 0Z'/%3E%3Cpath d='M0 52L5 60L0 68L-5 60Z'/%3E%3Cpath d='M120 52L125 60L120 68L115 60Z'/%3E%3Cpath d='M60 112L65 120L60 128L55 120Z'/%3E%3Ccircle cx='60' cy='60' r='3.2'/%3E%3Ccircle cx='0' cy='0' r='3.2'/%3E%3Ccircle cx='120' cy='0' r='3.2'/%3E%3Ccircle cx='0' cy='120' r='3.2'/%3E%3Ccircle cx='120' cy='120' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
-    --theme-pattern-opacity: .07;
+    --theme-pattern-opacity: .05;
   }
 }
 
@@ -61,7 +62,7 @@ html[data-lang="ar"][dir="rtl"] svg.mascot { scale: -1 1; }   /* face the speech
 html[data-lang="ar"] .ar-hudhud .ar-tear { animation: ar-drip 2.4s ease-in infinite; }
 @keyframes ar-drip { 0%, 30% { transform: translateY(0); opacity: 1; } 90% { transform: translateY(6px); opacity: 0; } 100% { opacity: 0; } }
 
-/* ---------- decorations ---------- */
+/* ---------- decorations (banner + results) ---------- */
 html[data-lang="ar"] .theme-deco svg { overflow: visible; }   /* sizes come from the shared css */
 html[data-lang="ar"] .theme-deco .ar-stem { fill: none; stroke: #6d5a32; stroke-width: 2.4; stroke-linecap: round; }
 html[data-lang="ar"] .theme-deco .ar-twig { fill: none; stroke: #6d5a32; stroke-width: 1.4; stroke-linecap: round; }
@@ -69,21 +70,176 @@ html[data-lang="ar"] .theme-deco .ar-leaf { fill: #5f7f27; }
 html[data-lang="ar"] .theme-deco .ar-leaf2 { fill: #93a86a; }
 html[data-lang="ar"] .theme-deco .ar-olive { fill: #7c9a2e; }
 html[data-lang="ar"] .theme-deco .ar-olive2 { fill: #4a2c3e; }
-html[data-lang="ar"] .theme-deco .ar-shadow { fill: #2f2a22; opacity: .10; }
 html[data-lang="ar"] .theme-deco .ar-cord { fill: none; stroke: #8a6a3a; stroke-width: 1.3; }
 html[data-lang="ar"] .theme-deco .ar-glow { fill: #ffd27a; opacity: .16; }
-html[data-lang="ar"] .theme-deco .ar-sway { animation: ar-sway 3.6s ease-in-out infinite alternate; }
-html[data-lang="ar"] .theme-deco .ar-twinkle { animation: ar-twinkle 2.6s ease-in-out infinite; }
-html[data-lang="ar"] .theme-deco .ar-steam { animation: ar-steam 3s ease-in-out infinite; }
-html[data-lang="ar"] .theme-deco.ambient .ar-amb {
-  position: absolute; display: block; opacity: 0; pointer-events: none;
-  animation: ar-amb 9s ease-in-out infinite;
-}
-html[data-lang="ar"] .theme-deco.ambient .ar-amb svg { display: block; width: 100%; height: 100%; }
+html[data-lang="ar"] .theme-deco .ar-sway { animation: ar-sway 8s ease-in-out infinite alternate; }
+html[data-lang="ar"] .theme-deco .ar-twinkle { animation: ar-twinkle 9s ease-in-out infinite; }
 @keyframes ar-sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
 @keyframes ar-twinkle { 0%, 100% { transform: scale(.7); opacity: .5; } 50% { transform: scale(1.15); opacity: 1; } }
-@keyframes ar-steam { 0% { transform: translateY(2px); opacity: 0; } 40% { opacity: .75; } 100% { transform: translateY(-5px); opacity: 0; } }
-@keyframes ar-amb { 0%, 100% { opacity: 0; transform: translateY(8px) rotate(0deg); } 50% { opacity: .22; transform: translateY(-8px) rotate(45deg); } }
+
+/* ---------- the world: a Levantine hill town among olive terraces ---------- */
+/* no shared color circles: the sky has its own sun and moon */
+html[data-lang="ar"] body { background-image: var(--theme-wash, none); }
+html[data-lang="ar"] #theme-layer i { position: absolute; font-style: normal; }   /* absolute, so each piece is a block */
+
+/* sky (day): a warm sun and soft drifting clouds */
+html[data-lang="ar"] .ar-sun { right: 7vw; top: 9vh; width: clamp(70px, 9vw, 132px); aspect-ratio: 1; border-radius: 50%; --ar-halo: radial-gradient(closest-side, rgba(251, 222, 140, .55) 55%, rgba(251, 227, 160, .22) 75%, rgba(251, 227, 160, 0)); }
+/* the sun and moon halos are painted on ::before, not as the piece's own background: the app treats a piece with a background as a card and would ignore taps on it */
+html[data-lang="ar"] .ar-sun::before, html[data-lang="ar"] .ar-moon::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--ar-halo); }
+html[data-lang="ar"] .ar-sun svg, html[data-lang="ar"] .ar-moon svg { position: relative; }
+html[data-lang="ar"] .ar-sd { fill: #f7d68a; }
+html[data-lang="ar"] .ar-shl { fill: none; stroke: #fdf0c6; stroke-width: 4; stroke-linecap: round; opacity: .8; }
+html[data-lang="ar"] .ar-cl { aspect-ratio: 12 / 5; animation: ar-drift 46s ease-in-out infinite alternate; }
+html[data-lang="ar"] .ar-cl path { fill: #fffdf5; opacity: .9; }
+html[data-lang="ar"] .ar-cl .ar-cls { fill: #ebe3cf; opacity: .7; }
+html[data-lang="ar"] .ar-cl1 { left: 4vw; top: 20vh; width: clamp(96px, 13vw, 190px); }
+html[data-lang="ar"] .ar-cl2 { left: 40vw; top: 3vh; width: clamp(70px, 8vw, 120px); animation-duration: 58s; animation-delay: -20s; }
+html[data-lang="ar"] .ar-cl3 { right: min(15vw, max(2vw, calc(50vw - 540px))); top: 23vh; width: clamp(80px, 10vw, 150px); animation-duration: 52s; animation-delay: -34s; }
+html[data-lang="ar"] .ar-cl2, html[data-lang="ar"] .ar-cl3 { opacity: .8; }
+@keyframes ar-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
+/* sky (night): a full moon and stars */
+html[data-lang="ar"] .ar-moon, html[data-lang="ar"] .ar-stars, html[data-lang="ar"] .ar-tw { display: none; }
+html[data-lang="ar"] .ar-moon { right: 7vw; top: 8vh; width: clamp(76px, 9vw, 136px); aspect-ratio: 1; border-radius: 50%; --ar-halo: radial-gradient(closest-side, rgba(246, 231, 189, .2) 50%, rgba(246, 231, 189, .07) 74%, rgba(246, 231, 189, 0)); }
+html[data-lang="ar"] .ar-md { fill: #f1e6c8; }
+html[data-lang="ar"] .ar-mm circle { fill: #e2d4ae; }
+html[data-lang="ar"] .ar-stars {
+  inset: 0 0 35% 0;
+  background-image:
+    radial-gradient(2px 2px at 6% 10%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 15% 32%, #fff3d6 98%, transparent),
+    radial-gradient(2.2px 2.2px at 24% 6%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 33% 22%, #fff3d6 98%, transparent),
+    radial-gradient(1.4px 1.4px at 45% 9%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 52% 30%, #fff3d6 98%, transparent),
+    radial-gradient(1.7px 1.7px at 61% 14%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 70% 40%, #fff3d6 98%, transparent),
+    radial-gradient(1.4px 1.4px at 78% 5%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 94% 38%, #fff3d6 98%, transparent),
+    radial-gradient(2px 2px at 97% 12%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 4% 52%, #fff3d6 98%, transparent),
+    radial-gradient(1.3px 1.3px at 88% 60%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 40% 46%, #fff3d6 98%, transparent),
+    radial-gradient(1.8px 1.8px at 20% 60%, #fff3d6 98%, transparent), radial-gradient(1.5px 1.5px at 82% 24%, #fff3d6 98%, transparent),
+    radial-gradient(1.5px 1.5px at 66% 62%, #fff3d6 98%, transparent), radial-gradient(1.8px 1.8px at 9% 78%, #fff3d6 98%, transparent);
+  opacity: .8;
+}
+html[data-lang="ar"] .ar-tw { width: 14px; height: 14px; animation: ar-tw 9s ease-in-out infinite; }
+html[data-lang="ar"] .ar-tw path { fill: #fbe9b8; }
+html[data-lang="ar"] .ar-tw1 { left: 11vw; top: 18vh; }
+html[data-lang="ar"] .ar-tw2 { left: 30vw; top: 9vh; width: 10px; height: 10px; animation-delay: -3s; }
+html[data-lang="ar"] .ar-tw3 { right: 24vw; top: 27vh; width: 11px; height: 11px; animation-delay: -6s; }
+html[data-lang="ar"] .ar-tw4 { right: 4vw; top: 40vh; width: 9px; height: 9px; animation-delay: -1.5s; }
+/* desktop: keep this star just outside the content column, so a long mascot speech bubble never covers it */
+html[data-lang="ar"] .ar-tw3 { right: max(3vw, min(24vw, calc(50vw - 420px))); }
+@keyframes ar-tw { 0%, 100% { opacity: .35; transform: scale(.75); } 50% { opacity: .95; transform: scale(1.1); } }
+
+/* scene: sea and sailboat, far hills, the terraced olive hill, the hill village above a dry-stone terrace wall and stair, near trees (day colors) */
+html[data-lang="ar"] .scene .ar-sea { fill: #c6dcdd; }
+html[data-lang="ar"] .scene .ar-gl { fill: none; stroke: #eef5ef; stroke-width: 2; stroke-linecap: round; }
+html[data-lang="ar"] .scene .ar-f1 { fill: #d8e0c3; }
+html[data-lang="ar"] .scene .ar-f2 { fill: #cdd8b0; }
+html[data-lang="ar"] .scene .ar-m1 { fill: #c3d19c; }
+html[data-lang="ar"] .scene .ar-tl { fill: none; stroke: #b1c187; stroke-width: 2.4; stroke-linecap: round; }
+html[data-lang="ar"] .scene { color: #a1b579; --atk: #a99070; --acy: #8fa86a; --apot: #d38f71; --apf: #e58a86; }   /* <use> shapes inherit these: olive canopy = currentColor, trunk = --atk, cypress = --acy, flower pots = --apot / --apf */
+html[data-lang="ar"] .scene .ar-oc { fill: #a1b579; }
+html[data-lang="ar"] .scene .ar-tk { fill: #a99070; }
+html[data-lang="ar"] .scene .ar-st { fill: #f3e6cb; }
+html[data-lang="ar"] .scene .ar-stl { fill: #dcc9a3; }
+html[data-lang="ar"] .scene .ar-sr { fill: none; stroke: #efe0c1; stroke-width: 7.6; stroke-dasharray: 15 2 22 2 11 2 18 2; }   /* dry-stone terrace wall */
+html[data-lang="ar"] .scene .ar-cap { fill: none; stroke: #f3e7cc; stroke-width: 5; stroke-linecap: round; }   /* rounded stone coping */
+html[data-lang="ar"] .scene .ar-stp { fill: #f1e5c9; }
+html[data-lang="ar"] .scene .ar-stpl { fill: none; stroke: #d9c59e; stroke-width: 1.4; }
+html[data-lang="ar"] .scene .ar-rf { fill: #e2a385; }
+html[data-lang="ar"] .scene .ar-rfd { fill: #d38f71; }
+html[data-lang="ar"] .scene .ar-win { fill: #c9b18c; }
+html[data-lang="ar"] .scene .ar-glo { display: none; }
+html[data-lang="ar"] .scene .ar-n1 { fill: #b9c890; }
+html[data-lang="ar"] .scene .ar-n2 { fill: #adbd83; }
+html[data-lang="ar"] .scene .ar-road { fill: #e9d9b4; }
+html[data-lang="ar"] .scene .ar-lt { fill: #93ad63; }
+html[data-lang="ar"] .scene .ar-lem { fill: #f0d266; }
+html[data-lang="ar"] .scene .ar-wood { fill: none; stroke: #b99d74; stroke-width: 4; stroke-linecap: round; }
+html[data-lang="ar"] .scene .ar-vine { fill: #98ae6a; }
+html[data-lang="ar"] .scene .ar-grape { fill: #ab90ad; }
+html[data-lang="ar"] .scene .ar-fig { fill: #8ca45f; }
+html[data-lang="ar"] .scene .ar-figf { fill: #a5839f; }
+html[data-lang="ar"] .scene .ar-hull { fill: #cf9070; }
+html[data-lang="ar"] .scene .ar-sail { fill: #fffaf0; }
+html[data-lang="ar"] .scene .ar-sail2 { fill: #f3ead6; }
+html[data-lang="ar"] .scene .ar-boat { animation: ar-bob 10s ease-in-out infinite; }
+@keyframes ar-bob { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(6px, 1.5px); } }
+
+/* objects: lantern, dallah and finjan cups, lemons, jasmine, ka'ak, a tile */
+html[data-lang="ar"] .ar-o { opacity: .8; }
+html[data-lang="ar"] .ar-osh { fill: #2f2a22; opacity: .08; }
+html[data-lang="ar"] .ar-ocd { fill: none; stroke: #a8885a; stroke-width: 1.2; }
+html[data-lang="ar"] .ar-olg { fill: #ffd27a; opacity: 0; }
+html[data-lang="ar"] .ar-olw { fill: #fbefc8; }
+html[data-lang="ar"] .ar-o-lamp { left: clamp(10px, 7vw, 120px); top: 0; width: clamp(34px, 3.4vw, 46px); aspect-ratio: 1 / 3; transform-origin: 50% 0; animation: ar-swing 9s ease-in-out infinite alternate; }
+html[data-lang="ar"] .ar-o-jasmine { left: clamp(6px, 3vw, 70px); top: 36vh; width: clamp(40px, 4.4vw, 60px); aspect-ratio: 1; transform: rotate(-8deg); }
+html[data-lang="ar"] .ar-o-dallah { left: clamp(6px, 5vw, 110px); top: 58vh; width: clamp(54px, 5.6vw, 76px); aspect-ratio: 80 / 64; }
+html[data-lang="ar"] .ar-o-lemon { right: clamp(6px, 4vw, 90px); top: 38vh; width: clamp(44px, 4.4vw, 60px); aspect-ratio: 64 / 56; }
+html[data-lang="ar"] .ar-o-kaak { right: clamp(8px, 6vw, 130px); top: 56vh; width: clamp(44px, 4.4vw, 58px); aspect-ratio: 3 / 2; transform: rotate(-6deg); }
+html[data-lang="ar"] .ar-o-tile { right: clamp(10px, 3vw, 60px); top: 68vh; width: clamp(30px, 3vw, 40px); aspect-ratio: 1; transform: rotate(12deg); opacity: .7; }
+@media (max-width: 700px) {
+  /* phones: an object shows whole or not at all. Only the lemons fit, in the free space beside the page title. */
+  html[data-lang="ar"] .ar-o-lamp, html[data-lang="ar"] .ar-o-tile, html[data-lang="ar"] .ar-o-jasmine, html[data-lang="ar"] .ar-o-dallah, html[data-lang="ar"] .ar-o-kaak { display: none; }
+  html[data-lang="ar"] .ar-o-lemon { right: 8px; top: 290px; width: 40px; }
+  html[data-lang="ar"][dir="rtl"] .ar-o-lemon { right: auto; left: 8px; transform: scaleX(-1); }   /* RTL titles start on the right: the lemons move to the free side */
+  html[data-lang="ar"][dir="rtl"][data-screen="menu"] .ar-o-lemon { top: 246px; }   /* the Hebrew menu title is one line, the cards start right below it */
+  /* on the topic screen the tip box fills that band: the lemons move up into the free end of the header row */
+  html[data-lang="ar"][data-screen="topic-page"] .ar-o-lemon { top: 80px; right: 62px; }
+  html[data-lang="ar"][dir="rtl"][data-screen="topic-page"] .ar-o-lemon { right: auto; left: 62px; }
+  /* group and dictionary: a ka'ak ring in that same free spot of the header row */
+  html[data-lang="ar"][data-screen="group-page"] .ar-o-kaak, html[data-lang="ar"][data-screen="dictionary"] .ar-o-kaak { display: block; top: 82px; right: 60px; width: 44px; }
+  html[data-lang="ar"][dir="rtl"][data-screen="group-page"] .ar-o-kaak, html[data-lang="ar"][dir="rtl"][data-screen="dictionary"] .ar-o-kaak { right: auto; left: 60px; }
+  /* results: coffee to celebrate, the dallah and cups beside the stars */
+  html[data-lang="ar"][data-screen="results"] .ar-o-dallah { display: block; top: 342px; left: 16px; width: 58px; }
+  /* the sun and moon peek in from the right edge below the settings button */
+  html[data-lang="ar"] .ar-sun, html[data-lang="ar"] .ar-moon { top: 60px; right: -14px; width: 46px; }
+  /* on the menu the olive-branch banner crosses that spot: only a soft glow there, as if the branch tip catches the light */
+  html[data-lang="ar"][data-screen="menu"] .ar-sun svg, html[data-lang="ar"][data-screen="menu"] .ar-moon svg { display: none; }
+  html[data-lang="ar"][data-screen="menu"] .ar-sun { top: 50px; right: -30px; width: 76px; --ar-halo: radial-gradient(closest-side, rgba(251, 218, 130, .55), rgba(251, 227, 160, .25) 55%, rgba(251, 227, 160, 0)); }
+  html[data-lang="ar"][data-screen="menu"] .ar-moon { top: 50px; right: -30px; width: 76px; --ar-halo: radial-gradient(closest-side, rgba(246, 231, 189, .3), rgba(246, 231, 189, .1) 55%, rgba(246, 231, 189, 0)); }
+  html[data-lang="ar"].calm .ar-sun, html[data-lang="ar"].calm .ar-moon { opacity: 0; }
+  /* only the small cloud between the header pills; the big ones would land on the mascot, back button and banners */
+  html[data-lang="ar"] .ar-cl1, html[data-lang="ar"] .ar-cl3 { display: none; }
+  /* stars and twinkles stay high and at the edges, away from the title band */
+  html[data-lang="ar"] .ar-stars { inset: 0 0 85% 0; }
+  html[data-lang="ar"] .ar-tw1 { left: 3vw; top: 11vh; }
+  html[data-lang="ar"] .ar-tw2 { left: 40vw; top: 1.5vh; }
+  html[data-lang="ar"] .ar-tw3 { right: 3vw; top: 44vh; }
+  html[data-lang="ar"] .ar-tw4 { right: auto; left: 2vw; top: 58vh; }
+}
+@keyframes ar-swing { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+
+/* ambient: swallows by day, drifting olive leaves and jasmine petals, fireflies by night */
+html[data-lang="ar"] .ar-sw { left: 0; width: 22px; height: 22px; opacity: 0; animation: ar-fly 40s linear infinite; }
+html[data-lang="ar"] .ar-sw path { fill: #5d6879; }
+html[data-lang="ar"] .ar-sw1 { top: 15vh; }
+html[data-lang="ar"] .ar-sw2 { top: 21vh; width: 17px; height: 17px; animation-duration: 54s; animation-delay: -30s; }
+@keyframes ar-fly {
+  0% { transform: translate(-30px, 0); opacity: 0; }
+  4% { opacity: .5; } 46% { opacity: .5; }
+  25% { transform: translate(25vw, -3vh); }
+  50% { transform: translate(calc(100vw + 30px), 1vh); opacity: 0; }
+  100% { transform: translate(calc(100vw + 30px), 1vh); opacity: 0; }
+}
+html[data-lang="ar"] .ar-lf { width: 18px; height: 7px; opacity: 0; animation: ar-fall 26s linear infinite; }
+html[data-lang="ar"] .ar-lf path { fill: #8fab5f; }
+html[data-lang="ar"] .ar-lf1 { left: 3vw; top: -2vh; }
+html[data-lang="ar"] .ar-lf2 { left: 16vw; top: 4vh; animation-duration: 31s; animation-delay: -12s; }
+html[data-lang="ar"] .ar-lf3 { right: 18vw; top: -1vh; animation-duration: 29s; animation-delay: -6s; }
+html[data-lang="ar"] .ar-lf4 { right: 6vw; top: 8vh; animation-duration: 34s; animation-delay: -21s; }
+html[data-lang="ar"] .ar-lf2 path, html[data-lang="ar"] .ar-lf4 path { fill: #a9bf80; }
+html[data-lang="ar"] .ar-pt { width: 9px; height: 9px; opacity: 0; animation: ar-fall 28s linear infinite; }
+html[data-lang="ar"] .ar-pt path { fill: #fffaf0; stroke: #e2d6ba; stroke-width: .6; }
+html[data-lang="ar"] .ar-pt1 { left: 8vw; top: 30vh; animation-delay: -9s; }
+html[data-lang="ar"] .ar-pt2 { right: 10vw; top: 26vh; animation-duration: 33s; animation-delay: -18s; }
+@keyframes ar-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: .55; } 80% { opacity: .5; }
+  100% { transform: translate(9vw, 62vh) rotate(300deg); opacity: 0; }
+}
+html[data-lang="ar"] .ar-ff { display: none; width: 5px; height: 5px; border-radius: 50%; background: #ffe39a; box-shadow: 0 0 8px 3px rgba(255, 206, 110, .45); opacity: 0; animation: ar-ff 12s ease-in-out infinite; }
+html[data-lang="ar"] .ar-ff1 { left: 9vw; top: 64vh; }
+html[data-lang="ar"] .ar-ff2 { right: 12vw; top: 58vh; animation-duration: 15s; animation-delay: -5s; }
+html[data-lang="ar"] .ar-ff3 { left: 24vw; top: 72vh; animation-duration: 13s; animation-delay: -9s; }
+@keyframes ar-ff { 0%, 100% { opacity: 0; transform: translate(0, 0); } 30% { opacity: .9; } 50% { transform: translate(18px, -22px); opacity: .6; } 75% { opacity: .9; transform: translate(-8px, -36px); } }
+
 @media (prefers-color-scheme: dark) {
   /* a soft moonlit rim so Hudhud's dark wings and beak stay visible on the night background */
   html[data-lang="ar"] .ar-hudhud { filter: drop-shadow(0 0 1.2px rgba(255, 236, 205, .75)) drop-shadow(0 0 4px rgba(255, 220, 160, .18)); }
@@ -92,13 +248,200 @@ html[data-lang="ar"] .theme-deco.ambient .ar-amb svg { display: block; width: 10
   html[data-lang="ar"] .theme-deco .ar-leaf2 { fill: #b3c48c; }
   html[data-lang="ar"] .theme-deco .ar-olive { fill: #a3c04a; }
   html[data-lang="ar"] .theme-deco .ar-olive2 { fill: #8a5272; }
-  html[data-lang="ar"] .theme-deco .ar-shadow { fill: #000; opacity: .35; }
   html[data-lang="ar"] .theme-deco .ar-cord { stroke: #b39a6a; }
   html[data-lang="ar"] .theme-deco .ar-glow { fill: #ffb84d; opacity: .11; }
-  html[data-lang="ar"] .theme-deco.ambient .ar-amb { animation-name: ar-amb-d; }
-  @keyframes ar-amb-d { 0%, 100% { opacity: 0; transform: translateY(8px) rotate(0deg); } 50% { opacity: .3; transform: translateY(-8px) rotate(45deg); } }
+
+  /* night sky */
+  html[data-lang="ar"] .ar-sun, html[data-lang="ar"] .ar-cl, html[data-lang="ar"] .ar-sw { display: none; }
+  html[data-lang="ar"] .ar-moon, html[data-lang="ar"] .ar-stars, html[data-lang="ar"] .ar-tw, html[data-lang="ar"] .ar-ff { display: block; }
+  /* night scene: moonlit hills, lit windows and a glowing gate */
+  html[data-lang="ar"] .scene .ar-sea { fill: #1f2c3e; }
+  html[data-lang="ar"] .scene .ar-gl { stroke: #5a7498; opacity: .7; }
+  html[data-lang="ar"] .scene .ar-f1 { fill: #262d3a; }
+  html[data-lang="ar"] .scene .ar-f2 { fill: #29322f; }
+  html[data-lang="ar"] .scene .ar-m1 { fill: #2c3628; stroke: #42503a; stroke-width: 1.6; }   /* a faint moonlit rim */
+  html[data-lang="ar"] .scene .ar-tl { stroke: #37432f; }
+  html[data-lang="ar"] .scene { color: #3c4a31; --atk: #43392b; --acy: #33402b; --apot: #5e3e33; --apf: #8a5452; }
+  html[data-lang="ar"] .scene .ar-oc { fill: #3c4a31; }
+  html[data-lang="ar"] .scene .ar-tk { fill: #43392b; }
+  html[data-lang="ar"] .scene .ar-st { fill: #4a4335; }
+  html[data-lang="ar"] .scene .ar-stl { fill: #322e26; }
+  html[data-lang="ar"] .scene .ar-sr { stroke: #403a2f; }
+  html[data-lang="ar"] .scene .ar-cap { stroke: #4d4638; }
+  html[data-lang="ar"] .scene .ar-stp { fill: #463f33; }
+  html[data-lang="ar"] .scene .ar-stpl { stroke: #34302a; }
+  html[data-lang="ar"] .scene .ar-rf { fill: #5e3e33; }
+  html[data-lang="ar"] .scene .ar-rfd { fill: #4e332b; }
+  html[data-lang="ar"] .scene .ar-win { fill: #f0c264; }
+  html[data-lang="ar"] .scene .ar-glo { display: inline; fill: #f0c264; opacity: .13; }
+  html[data-lang="ar"] .scene .ar-n1 { fill: #252b20; }
+  html[data-lang="ar"] .scene .ar-n2 { fill: #20251b; }
+  html[data-lang="ar"] .scene .ar-road { fill: #302d25; }
+  html[data-lang="ar"] .scene .ar-lt { fill: #34422a; }
+  html[data-lang="ar"] .scene .ar-lem { fill: #8a7a3e; }
+  html[data-lang="ar"] .scene .ar-wood { stroke: #4a4031; }
+  html[data-lang="ar"] .scene .ar-vine { fill: #35432d; }
+  html[data-lang="ar"] .scene .ar-grape { fill: #4c3c52; }
+  html[data-lang="ar"] .scene .ar-fig { fill: #32402a; }
+  html[data-lang="ar"] .scene .ar-figf { fill: #4b3b4a; }
+  html[data-lang="ar"] .scene .ar-hull { fill: #6a4636; }
+  html[data-lang="ar"] .scene .ar-sail { fill: #8e8a7e; }
+  html[data-lang="ar"] .scene .ar-sail2 { fill: #77746a; }
+  /* night objects: softer, and the lantern glows */
+  html[data-lang="ar"] .ar-o { opacity: .55; }
+  html[data-lang="ar"] .ar-o-lamp { opacity: .85; }
+  html[data-lang="ar"] .ar-olg { opacity: .22; }
+  html[data-lang="ar"] .ar-olw { fill: #ffe7a0; }
+  html[data-lang="ar"] .ar-osh { fill: #000; opacity: .3; }
+  html[data-lang="ar"] .ar-lf path { fill: #6f8a45; }
+  html[data-lang="ar"] .ar-pt { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   html[data-lang="ar"] .ar-hudhud *, html[data-lang="ar"] .theme-deco, html[data-lang="ar"] .theme-deco * { animation: none !important; }
-  html[data-lang="ar"] .theme-deco.ambient .ar-amb { opacity: .15; }
 }
+
+/* ---------- tap the world: sky pieces and side objects react (see docs/theme-format.md section 4) ---------- */
+/* finger-sized hit areas for the small pieces (the drawings keep their size and place) */
+html[data-lang="ar"] .ar-tw { box-sizing: content-box; padding: 17px; margin: -17px; }   /* stays 36px+ even at the twinkle's .75 low point */
+html[data-lang="ar"] .ar-cl::before, html[data-lang="ar"] .ar-o-kaak::before, html[data-lang="ar"] .ar-o-tile::before { content: ""; position: absolute; inset: -8px; }
+/* sun: a squishy boing and a warm flash; from the third tap in a row it spins */
+html[data-lang="ar"] .ar-sg, html[data-lang="ar"] .ar-mg { opacity: 0; transform-box: fill-box; transform-origin: center; }
+html[data-lang="ar"] .ar-sg { fill: url(#ar-sgr); }
+html[data-lang="ar"] .ar-mg { fill: url(#ar-mgr); }
+html[data-lang="ar"] .ar-sun svg, html[data-lang="ar"] .ar-moon svg { overflow: visible; }
+html[data-lang="ar"] .ar-sun.poked svg { animation: ar-p-boing 1s ease-out; }
+html[data-lang="ar"] .ar-sun.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ar-p-spin 1.2s cubic-bezier(.3, .1, .3, 1); }
+html[data-lang="ar"] .ar-sun.poked .ar-sg, html[data-lang="ar"] .ar-moon.poked .ar-mg { animation: ar-p-halo 1.3s ease-out; }
+/* moon: a sleepy wobble and a glow */
+html[data-lang="ar"] .ar-moon.poked svg { animation: ar-p-wobble 1.2s ease-in-out; }
+/* clouds: puff up like dough; from the third tap they hop too */
+html[data-lang="ar"] .ar-cl svg { transform-origin: 50% 90%; }
+html[data-lang="ar"] .ar-cl.poked svg { animation: ar-p-puff 1s ease-out; }
+html[data-lang="ar"] .ar-cl.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ar-p-hop2 1.1s ease-out; }
+/* twinkle stars: a bright burst and a quarter turn */
+html[data-lang="ar"] .ar-tw.poked svg { animation: ar-p-twinkle .9s ease-out; }
+/* lantern (fanous): swings on its cord and glows; harder from the third tap */
+html[data-lang="ar"] .ar-o-lamp svg { transform-origin: 50% 0; overflow: visible; }
+html[data-lang="ar"] .ar-olp { fill: url(#ar-lgr); opacity: 0; }
+html[data-lang="ar"] .ar-o-lamp.poked svg { animation: ar-p-swing 1.5s ease-in-out; }
+html[data-lang="ar"] .ar-o-lamp.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ar-p-swing2 1.5s ease-in-out; }
+html[data-lang="ar"] .ar-o-lamp.poked .ar-olp { animation: ar-p-lamp 1.5s ease-in-out; }
+/* dallah: the pot hops, the lid rattles, a wisp of steam leaves the spout; from the third tap the finjan cups clink */
+html[data-lang="ar"] .ar-o-dallah svg { overflow: visible; }
+html[data-lang="ar"] .ar-dpot, html[data-lang="ar"] .ar-dlid, html[data-lang="ar"] .ar-dc, html[data-lang="ar"] .ar-dst { transform-box: fill-box; transform-origin: 50% 100%; }
+html[data-lang="ar"] .ar-dst { fill: none; stroke: #b5a27e; stroke-width: 1.4; stroke-linecap: round; opacity: 0; }
+html[data-lang="ar"] .ar-o-dallah.poked .ar-dpot { animation: ar-p-hop .9s ease-out; }
+html[data-lang="ar"] .ar-o-dallah.poked .ar-dlid { animation: ar-p-rattle .9s ease-out; }
+html[data-lang="ar"] .ar-o-dallah.poked .ar-dst { animation: ar-p-wisp 1.3s ease-out; }
+html[data-lang="ar"] .ar-o-dallah.poked:not([data-taps="1"]):not([data-taps="2"]) .ar-dc1 { animation: ar-p-clink1 .9s ease-in-out; }
+html[data-lang="ar"] .ar-o-dallah.poked:not([data-taps="1"]):not([data-taps="2"]) .ar-dc2 { animation: ar-p-clink2 .9s ease-in-out; }
+/* lemons: bob on their branch; from the third tap the whole sprig shakes.
+   Their empty top-right corner is cut out of the tap area, so the night star twinkling there stays tappable. */
+html[data-lang="ar"] .ar-o-lemon { clip-path: polygon(-60% -60%, 86% -60%, 86% 55%, 160% 55%, 160% 160%, -60% 160%); }
+html[data-lang="ar"] .ar-lems { transform-box: view-box; transform-origin: 34px 22px; }
+html[data-lang="ar"] .ar-o-lemon svg { overflow: visible; transform-origin: 6% 14%; }
+html[data-lang="ar"] .ar-o-lemon.poked .ar-lems { animation: ar-p-bob 1.2s ease-out; }
+html[data-lang="ar"] .ar-o-lemon.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ar-p-jiggle 1s ease-in-out; }
+/* jasmine: the sprig sways and lets a petal go */
+html[data-lang="ar"] .ar-o-jasmine svg { overflow: visible; transform-origin: 11% 93%; }
+html[data-lang="ar"] .ar-jp { fill: #fffaf2; stroke: #ddd0b2; stroke-width: .7; opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; }
+html[data-lang="ar"] .ar-o-jasmine.poked svg { animation: ar-p-sway 1.3s ease-in-out; }
+html[data-lang="ar"] .ar-o-jasmine.poked .ar-jp { animation: ar-p-petal 1.5s ease-in; }
+/* ka'ak: tossed and flipped like a pancake, the shadow shrinks below; a double flip from the third tap */
+html[data-lang="ar"] .ar-o-kaak svg { overflow: visible; }
+html[data-lang="ar"] .ar-kr, html[data-lang="ar"] .ar-o-kaak .ar-osh { transform-box: fill-box; transform-origin: center; }
+html[data-lang="ar"] .ar-o-kaak.poked .ar-kr { animation: ar-p-toss 1s ease-in-out; }
+html[data-lang="ar"] .ar-o-kaak.poked .ar-osh { animation: ar-p-shadow 1s ease-in-out; }
+html[data-lang="ar"] .ar-o-kaak.poked:not([data-taps="1"]):not([data-taps="2"]) .ar-kr { animation: ar-p-toss2 1.3s ease-in-out; }
+html[data-lang="ar"] .ar-o-kaak.poked:not([data-taps="1"]):not([data-taps="2"]) .ar-osh { animation: ar-p-shadow 1.3s ease-in-out; }
+/* mosaic tile: turns a quarter (the star pattern lands the same); a full spin from the third tap */
+html[data-lang="ar"] .ar-o-tile.poked svg { animation: ar-p-turn .9s cubic-bezier(.3, 1.6, .6, 1); }
+html[data-lang="ar"] .ar-o-tile.poked:not([data-taps="1"]):not([data-taps="2"]) svg { animation: ar-p-turn2 1.2s ease-in-out; }
+@media (max-width: 700px) {
+  /* phones, menu: the sun and moon are only a glow there, so the glow itself pulses */
+  html[data-lang="ar"][data-screen="menu"] .ar-sun.poked, html[data-lang="ar"][data-screen="menu"] .ar-moon.poked { animation: ar-p-pulse 1s ease-out; }
+}
+@keyframes ar-p-boing { 0%, 100% { transform: scale(1, 1); } 18% { transform: scale(1.18, .86); } 38% { transform: scale(.9, 1.12); } 58% { transform: scale(1.06, .95); } 78% { transform: scale(.98, 1.02); } }
+@keyframes ar-p-spin { 0% { transform: rotate(0) scale(1); } 45% { transform: rotate(200deg) scale(1.14); } 100% { transform: rotate(360deg) scale(1); } }
+@keyframes ar-p-halo { 0% { opacity: 0; transform: scale(.7); } 30% { opacity: .6; transform: scale(1.08); } 100% { opacity: 0; transform: scale(1.15); } }
+@keyframes ar-p-wobble { 0%, 100% { transform: rotate(0) scale(1); } 15% { transform: rotate(-11deg) scale(1.07); } 35% { transform: rotate(9deg) scale(1.04); } 55% { transform: rotate(-6deg) scale(1.02); } 75% { transform: rotate(3deg) scale(1); } }
+@keyframes ar-p-puff { 0%, 100% { transform: scale(1, 1); } 22% { transform: scale(1.14, .86); } 48% { transform: scale(.93, 1.1); } 74% { transform: scale(1.04, .97); } }
+@keyframes ar-p-hop2 { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.14, .84); } 42% { transform: translateY(-16px) scale(.94, 1.08); } 70% { transform: translateY(0) scale(1.1, .9); } 86% { transform: translateY(0) scale(.98, 1.03); } }
+@keyframes ar-p-twinkle { 0% { transform: scale(1) rotate(0); } 35% { transform: scale(2.4) rotate(40deg); } 100% { transform: scale(1) rotate(90deg); } }
+@keyframes ar-p-swing { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(15deg); } 35% { transform: rotate(-11deg); } 55% { transform: rotate(7deg); } 75% { transform: rotate(-4deg); } 90% { transform: rotate(1.5deg); } }
+@keyframes ar-p-swing2 { 0%, 100% { transform: rotate(0); } 14% { transform: rotate(26deg); } 32% { transform: rotate(-20deg); } 50% { transform: rotate(13deg); } 68% { transform: rotate(-7deg); } 85% { transform: rotate(3deg); } }
+@keyframes ar-p-lamp { 30% { opacity: .85; } 70% { opacity: .6; } }
+@keyframes ar-p-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.08, .9); } 40% { transform: translateY(-7px) scale(.96, 1.05); } 65% { transform: translateY(0) scale(1.05, .95); } 82% { transform: translateY(0) scale(.99, 1.01); } }
+@keyframes ar-p-rattle { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-4px) rotate(-8deg); } 45% { transform: translateY(-1px) rotate(6deg); } 60% { transform: translateY(-3px) rotate(-4deg); } 75% { transform: translateY(0) rotate(2deg); } }
+@keyframes ar-p-wisp { 0% { opacity: 0; transform: translateY(4px) scaleY(.6); } 30% { opacity: .9; } 100% { opacity: 0; transform: translateY(-10px) scaleY(1.2); } }
+@keyframes ar-p-clink1 { 0%, 100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-4px) rotate(16deg); } 55% { transform: translateY(-3px) rotate(10deg); } }
+@keyframes ar-p-clink2 { 0%, 100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-4px) rotate(-16deg); } 55% { transform: translateY(-3px) rotate(-10deg); } }
+@keyframes ar-p-bob { 0%, 100% { transform: translateY(0) rotate(0); } 18% { transform: translateY(3px) rotate(10deg); } 40% { transform: translateY(-1px) rotate(-8deg); } 60% { transform: translateY(1px) rotate(5deg); } 80% { transform: translateY(0) rotate(-2deg); } }
+@keyframes ar-p-jiggle { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-7deg); } 35% { transform: rotate(6deg); } 55% { transform: rotate(-4deg); } 75% { transform: rotate(2deg); } }
+@keyframes ar-p-sway { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(8deg); } 45% { transform: rotate(-6deg); } 70% { transform: rotate(3deg); } }
+@keyframes ar-p-petal { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 12% { opacity: 1; } 40% { transform: translate(14px, 8px) rotate(120deg); } 80% { opacity: .9; } 100% { opacity: 0; transform: translate(20px, 32px) rotate(300deg); } }
+@keyframes ar-p-toss { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(2px) scale(1.1, .85); } 48% { transform: translateY(-20px) scale(1, -1); } 80% { transform: translateY(0) scale(1, 1); } 88% { transform: translateY(0) scale(1.08, .9); } }
+@keyframes ar-p-toss2 { 0%, 100% { transform: translateY(0) scale(1, 1); } 10% { transform: translateY(2px) scale(1.12, .84); } 30% { transform: translateY(-22px) scale(1, -1); } 48% { transform: translateY(-30px) scale(1, 1); } 66% { transform: translateY(-16px) scale(1, -1); } 82% { transform: translateY(0) scale(1, 1); } 90% { transform: translateY(0) scale(1.1, .88); } }
+@keyframes ar-p-shadow { 0%, 100% { transform: scale(1); } 45% { transform: scale(.55); } }
+@keyframes ar-p-turn { from { transform: rotate(0); } to { transform: rotate(90deg); } }
+@keyframes ar-p-turn2 { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(200deg) scale(1.25); } 100% { transform: rotate(360deg) scale(1); } }
+@keyframes ar-p-pulse { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.3); } 70% { transform: scale(.92); } }
+
+/* hidden surprises (added by onPoke in js/themes/ar.js, removed when done) */
+html[data-lang="ar"] .ar-sx { position: absolute; inset: 0; pointer-events: none; }
+html[data-lang="ar"].calm #theme-layer > .ar-sx { opacity: 0; }
+/* sun x5: a flock of swallows in a loose V */
+html[data-lang="ar"] .ar-sxv { left: 0; top: 11vh; width: 0; height: 0; opacity: 0; animation: ar-sx-fly 3.8s linear forwards; }
+html[data-lang="ar"] .ar-sxb { width: 26px; height: 26px; transform-origin: 50% 50%; animation: ar-sx-flap .3s ease-in-out infinite alternate; }
+html[data-lang="ar"] .ar-sxb path { fill: #5d6879; }
+/* they burst out of the sun (right side) and fly off to the left; scaleX(-1) turns the birds and the V to face that way */
+@keyframes ar-sx-fly { 0% { opacity: 0; transform: translate(calc(92vw - 60px), 5vh) scaleX(-1); } 10% { opacity: 1; } 50% { transform: translate(45vw, 0) scaleX(-1); } 100% { opacity: 1; transform: translate(-150px, -4vh) scaleX(-1); } }
+@keyframes ar-sx-flap { from { transform: scaleY(1); } to { transform: scaleY(.4); } }
+/* moon x3: shooting stars */
+html[data-lang="ar"] .ar-sxm { width: 0; height: 0; transform: rotate(152deg); }
+html[data-lang="ar"] .ar-sxm1 { left: 84vw; top: 5vh; }
+html[data-lang="ar"] .ar-sxm2 { left: 66vw; top: 3vh; }
+html[data-lang="ar"] .ar-sxm3 { left: 95vw; top: 19vh; }
+html[data-lang="ar"] .ar-sxm i { left: 0; top: -1px; width: 120px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255, 243, 214, 0), rgba(255, 243, 214, .9) 85%, #fff); opacity: 0; animation: ar-sx-streak 1s ease-in forwards; }
+html[data-lang="ar"] .ar-sxm i::after { content: ""; position: absolute; right: -2px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 3px rgba(255, 230, 170, .6); }
+html[data-lang="ar"] .ar-sxm2 i { width: 90px; animation-delay: .55s; }
+html[data-lang="ar"] .ar-sxm3 i { animation-delay: 1.15s; }
+@keyframes ar-sx-streak { 0% { transform: translateX(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateX(36vw); opacity: 0; } }
+/* dallah x3: steam curls over the pot, sparkles where the cups clink */
+html[data-lang="ar"] .ar-sx-coffee { inset: auto; }
+html[data-lang="ar"] .ar-sxst { position: absolute; left: 0; top: 0; width: 60%; height: 57.2%; overflow: visible; }
+html[data-lang="ar"] .ar-sxst path { fill: none; stroke: #b5a27e; stroke-width: 2; stroke-linecap: round; opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: ar-sx-steam 1.25s ease-out 2; }
+html[data-lang="ar"] .ar-sxst path:nth-child(2) { animation-delay: .3s; }
+html[data-lang="ar"] .ar-sxst path:nth-child(3) { animation-delay: .6s; }
+html[data-lang="ar"] .ar-sxk { width: 14px; height: 14px; opacity: 0; animation: ar-sx-spark .8s ease-out forwards; }
+html[data-lang="ar"] .ar-sxk path { fill: #e9b949; }
+html[data-lang="ar"] .ar-sxk1 { left: 74%; top: 74%; animation-delay: .3s; }
+html[data-lang="ar"] .ar-sxk2 { left: 86%; top: 69%; width: 11px; height: 11px; animation-delay: .5s; }
+@keyframes ar-sx-steam { 0% { opacity: 0; transform: translateY(8px) scaleY(.6); } 30% { opacity: .8; } 100% { opacity: 0; transform: translateY(-12px) scaleY(1.05); } }
+@keyframes ar-sx-spark { 0% { opacity: 0; transform: scale(0) rotate(0); } 40% { opacity: 1; transform: scale(1.3) rotate(45deg); } 100% { opacity: 0; transform: scale(0) rotate(90deg); } }
+/* jasmine x3: a shower of jasmine blossoms */
+html[data-lang="ar"] .ar-sxj { top: -24px; opacity: 0; animation-name: ar-sx-fall; animation-timing-function: linear; animation-fill-mode: forwards; }
+/* light sky: a deeper outline and a soft shadow so the white blossoms stand out on the cream sky (dark mode resets both) */
+html[data-lang="ar"] .ar-sxjp path { fill: #fffaf2; stroke: #c9b48e; stroke-width: 1; }
+html[data-lang="ar"] .ar-sxj svg { filter: drop-shadow(0 1px 1.5px rgba(122, 96, 52, .45)); transform: scale(1.25); }
+html[data-lang="ar"] .ar-sxj circle { fill: #f0cf6a; }
+@keyframes ar-sx-fall { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 10% { opacity: .95; } 50% { transform: translate(4vw, 42vh) rotate(200deg); } 85% { opacity: .9; } 100% { opacity: 0; transform: translate(1vw, 84vh) rotate(380deg); } }
+
+@media (prefers-color-scheme: dark) {
+  html[data-lang="ar"] .ar-dst, html[data-lang="ar"] .ar-sxst path { stroke: #efe3c8; }
+  html[data-lang="ar"] .ar-sxk path { fill: #ffe08a; }
+  html[data-lang="ar"] .ar-sxjp path { stroke: #bfb093; stroke-width: .7; }
+  html[data-lang="ar"] .ar-sxj svg { filter: none; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* taps: no movement, only a soft glow; no surprises */
+  html[data-lang="ar"] #theme-layer [data-poke].poked, html[data-lang="ar"] #theme-layer [data-poke].poked svg, html[data-lang="ar"] #theme-layer [data-poke].poked svg * { animation: none !important; }
+  html[data-lang="ar"] #theme-layer .ar-o.poked { animation: ar-p-lit 1.4s ease-in-out !important; }
+  html[data-lang="ar"] #theme-layer .ar-sun.poked .ar-sg, html[data-lang="ar"] #theme-layer .ar-moon.poked .ar-mg, html[data-lang="ar"] #theme-layer .ar-o-lamp.poked .ar-olp { animation: ar-p-glow 1.4s ease-in-out !important; }
+  html[data-lang="ar"] #theme-layer .ar-cl.poked svg { animation: ar-p-fade 1.4s ease-in-out !important; }
+  html[data-lang="ar"] #theme-layer .ar-tw.poked path { fill: #ffffff; }
+  html[data-lang="ar"] .ar-sx { display: none; }
+}
+@keyframes ar-p-lit { 40% { opacity: 1; } }
+@keyframes ar-p-glow { 40% { opacity: .5; } }
+@keyframes ar-p-fade { 50% { opacity: .55; } }
